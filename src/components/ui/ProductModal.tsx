@@ -42,9 +42,9 @@ export default function ProductModal() {
               {product.description}
             </p>
             <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-6">
-              <span className="text-xl font-bold text-[#f2c300]">{product.price}</span>
+              <span className="text-xl font-bold text-[#f2c300]">{product.price ?? ""}</span>
               <button className="rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-wide text-black transition-transform hover:scale-105 active:scale-95">
-                Ajouter au panier
+                {product.price ? "Ajouter au panier" : "En savoir plus"}
               </button>
             </div>
           </div>
