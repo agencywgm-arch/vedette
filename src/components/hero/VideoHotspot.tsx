@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
 import type { Product } from "@/data/products";
-import { overlayPosition, type ContainRect } from "@/lib/overlay-position";
+import { overlayPosition, overlaySize, type ContainRect } from "@/lib/overlay-position";
 
 export default function VideoHotspot({
   product,
@@ -23,6 +23,7 @@ export default function VideoHotspot({
   const y = isMobile ? product.mobileY ?? product.y : product.y;
   const visible = progress >= product.revealAt;
   const pos = overlayPosition(x, y, isMobile, containRect);
+  const size = overlaySize(product.highlightWidth, product.highlightHeight, isMobile, containRect);
 
   return (
     <button
@@ -33,14 +34,20 @@ export default function VideoHotspot({
       className="absolute z-20"
       style={{
         ...pos,
+        ...size,
         transform: "translate(-50%, -50%)",
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
-        transition: "opacity 0.4s ease, transform 0.2s ease",
+        transition: "opacity 0.4s ease",
       }}
       aria-label={product.name}
     >
-      <span className={`hotspot-badge ${hovered ? "is-hovered" : ""}`}>+</span>
+      <span className={`hotspot-frame ${hovered ? "is-hovered" : ""}`}>
+        <span className="hotspot-corner hotspot-corner-tl" />
+        <span className="hotspot-corner hotspot-corner-tr" />
+        <span className="hotspot-corner hotspot-corner-bl" />
+        <span className="hotspot-corner hotspot-corner-br" />
+      </span>
     </button>
   );
 }

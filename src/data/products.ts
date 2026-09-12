@@ -23,6 +23,9 @@ export interface Product {
   revealAt: number;
   /** Optional close-up photo of the display/shelf, shown at the top of the product panel. */
   image?: string;
+  /** Size of the highlight frame drawn around the item, as a percentage of the video frame. */
+  highlightWidth: number;
+  highlightHeight: number;
 }
 
 /** Hotspots live in the collection phase; revealAtLocal is a fraction of
@@ -46,6 +49,8 @@ export const products: Product[] = [
     mobileY: 37.2,
     revealAt: revealInCollection(0.8),
     image: "/products/shelf-display.jpg",
+    highlightWidth: 8,
+    highlightHeight: 20,
   },
   {
     id: "jparis-tee",
@@ -60,6 +65,8 @@ export const products: Product[] = [
     mobileY: 37.2,
     revealAt: revealInCollection(0.86),
     image: "/products/shelf-display.jpg",
+    highlightWidth: 8,
+    highlightHeight: 20,
   },
   {
     id: "snapback",
@@ -74,6 +81,8 @@ export const products: Product[] = [
     mobileY: 47.7,
     revealAt: revealInCollection(0.83),
     image: "/products/shelf-display.jpg",
+    highlightWidth: 8,
+    highlightHeight: 10,
   },
   {
     id: "cabine",
@@ -86,5 +95,7 @@ export const products: Product[] = [
     mobileX: 89,
     mobileY: 51.8,
     revealAt: revealInCollection(0.9),
+    highlightWidth: 14,
+    highlightHeight: 26,
   },
 ];

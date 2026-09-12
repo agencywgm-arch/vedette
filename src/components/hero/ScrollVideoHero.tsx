@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { useSceneStore } from "@/store/useSceneStore";
 import { products } from "@/data/products";
 import {
+  COLLECTION_CUT_AT,
   DIALOGUE_AT,
   FAST_MODE_TARGET,
   TOTAL_SCROLL_VH,
@@ -84,6 +85,7 @@ export default function ScrollVideoHero() {
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
   const lastPhaseRef = useRef<Phase>("entrance");
   const hasTransitionedRef = useRef(false);
+  const lastGlobalProgressRef = useRef(0);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -177,6 +179,19 @@ export default function ScrollVideoHero() {
         setShowPhaseTransition(true);
       }
       lastPhaseRef.current = phase;
+
+      // The collection clip has its own internal hard cut (camera angle
+      // jump) partway through — mask it too, every time it's crossed, in
+      // either scroll direction.
+      const prevGlobal = lastGlobalProgressRef.current;
+      const crossedInternalCut =
+        phase === "collection" &&
+        ((prevGlobal < COLLECTION_CUT_AT && progress >= COLLECTION_CUT_AT) ||
+          (prevGlobal > COLLECTION_CUT_AT && progress <= COLLECTION_CUT_AT));
+      if (crossedInternalCut) {
+        setShowPhaseTransition(true);
+      }
+      lastGlobalProgressRef.current = progress;
 
       setScrollOffset(progress);
       const stage = stageForProgress(progress);

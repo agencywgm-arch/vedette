@@ -52,6 +52,16 @@ export const GUARD_ANCHOR = { x: 30, y: 34, mobileX: 27, mobileY: 55 };
 /** "Mode rapide" skips straight to the start of the collection reveal. */
 export const FAST_MODE_TARGET = BOUNDARY + 0.01;
 
+/**
+ * The collection clip itself has a hard camera-angle jump cut partway
+ * through (around 53% of its own runtime) — detected via ffmpeg scene
+ * detection, confirmed with extracted frames. Expressed as a fraction of
+ * the collection phase, then converted to a global fraction so the same
+ * loading bumper used for the entrance/collection handoff can mask it too.
+ */
+const COLLECTION_CUT_LOCAL = 0.53;
+export const COLLECTION_CUT_AT = BOUNDARY + COLLECTION_CUT_LOCAL * (1 - BOUNDARY);
+
 export type SceneStageLabel = "street" | "approach" | "threshold" | "collection";
 
 export function stageForProgress(progress: number): SceneStageLabel {
