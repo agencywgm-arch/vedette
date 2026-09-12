@@ -16,8 +16,6 @@ export default function VideoHotspot({
   const [hovered, setHovered] = useState(false);
   const setActiveProductId = useSceneStore((s) => s.setActiveProductId);
 
-  if (isMobile && product.hideOnMobile) return null;
-
   const x = isMobile ? product.mobileX ?? product.x : product.x;
   const y = isMobile ? product.mobileY ?? product.y : product.y;
   const visible = progress >= product.revealAt;

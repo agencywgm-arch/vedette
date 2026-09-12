@@ -8,11 +8,14 @@ export interface Product {
   /** Position of the clickable hotspot as a percentage of the video frame (desktop/landscape clip). */
   x: number;
   y: number;
-  /** Position within the vertical (mobile) clip, which is cropped/panned differently. Falls back to x/y. */
+  /**
+   * Position within the vertical (mobile) clip. The mobile clip is the same
+   * frame letterboxed onto a 9:19.5 canvas (blurred fill top/bottom, full
+   * width preserved), so mobileX == x and mobileY is x/y remapped into the
+   * sharp band that runs from ~34.6% to ~65.4% of the canvas height.
+   */
   mobileX?: number;
   mobileY?: number;
-  /** Not visible in the vertical clip's framing — skip the hotspot on mobile. */
-  hideOnMobile?: boolean;
   /** Scroll progress (0..1) at which this hotspot becomes visible. */
   revealAt: number;
 }
@@ -28,8 +31,8 @@ export const products: Product[] = [
     tag: "Best-seller",
     x: 18,
     y: 42,
-    mobileX: 15,
-    mobileY: 35,
+    mobileX: 18,
+    mobileY: 47.5,
     revealAt: 0.84,
   },
   {
@@ -41,8 +44,8 @@ export const products: Product[] = [
     price: "45€",
     x: 22,
     y: 68,
-    mobileX: 12,
-    mobileY: 75,
+    mobileX: 22,
+    mobileY: 55.5,
     revealAt: 0.9,
   },
   {
@@ -54,8 +57,8 @@ export const products: Product[] = [
     price: "39€",
     x: 16,
     y: 30,
-    mobileX: 20,
-    mobileY: 52,
+    mobileX: 16,
+    mobileY: 43.8,
     revealAt: 0.9,
   },
   {
@@ -66,8 +69,8 @@ export const products: Product[] = [
       "Essaie avant d'acheter — cabine privée avec canapé d'attente, juste devant l'écran vedette.",
     x: 37,
     y: 32,
-    mobileX: 88,
-    mobileY: 30,
+    mobileX: 37,
+    mobileY: 44.5,
     revealAt: 0.94,
   },
   {
@@ -79,7 +82,8 @@ export const products: Product[] = [
     price: "Dès 2€",
     x: 78,
     y: 55,
-    hideOnMobile: true,
+    mobileX: 78,
+    mobileY: 51.5,
     revealAt: 0.97,
   },
 ];
