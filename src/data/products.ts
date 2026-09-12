@@ -5,9 +5,14 @@ export interface Product {
   description: string;
   price?: string;
   tag?: string;
-  /** Position of the clickable hotspot as a percentage of the video frame. */
+  /** Position of the clickable hotspot as a percentage of the video frame (desktop/landscape clip). */
   x: number;
   y: number;
+  /** Position within the vertical (mobile) clip, which is cropped/panned differently. Falls back to x/y. */
+  mobileX?: number;
+  mobileY?: number;
+  /** Not visible in the vertical clip's framing — skip the hotspot on mobile. */
+  hideOnMobile?: boolean;
   /** Scroll progress (0..1) at which this hotspot becomes visible. */
   revealAt: number;
 }
@@ -23,6 +28,8 @@ export const products: Product[] = [
     tag: "Best-seller",
     x: 18,
     y: 42,
+    mobileX: 15,
+    mobileY: 35,
     revealAt: 0.84,
   },
   {
@@ -34,6 +41,8 @@ export const products: Product[] = [
     price: "45€",
     x: 22,
     y: 68,
+    mobileX: 12,
+    mobileY: 75,
     revealAt: 0.9,
   },
   {
@@ -45,6 +54,8 @@ export const products: Product[] = [
     price: "39€",
     x: 16,
     y: 30,
+    mobileX: 20,
+    mobileY: 52,
     revealAt: 0.9,
   },
   {
@@ -55,6 +66,8 @@ export const products: Product[] = [
       "Essaie avant d'acheter — cabine privée avec canapé d'attente, juste devant l'écran vedette.",
     x: 37,
     y: 32,
+    mobileX: 88,
+    mobileY: 30,
     revealAt: 0.94,
   },
   {
@@ -66,6 +79,7 @@ export const products: Product[] = [
     price: "Dès 2€",
     x: 78,
     y: 55,
+    hideOnMobile: true,
     revealAt: 0.97,
   },
 ];
