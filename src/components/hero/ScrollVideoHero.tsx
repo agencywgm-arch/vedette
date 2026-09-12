@@ -15,6 +15,10 @@ import {
 import { type ContainRect } from "@/lib/overlay-position";
 import VideoHotspot from "./VideoHotspot";
 import DialogueBubble from "./DialogueBubble";
+import PhaseTransition from "./PhaseTransition";
+
+const PHASE_TRANSITION_MIN_MS = 350;
+const PHASE_TRANSITION_MAX_MS = 1500;
 
 const MOBILE_QUERY = "(max-width: 767px)";
 // Intrinsic size of the vertical clips (public/videos/*-vertical.*), needed
@@ -86,6 +90,9 @@ export default function ScrollVideoHero() {
   const rafRef = useRef<number | null>(null);
   const [containRect, setContainRect] = useState<ContainRect | null>(null);
   const [activePhase, setActivePhase] = useState<Phase>("entrance");
+  const [showPhaseTransition, setShowPhaseTransition] = useState(false);
+  const lastPhaseRef = useRef<Phase>("entrance");
+  const hasTransitionedRef = useRef(false);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -164,6 +171,18 @@ export default function ScrollVideoHero() {
       scrubVideo(phase === "collection" ? collectionVideoRef.current : null, localProgress);
       setActivePhase((prev) => (prev === phase ? prev : phase));
 
+      // Mask the hard cut between the two clips with a brief branded loading
+      // bumper the first time the visitor crosses into the collection phase.
+      if (
+        phase === "collection" &&
+        lastPhaseRef.current === "entrance" &&
+        !hasTransitionedRef.current
+      ) {
+        hasTransitionedRef.current = true;
+        setShowPhaseTransition(true);
+      }
+      lastPhaseRef.current = phase;
+
       setScrollOffset(progress);
       const stage = stageForProgress(progress);
       if (stage !== lastStageRef.current) {
@@ -185,6 +204,44 @@ export default function ScrollVideoHero() {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
   }, [setScrollOffset, setStage, isMobile, entryMode]);
+
+  // Hold the loading bumper up until the collection clip actually has a
+  // frame ready to paint, so the visitor never sees the raw poster's own
+  // logo bands flash underneath it — bounded so a slow connection doesn't
+  // hang the bumper forever.
+  useEffect(() => {
+    if (!showPhaseTransition) return;
+    const video = collectionVideoRef.current;
+    const start = performance.now();
+    let settled = false;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      const elapsed = performance.now() - start;
+      hideTimer = setTimeout(
+        () => setShowPhaseTransition(false),
+        Math.max(0, PHASE_TRANSITION_MIN_MS - elapsed)
+      );
+    };
+
+    const maxTimer = setTimeout(finish, PHASE_TRANSITION_MAX_MS);
+
+    if (video && video.readyState >= 3) {
+      finish();
+    } else if (video) {
+      video.addEventListener("canplay", finish, { once: true });
+    } else {
+      finish();
+    }
+
+    return () => {
+      clearTimeout(maxTimer);
+      if (hideTimer != null) clearTimeout(hideTimer);
+      video?.removeEventListener("canplay", finish);
+    };
+  }, [showPhaseTransition]);
 
   return (
     <div ref={wrapperRef} style={{ height: `${TOTAL_SCROLL_VH}vh` }} className="relative">
@@ -236,6 +293,8 @@ export default function ScrollVideoHero() {
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
+
+        <PhaseTransition visible={showPhaseTransition} />
 
         <DialogueBubble
           visible={showDialogue}
