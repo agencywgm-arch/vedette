@@ -19,6 +19,8 @@ export interface Product {
   mobileY?: number;
   /** Scroll progress (0..1) at which this hotspot becomes visible. */
   revealAt: number;
+  /** Optional close-up photo of the display/shelf, shown at the top of the product panel. */
+  image?: string;
 }
 
 export const products: Product[] = [
@@ -35,6 +37,7 @@ export const products: Product[] = [
     mobileX: 18,
     mobileY: 45.7,
     revealAt: 0.84,
+    image: "/products/shelf-display.jpg",
   },
   {
     id: "jparis-tee",
@@ -48,6 +51,7 @@ export const products: Product[] = [
     mobileX: 22,
     mobileY: 59.6,
     revealAt: 0.9,
+    image: "/products/shelf-display.jpg",
   },
   {
     id: "snapback",
@@ -61,6 +65,7 @@ export const products: Product[] = [
     mobileX: 16,
     mobileY: 39.3,
     revealAt: 0.9,
+    image: "/products/shelf-display.jpg",
   },
   {
     id: "cabine",

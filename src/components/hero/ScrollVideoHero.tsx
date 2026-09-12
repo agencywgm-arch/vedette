@@ -66,7 +66,6 @@ export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const durationRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const progressRef = useRef(0);
   const [containRect, setContainRect] = useState<ContainRect | null>(null);
@@ -136,14 +135,6 @@ export default function ScrollVideoHero() {
     const wrapper = wrapperRef.current;
     if (!video || !wrapper) return;
 
-    durationRef.current = 0;
-    const onLoadedMetadata = () => {
-      durationRef.current = video.duration || 0;
-    };
-    video.addEventListener("loadedmetadata", onLoadedMetadata);
-    // metadata may already be available (cached/fast load) before this listener attaches
-    if (video.readyState >= 1) onLoadedMetadata();
-
     const update = () => {
       rafRef.current = null;
       const rect = wrapper.getBoundingClientRect();
@@ -154,9 +145,14 @@ export default function ScrollVideoHero() {
         entryMode === null && rawProgress >= DIALOGUE_AT ? DIALOGUE_AT : rawProgress;
       progressRef.current = progress;
 
-      if (durationRef.current > 0) {
-        const targetTime = progress * durationRef.current;
-        if (Math.abs(video.currentTime - targetTime) > 0.017) {
+      // Read duration live instead of caching it: on some mobile browsers a
+      // seek can leave the video "seeking" long enough that a stale cached
+      // duration (or a currentTime write queued mid-seek) stalls scrubbing
+      // entirely, so also skip writing while a previous seek is unresolved.
+      const duration = video.duration || 0;
+      if (duration > 0 && !video.seeking) {
+        const targetTime = progress * duration;
+        if (Math.abs(video.currentTime - targetTime) > 0.05) {
           video.currentTime = targetTime;
         }
       }
@@ -177,7 +173,6 @@ export default function ScrollVideoHero() {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
-      video.removeEventListener("loadedmetadata", onLoadedMetadata);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
