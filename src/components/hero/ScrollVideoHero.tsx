@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useSceneStore } from "@/store/useSceneStore";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSceneStore, type EntryMode } from "@/store/useSceneStore";
 import { products } from "@/data/products";
-import { SCROLL_LENGTH_VH, stageForProgress } from "@/lib/video-timeline";
-import VideoHotspot, { type ContainRect } from "./VideoHotspot";
+import {
+  DIALOGUE_AT,
+  FAST_MODE_TARGET,
+  SCROLL_LENGTH_VH,
+  stageForProgress,
+} from "@/lib/video-timeline";
+import { type ContainRect } from "@/lib/overlay-position";
+import VideoHotspot from "./VideoHotspot";
+import DialogueBubble from "./DialogueBubble";
 
 const MOBILE_QUERY = "(max-width: 767px)";
 // Intrinsic size of the vertical clip (public/videos/entrance-vertical.*),
@@ -27,6 +34,20 @@ function getMobileSnapshot() {
 
 function getMobileServerSnapshot() {
   return false;
+}
+
+function animateScrollTo(targetY: number, duration = 1100) {
+  const startY = window.scrollY;
+  const delta = targetY - startY;
+  const startTime = performance.now();
+  const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+  function step(now: number) {
+    const t = Math.min(1, (now - startTime) / duration);
+    window.scrollTo(0, startY + delta * easeOutCubic(t));
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 function computeContainRect(containerW: number, containerH: number): ContainRect {
@@ -58,7 +79,30 @@ export default function ScrollVideoHero() {
   const started = useSceneStore((s) => s.started);
   const setScrollOffset = useSceneStore((s) => s.setScrollOffset);
   const setStage = useSceneStore((s) => s.setStage);
+  const entryMode = useSceneStore((s) => s.entryMode);
+  const setEntryMode = useSceneStore((s) => s.setEntryMode);
+  const scrollOffset = useSceneStore((s) => s.scrollOffset);
   const lastStageRef = useRef("street");
+
+  const showDialogue = entryMode === null && scrollOffset >= DIALOGUE_AT - 0.001;
+
+  const handleChoose = useCallback(
+    (mode: EntryMode) => {
+      setEntryMode(mode);
+      if (mode === "fast") {
+        const wrapper = wrapperRef.current;
+        if (wrapper) {
+          const rect = wrapper.getBoundingClientRect();
+          const total = rect.height - window.innerHeight;
+          // rect.top is negative once scrolled into the wrapper; the wrapper's
+          // own top in absolute document coordinates is window.scrollY + rect.top.
+          const targetY = window.scrollY + rect.top + total * FAST_MODE_TARGET;
+          animateScrollTo(targetY, 1300);
+        }
+      }
+    },
+    [setEntryMode]
+  );
 
   // On mobile the clip is shown with object-fit: contain (never cropped), so
   // hotspots need the video's actual rendered rect within the container.
@@ -104,7 +148,10 @@ export default function ScrollVideoHero() {
       rafRef.current = null;
       const rect = wrapper.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
-      const progress = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
+      const rawProgress = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
+      // Hold at the guard's question until the visitor picks a mode.
+      const progress =
+        entryMode === null && rawProgress >= DIALOGUE_AT ? DIALOGUE_AT : rawProgress;
       progressRef.current = progress;
 
       if (durationRef.current > 0) {
@@ -135,7 +182,7 @@ export default function ScrollVideoHero() {
       window.removeEventListener("resize", onScroll);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
-  }, [setScrollOffset, setStage, isMobile]);
+  }, [setScrollOffset, setStage, isMobile, entryMode]);
 
   return (
     <div ref={wrapperRef} style={{ height: `${SCROLL_LENGTH_VH}vh` }} className="relative">
@@ -164,6 +211,13 @@ export default function ScrollVideoHero() {
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
+
+        <DialogueBubble
+          visible={showDialogue}
+          isMobile={isMobile}
+          containRect={containRect}
+          onChoose={handleChoose}
+        />
 
         {products.map((p) => (
           <VideoHotspotWired

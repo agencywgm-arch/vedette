@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
 import type { Product } from "@/data/products";
-
-export interface ContainRect {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
+import { overlayPosition, type ContainRect } from "@/lib/overlay-position";
 
 export default function VideoHotspot({
   product,
@@ -25,20 +19,10 @@ export default function VideoHotspot({
   const [hovered, setHovered] = useState(false);
   const setActiveProductId = useSceneStore((s) => s.setActiveProductId);
 
-  const px = isMobile ? product.mobileX ?? product.x : product.x;
-  const py = isMobile ? product.mobileY ?? product.y : product.y;
+  const x = isMobile ? product.mobileX ?? product.x : product.x;
+  const y = isMobile ? product.mobileY ?? product.y : product.y;
   const visible = progress >= product.revealAt;
-
-  // On mobile the clip renders with object-fit: contain, so its on-screen
-  // rect (containRect) rarely matches the container's own box — position
-  // against that rect instead of plain container percentages.
-  const style =
-    isMobile && containRect
-      ? {
-          left: containRect.left + (px / 100) * containRect.width,
-          top: containRect.top + (py / 100) * containRect.height,
-        }
-      : { left: `${px}%`, top: `${py}%` };
+  const pos = overlayPosition(x, y, isMobile, containRect);
 
   return (
     <button
@@ -48,7 +32,7 @@ export default function VideoHotspot({
       onMouseLeave={() => setHovered(false)}
       className="absolute z-20"
       style={{
-        ...style,
+        ...pos,
         transform: "translate(-50%, -50%)",
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",

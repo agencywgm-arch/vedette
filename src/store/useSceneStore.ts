@@ -3,6 +3,7 @@
 import { create } from "zustand";
 
 export type SceneStage = "street" | "approach" | "threshold" | "interior";
+export type EntryMode = "fast" | "experience" | null;
 
 interface SceneState {
   scrollOffset: number;
@@ -19,6 +20,8 @@ interface SceneState {
   setStarted: (v: boolean) => void;
   muted: boolean;
   toggleMuted: () => void;
+  entryMode: EntryMode;
+  setEntryMode: (m: EntryMode) => void;
 }
 
 export const useSceneStore = create<SceneState>((set) => ({
@@ -36,4 +39,6 @@ export const useSceneStore = create<SceneState>((set) => ({
   setStarted: (v) => set({ started: v }),
   muted: true,
   toggleMuted: () => set((s) => ({ muted: !s.muted })),
+  entryMode: null,
+  setEntryMode: (m) => set({ entryMode: m }),
 }));
