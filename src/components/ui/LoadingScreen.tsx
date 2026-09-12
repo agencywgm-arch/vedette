@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useSceneStore } from "@/store/useSceneStore";
 
 export default function LoadingScreen() {
@@ -11,9 +12,14 @@ export default function LoadingScreen() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#08080b] text-white px-6">
       <div className="flex flex-col items-center gap-4 fade-in">
-        <span className="text-4xl sm:text-6xl font-black tracking-tight">
-          vedette
-        </span>
+        <Image
+          src="/logo-white.png"
+          alt="vedette"
+          width={1913}
+          height={342}
+          priority
+          className="h-auto w-64 sm:w-80"
+        />
         <span className="text-xs sm:text-sm tracking-[0.35em] text-[#f2c300] uppercase">
           Snob · Villain · Arrogant
         </span>

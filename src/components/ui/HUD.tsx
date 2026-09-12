@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useSceneStore } from "@/store/useSceneStore";
 
 const STAGE_LABEL: Record<string, string> = {
@@ -19,9 +20,13 @@ export default function HUD() {
   return (
     <div className="pointer-events-none fixed inset-0 z-30 flex flex-col justify-between p-4 sm:p-6">
       <div className="flex items-start justify-between">
-        <span className="text-lg sm:text-xl font-black tracking-tight text-white drop-shadow">
-          vedette
-        </span>
+        <Image
+          src="/logo-white.png"
+          alt="vedette"
+          width={1913}
+          height={342}
+          className="h-5 w-auto drop-shadow sm:h-6"
+        />
         <span className="rounded-full border border-white/20 bg-black/30 px-3 py-1 text-[10px] sm:text-xs uppercase tracking-widest text-white/80 backdrop-blur">
           {STAGE_LABEL[stage] ?? "Rue"}
         </span>
