@@ -21,6 +21,11 @@ const PHASE_TRANSITION_MIN_MS = 350;
 const PHASE_TRANSITION_MAX_MS = 1500;
 
 const MOBILE_QUERY = "(max-width: 767px)";
+// Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
+// phones was blowing through several seconds of video at once. Stretching
+// the scrollable distance keeps the same BOUNDARY fraction (both phases
+// scale together) while requiring more scroll per second of playback.
+const MOBILE_SCROLL_STRETCH = 1.4;
 // Intrinsic size of the vertical clips (public/videos/*-vertical.*), needed
 // to compute their rendered rect under object-fit: contain.
 const MOBILE_VIDEO_SIZE = { w: 720, h: 900 };
@@ -41,20 +46,6 @@ function getMobileSnapshot() {
 
 function getMobileServerSnapshot() {
   return false;
-}
-
-function animateScrollTo(targetY: number, duration = 1100) {
-  const startY = window.scrollY;
-  const delta = targetY - startY;
-  const startTime = performance.now();
-  const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-  function step(now: number) {
-    const t = Math.min(1, (now - startTime) / duration);
-    window.scrollTo(0, startY + delta * easeOutCubic(t));
-    if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
 }
 
 function computeContainRect(containerW: number, containerH: number): ContainRect {
@@ -113,12 +104,16 @@ export default function ScrollVideoHero() {
     setEntryMode("fast");
     const wrapper = wrapperRef.current;
     if (wrapper) {
+      // Cover the jump with the loading bumper first — an animated scroll
+      // through this much of the entrance clip plays back like a jarring
+      // fast-forward, so land on the collection view in one cut instead.
+      setShowPhaseTransition(true);
       const rect = wrapper.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       // rect.top is negative once scrolled into the wrapper; the wrapper's
       // own top in absolute document coordinates is window.scrollY + rect.top.
       const targetY = window.scrollY + rect.top + total * FAST_MODE_TARGET;
-      animateScrollTo(targetY, 1300);
+      window.scrollTo(0, targetY);
     }
   }, [setEntryMode]);
 
@@ -244,7 +239,11 @@ export default function ScrollVideoHero() {
   }, [showPhaseTransition]);
 
   return (
-    <div ref={wrapperRef} style={{ height: `${TOTAL_SCROLL_VH}vh` }} className="relative">
+    <div
+      ref={wrapperRef}
+      style={{ height: `${TOTAL_SCROLL_VH * (isMobile ? MOBILE_SCROLL_STRETCH : 1)}vh` }}
+      className="relative"
+    >
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
         <video
           key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
