@@ -7,7 +7,7 @@ const STAGE_LABEL: Record<string, string> = {
   street: "Rue",
   approach: "Approche",
   threshold: "Entrée",
-  interior: "Boutique",
+  collection: "Collection",
 };
 
 export default function HUD() {

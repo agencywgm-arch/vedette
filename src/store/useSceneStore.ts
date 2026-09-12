@@ -2,8 +2,8 @@
 
 import { create } from "zustand";
 
-export type SceneStage = "street" | "approach" | "threshold" | "interior";
-export type EntryMode = "fast" | "experience" | null;
+export type SceneStage = "street" | "approach" | "threshold" | "collection";
+export type EntryMode = "fast" | null;
 
 interface SceneState {
   scrollOffset: number;

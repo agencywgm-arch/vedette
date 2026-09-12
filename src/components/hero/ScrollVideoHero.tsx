@@ -1,21 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useSceneStore, type EntryMode } from "@/store/useSceneStore";
+import { useSceneStore } from "@/store/useSceneStore";
 import { products } from "@/data/products";
 import {
   DIALOGUE_AT,
   FAST_MODE_TARGET,
-  SCROLL_LENGTH_VH,
+  TOTAL_SCROLL_VH,
+  localPhaseProgress,
+  phaseForProgress,
   stageForProgress,
+  type Phase,
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
 import VideoHotspot from "./VideoHotspot";
 import DialogueBubble from "./DialogueBubble";
 
 const MOBILE_QUERY = "(max-width: 767px)";
-// Intrinsic size of the vertical clip (public/videos/entrance-vertical.*),
-// needed to compute its rendered rect under object-fit: contain.
+// Intrinsic size of the vertical clips (public/videos/*-vertical.*), needed
+// to compute their rendered rect under object-fit: contain.
 const MOBILE_VIDEO_SIZE = { w: 720, h: 900 };
 
 function clamp(v: number, min: number, max: number) {
@@ -62,13 +65,27 @@ function computeContainRect(containerW: number, containerH: number): ContainRect
   };
 }
 
+/** Set currentTime from local progress, live-reading duration and skipping
+ * mid-seek writes so rapid scroll-driven seeks can't stall mobile decoders. */
+function scrubVideo(video: HTMLVideoElement | null, localProgress: number) {
+  if (!video) return;
+  const duration = video.duration || 0;
+  if (duration > 0 && !video.seeking) {
+    const targetTime = localProgress * duration;
+    if (Math.abs(video.currentTime - targetTime) > 0.05) {
+      video.currentTime = targetTime;
+    }
+  }
+}
+
 export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const entranceVideoRef = useRef<HTMLVideoElement>(null);
+  const collectionVideoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
-  const progressRef = useRef(0);
   const [containRect, setContainRect] = useState<ContainRect | null>(null);
+  const [activePhase, setActivePhase] = useState<Phase>("entrance");
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -85,25 +102,20 @@ export default function ScrollVideoHero() {
 
   const showDialogue = entryMode === null && scrollOffset >= DIALOGUE_AT - 0.001;
 
-  const handleChoose = useCallback(
-    (mode: EntryMode) => {
-      setEntryMode(mode);
-      if (mode === "fast") {
-        const wrapper = wrapperRef.current;
-        if (wrapper) {
-          const rect = wrapper.getBoundingClientRect();
-          const total = rect.height - window.innerHeight;
-          // rect.top is negative once scrolled into the wrapper; the wrapper's
-          // own top in absolute document coordinates is window.scrollY + rect.top.
-          const targetY = window.scrollY + rect.top + total * FAST_MODE_TARGET;
-          animateScrollTo(targetY, 1300);
-        }
-      }
-    },
-    [setEntryMode]
-  );
+  const handleFastMode = useCallback(() => {
+    setEntryMode("fast");
+    const wrapper = wrapperRef.current;
+    if (wrapper) {
+      const rect = wrapper.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      // rect.top is negative once scrolled into the wrapper; the wrapper's
+      // own top in absolute document coordinates is window.scrollY + rect.top.
+      const targetY = window.scrollY + rect.top + total * FAST_MODE_TARGET;
+      animateScrollTo(targetY, 1300);
+    }
+  }, [setEntryMode]);
 
-  // On mobile the clip is shown with object-fit: contain (never cropped), so
+  // On mobile the clips are shown with object-fit: contain (never cropped), so
   // hotspots need the video's actual rendered rect within the container.
   useEffect(() => {
     if (!isMobile) return;
@@ -119,43 +131,38 @@ export default function ScrollVideoHero() {
     return () => observer.disconnect();
   }, [isMobile]);
 
-  // Unlock scrubbing on iOS/Safari: a silent play+pause primes the video
-  // so setting currentTime afterwards actually seeks instead of no-op'ing.
+  // Unlock scrubbing on iOS/Safari: a silent play+pause primes each video so
+  // setting currentTime afterwards actually seeks instead of no-op'ing.
   useEffect(() => {
-    if (!started || !videoRef.current) return;
-    const video = videoRef.current;
-    const primed = video.play();
-    if (primed && typeof primed.then === "function") {
-      primed.then(() => video.pause()).catch(() => {});
+    if (!started) return;
+    for (const ref of [entranceVideoRef, collectionVideoRef]) {
+      const video = ref.current;
+      if (!video) continue;
+      const primed = video.play();
+      if (primed && typeof primed.then === "function") {
+        primed.then(() => video.pause()).catch(() => {});
+      }
     }
   }, [started, isMobile]);
 
   useEffect(() => {
-    const video = videoRef.current;
     const wrapper = wrapperRef.current;
-    if (!video || !wrapper) return;
+    if (!wrapper) return;
 
     const update = () => {
       rafRef.current = null;
       const rect = wrapper.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       const rawProgress = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
-      // Hold at the guard's question until the visitor picks a mode.
+      // Hold at the guard's question until the visitor picks fast mode.
       const progress =
         entryMode === null && rawProgress >= DIALOGUE_AT ? DIALOGUE_AT : rawProgress;
-      progressRef.current = progress;
 
-      // Read duration live instead of caching it: on some mobile browsers a
-      // seek can leave the video "seeking" long enough that a stale cached
-      // duration (or a currentTime write queued mid-seek) stalls scrubbing
-      // entirely, so also skip writing while a previous seek is unresolved.
-      const duration = video.duration || 0;
-      if (duration > 0 && !video.seeking) {
-        const targetTime = progress * duration;
-        if (Math.abs(video.currentTime - targetTime) > 0.05) {
-          video.currentTime = targetTime;
-        }
-      }
+      const phase = phaseForProgress(progress);
+      const localProgress = localPhaseProgress(progress);
+      scrubVideo(phase === "entrance" ? entranceVideoRef.current : null, localProgress);
+      scrubVideo(phase === "collection" ? collectionVideoRef.current : null, localProgress);
+      setActivePhase((prev) => (prev === phase ? prev : phase));
 
       setScrollOffset(progress);
       const stage = stageForProgress(progress);
@@ -180,12 +187,13 @@ export default function ScrollVideoHero() {
   }, [setScrollOffset, setStage, isMobile, entryMode]);
 
   return (
-    <div ref={wrapperRef} style={{ height: `${SCROLL_LENGTH_VH}vh` }} className="relative">
+    <div ref={wrapperRef} style={{ height: `${TOTAL_SCROLL_VH}vh` }} className="relative">
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
         <video
-          key={isMobile ? "vertical" : "horizontal"}
-          ref={videoRef}
-          className={`h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
+          key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
+          ref={entranceVideoRef}
+          className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
+          style={{ opacity: activePhase === "entrance" ? 1 : 0 }}
           poster={isMobile ? "/videos/poster-vertical.jpg" : "/videos/poster.jpg"}
           muted
           playsInline
@@ -203,6 +211,28 @@ export default function ScrollVideoHero() {
             </>
           )}
         </video>
+        <video
+          key={isMobile ? "collection-vertical" : "collection-horizontal"}
+          ref={collectionVideoRef}
+          className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
+          style={{ opacity: activePhase === "collection" ? 1 : 0 }}
+          poster={isMobile ? "/videos/collection-poster-vertical.jpg" : "/videos/collection-poster.jpg"}
+          muted
+          playsInline
+          preload="auto"
+        >
+          {isMobile ? (
+            <>
+              <source src="/videos/collection-vertical.mp4" type="video/mp4" />
+              <source src="/videos/collection-vertical.webm" type="video/webm" />
+            </>
+          ) : (
+            <>
+              <source src="/videos/collection.mp4" type="video/mp4" />
+              <source src="/videos/collection.webm" type="video/webm" />
+            </>
+          )}
+        </video>
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
@@ -211,7 +241,7 @@ export default function ScrollVideoHero() {
           visible={showDialogue}
           isMobile={isMobile}
           containRect={containRect}
-          onChoose={handleChoose}
+          onChoose={handleFastMode}
         />
 
         {products.map((p) => (
