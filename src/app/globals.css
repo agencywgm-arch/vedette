@@ -174,3 +174,26 @@ body {
 .comic-bubble-btn-accent span {
   color: #4a3900;
 }
+
+.comic-bubble-mobile {
+  max-width: 240px;
+  padding: 12px 14px 11px;
+  border-width: 2px;
+  border-radius: 16px;
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.85);
+}
+
+.comic-bubble-mobile .comic-bubble-text {
+  font-size: 13px;
+  margin-bottom: 9px;
+}
+
+.comic-bubble-mobile .comic-bubble-btn {
+  width: 100%;
+  font-size: 11px;
+  padding: 8px 8px;
+}
+
+.comic-bubble-mobile .comic-bubble-btn span {
+  font-size: 9px;
+}
