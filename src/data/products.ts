@@ -9,10 +9,11 @@ export interface Product {
   x: number;
   y: number;
   /**
-   * Position within the vertical (mobile) clip. The mobile clip is the same
-   * frame letterboxed onto a 9:19.5 canvas (blurred fill top/bottom, full
-   * width preserved), so mobileX == x and mobileY is x/y remapped into the
-   * sharp band that runs from ~34.6% to ~65.4% of the canvas height.
+   * Position within the vertical (mobile) clip's own 720x900 frame (not the
+   * viewport — the clip renders with object-fit: contain and
+   * ScrollVideoHero maps this into the actual on-screen rect). Full width is
+   * preserved (mobileX == x); mobileY remaps y into the sharp band that
+   * runs from ~23.3% to ~76.7% of the frame height.
    */
   mobileX?: number;
   mobileY?: number;
@@ -32,7 +33,7 @@ export const products: Product[] = [
     x: 18,
     y: 42,
     mobileX: 18,
-    mobileY: 47.5,
+    mobileY: 45.7,
     revealAt: 0.84,
   },
   {
@@ -45,7 +46,7 @@ export const products: Product[] = [
     x: 22,
     y: 68,
     mobileX: 22,
-    mobileY: 55.5,
+    mobileY: 59.6,
     revealAt: 0.9,
   },
   {
@@ -58,7 +59,7 @@ export const products: Product[] = [
     x: 16,
     y: 30,
     mobileX: 16,
-    mobileY: 43.8,
+    mobileY: 39.3,
     revealAt: 0.9,
   },
   {
@@ -70,7 +71,7 @@ export const products: Product[] = [
     x: 37,
     y: 32,
     mobileX: 37,
-    mobileY: 44.5,
+    mobileY: 40.4,
     revealAt: 0.94,
   },
   {
@@ -83,7 +84,7 @@ export const products: Product[] = [
     x: 78,
     y: 55,
     mobileX: 78,
-    mobileY: 51.5,
+    mobileY: 52.7,
     revealAt: 0.97,
   },
 ];
