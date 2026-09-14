@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type TouchEvent, type WheelEv
 import Image from "next/image";
 import { useSceneStore } from "@/store/useSceneStore";
 import { products } from "@/data/products";
+import ProductViewer3D from "./ProductViewer3D";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -132,29 +133,44 @@ export default function CollectionViewer() {
             const scale = 1 - abs * 0.18;
             const z = 10 - abs;
 
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setActiveIndex(i)}
-                className={`collection-card ${isActive ? "collection-card-active" : ""}`}
-                style={{
-                  transform: `translate(-50%, -50%) translateX(${translateX}%) rotateY(${rotateY}deg) scale(${scale})`,
-                  zIndex: z,
-                  opacity: abs > 2 ? 0 : 1 - abs * 0.32,
-                  pointerEvents: isActive ? "none" : "auto",
-                }}
-                aria-label={p.name}
-                aria-current={isActive}
-              >
-                {isActive && (
+            const cardStyle = {
+              transform: `translate(-50%, -50%) translateX(${translateX}%) rotateY(${rotateY}deg) scale(${scale})`,
+              zIndex: z,
+              opacity: abs > 2 ? 0 : 1 - abs * 0.32,
+            };
+
+            // The active card hosts a real draggable 3D object (its own
+            // pointer/drag handling), so it can't also be a <button> — side
+            // cards stay plain image buttons you click to bring to center.
+            if (isActive) {
+              return (
+                <div
+                  key={p.id}
+                  className="collection-card collection-card-active"
+                  style={cardStyle}
+                  aria-current
+                >
                   <span className="collection-card-frame" aria-hidden="true">
                     <span className="hotspot-corner hotspot-corner-tl is-hovered" />
                     <span className="hotspot-corner hotspot-corner-tr is-hovered" />
                     <span className="hotspot-corner hotspot-corner-bl is-hovered" />
                     <span className="hotspot-corner hotspot-corner-br is-hovered" />
                   </span>
-                )}
+                  {open && p.image && <ProductViewer3D imageSrc={p.image} />}
+                  {p.tag && <span className="collection-card-tag">{p.tag}</span>}
+                </div>
+              );
+            }
+
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setActiveIndex(i)}
+                className="collection-card"
+                style={cardStyle}
+                aria-label={p.name}
+              >
                 {p.image && (
                   <Image
                     src={p.image}
@@ -162,10 +178,8 @@ export default function CollectionViewer() {
                     fill
                     sizes="(max-width: 640px) 70vw, 340px"
                     className="collection-card-image"
-                    priority={isActive}
                   />
                 )}
-                {p.tag && isActive && <span className="collection-card-tag">{p.tag}</span>}
               </button>
             );
           })}
