@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { useSceneStore } from "@/store/useSceneStore";
 import { products } from "@/data/products";
 import {
+  BOUNDARY,
   DIALOGUE_AT,
   FAST_MODE_TARGET,
   TOTAL_SCROLL_VH,
-  localPhaseProgress,
   phaseForProgress,
   stageForProgress,
   type Phase,
@@ -84,6 +84,8 @@ export default function ScrollVideoHero() {
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
   const lastPhaseRef = useRef<Phase>("entrance");
   const hasTransitionedRef = useRef(false);
+  const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
+  const hasReachedDialogueRef = useRef(false);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -95,10 +97,14 @@ export default function ScrollVideoHero() {
   const setStage = useSceneStore((s) => s.setStage);
   const entryMode = useSceneStore((s) => s.entryMode);
   const setEntryMode = useSceneStore((s) => s.setEntryMode);
-  const scrollOffset = useSceneStore((s) => s.scrollOffset);
   const lastStageRef = useRef("street");
 
-  const showDialogue = entryMode === null && scrollOffset >= DIALOGUE_AT - 0.001;
+  // Sticky once reached: the clamp below pins scroll at exactly DIALOGUE_AT,
+  // so ordinary scroll jitter around that threshold was flicking scrollOffset
+  // back and forth across it and making the bubble flash in and out. Once
+  // the visitor has scrolled down to it, keep it up regardless of small
+  // backward wobble — it only goes away once they actually answer.
+  const showDialogue = entryMode === null && hasReachedDialogue;
 
   const handleFastMode = useCallback(() => {
     setEntryMode("fast");
@@ -160,10 +166,21 @@ export default function ScrollVideoHero() {
       const progress =
         entryMode === null && rawProgress >= DIALOGUE_AT ? DIALOGUE_AT : rawProgress;
 
+      if (!hasReachedDialogueRef.current && entryMode === null && rawProgress >= DIALOGUE_AT) {
+        hasReachedDialogueRef.current = true;
+        setHasReachedDialogue(true);
+      }
+
       const phase = phaseForProgress(progress);
-      const localProgress = localPhaseProgress(progress);
-      scrubVideo(phase === "entrance" ? entranceVideoRef.current : null, localProgress);
-      scrubVideo(phase === "collection" ? collectionVideoRef.current : null, localProgress);
+      // Keep BOTH clips in sync with scroll at all times (each clamped to
+      // its own 0..1 range), not just the currently visible one. Otherwise
+      // the hidden clip sits frozen wherever it last was and has to seek —
+      // with visible lag — the moment it becomes active again, which made
+      // scrolling backward across the phase boundary look broken.
+      const entranceLocal = clamp(progress / BOUNDARY, 0, 1);
+      const collectionLocal = clamp((progress - BOUNDARY) / (1 - BOUNDARY), 0, 1);
+      scrubVideo(entranceVideoRef.current, entranceLocal);
+      scrubVideo(collectionVideoRef.current, collectionLocal);
       setActivePhase((prev) => (prev === phase ? prev : phase));
 
       // Mask the hard cut between the two clips with a brief branded loading

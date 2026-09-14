@@ -31,12 +31,6 @@ export function phaseForProgress(progress: number): Phase {
   return progress < BOUNDARY ? "entrance" : "collection";
 }
 
-/** Remap global progress into the active phase's own 0..1 timeline. */
-export function localPhaseProgress(progress: number): number {
-  if (progress < BOUNDARY) return progress / BOUNDARY;
-  return (progress - BOUNDARY) / (1 - BOUNDARY);
-}
-
 /**
  * The security guard "stops" the visitor here (still outside, closed door)
  * to offer the fast-forward. Scroll is gated at this progress until the
