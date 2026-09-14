@@ -3,16 +3,16 @@
  *
  *   Phase "entrance"   (public/videos/entrance.mp4, ~8.04s)
  *     street -> approach -> through the open doors, ending just inside.
- *   Phase "collection" (public/videos/collection.mp4, ~7.30s)
- *     the same doorway view continuing to push in and turn to face the
- *     full clothing wall — this is where visitors browse and buy.
+ *   Phase "collection" (public/videos/collection.mp4, ~7.04s)
+ *     the same doorway view continuing to push in until it settles facing
+ *     the full clothing wall — this is where visitors browse and buy.
  *
  * Global scroll progress is 0..1 across BOTH clips; BOUNDARY is where the
  * handoff between the two <video> elements happens. Each phase also has its
  * own local 0..1 progress (used to drive that phase's video.currentTime).
  */
 const ENTRANCE_DURATION = 8.04;
-const COLLECTION_DURATION = 7.3;
+const COLLECTION_DURATION = 7.04;
 
 /** Scroll length per phase, as a multiple of the viewport height — kept
  * proportional to each clip's duration so scroll speed feels consistent. */
@@ -51,16 +51,6 @@ export const GUARD_ANCHOR = { x: 30, y: 34, mobileX: 27, mobileY: 55 };
 
 /** "Mode rapide" skips straight to the start of the collection reveal. */
 export const FAST_MODE_TARGET = BOUNDARY + 0.01;
-
-/**
- * The collection clip itself has a hard camera-angle jump cut partway
- * through (around 53% of its own runtime) — detected via ffmpeg scene
- * detection, confirmed with extracted frames. Expressed as a fraction of
- * the collection phase, then converted to a global fraction so the same
- * loading bumper used for the entrance/collection handoff can mask it too.
- */
-const COLLECTION_CUT_LOCAL = 0.53;
-export const COLLECTION_CUT_AT = BOUNDARY + COLLECTION_CUT_LOCAL * (1 - BOUNDARY);
 
 export type SceneStageLabel = "street" | "approach" | "threshold" | "collection";
 
