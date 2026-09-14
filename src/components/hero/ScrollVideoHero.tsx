@@ -83,7 +83,6 @@ export default function ScrollVideoHero() {
   const [activePhase, setActivePhase] = useState<Phase>("entrance");
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
   const lastPhaseRef = useRef<Phase>("entrance");
-  const hasTransitionedRef = useRef(false);
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
   const isMobile = useSyncExternalStore(
@@ -183,14 +182,13 @@ export default function ScrollVideoHero() {
       scrubVideo(collectionVideoRef.current, collectionLocal);
       setActivePhase((prev) => (prev === phase ? prev : phase));
 
-      // Mask the hard cut between the two clips with a brief branded loading
-      // bumper the first time the visitor crosses into the collection phase.
-      if (
-        phase === "collection" &&
-        lastPhaseRef.current === "entrance" &&
-        !hasTransitionedRef.current
-      ) {
-        hasTransitionedRef.current = true;
+      // The two clips don't quite line up frame-to-frame at the cut (the
+      // camera sits at a slightly different distance from the door at the
+      // very end of entrance vs. the very start of collection), so mask it
+      // with the branded loading bumper on every crossing, not just the
+      // first — otherwise scrolling back and forth across the boundary
+      // shows a visible "bounce" on the second pass onward.
+      if (lastPhaseRef.current !== phase) {
         setShowPhaseTransition(true);
       }
       lastPhaseRef.current = phase;
