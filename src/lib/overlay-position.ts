@@ -25,19 +25,3 @@ export function overlayPosition(
   }
   return { left: `${x}%`, top: `${y}%` };
 }
-
-/** Size an overlay as a percentage of the video frame, matching overlayPosition's units. */
-export function overlaySize(
-  widthPercent: number,
-  heightPercent: number,
-  isMobile: boolean,
-  containRect: ContainRect | null
-): { width: number | string; height: number | string } {
-  if (isMobile && containRect) {
-    return {
-      width: (widthPercent / 100) * containRect.width,
-      height: (heightPercent / 100) * containRect.height,
-    };
-  }
-  return { width: `${widthPercent}%`, height: `${heightPercent}%` };
-}

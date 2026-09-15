@@ -10,8 +10,6 @@ interface SceneState {
   setScrollOffset: (v: number) => void;
   stage: SceneStage;
   setStage: (s: SceneStage) => void;
-  activeProductId: string | null;
-  setActiveProductId: (id: string | null) => void;
   hovered: string | null;
   setHovered: (id: string | null) => void;
   loaded: boolean;
@@ -29,8 +27,6 @@ export const useSceneStore = create<SceneState>((set) => ({
   setScrollOffset: (v) => set({ scrollOffset: v }),
   stage: "street",
   setStage: (s) => set({ stage: s }),
-  activeProductId: null,
-  setActiveProductId: (id) => set({ activeProductId: id }),
   hovered: null,
   setHovered: (id) => set({ hovered: id }),
   loaded: false,

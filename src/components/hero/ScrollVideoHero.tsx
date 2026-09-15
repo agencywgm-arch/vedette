@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
-import { products } from "@/data/products";
 import {
   BOUNDARY,
   DIALOGUE_AT,
@@ -13,7 +12,6 @@ import {
   type Phase,
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
-import VideoHotspot from "./VideoHotspot";
 import DialogueBubble from "./DialogueBubble";
 import PhaseTransition from "./PhaseTransition";
 
@@ -91,7 +89,6 @@ export default function ScrollVideoHero() {
     getMobileServerSnapshot
   );
 
-  const started = useSceneStore((s) => s.started);
   const setScrollOffset = useSceneStore((s) => s.setScrollOffset);
   const setStage = useSceneStore((s) => s.setStage);
   const entryMode = useSceneStore((s) => s.entryMode);
@@ -137,20 +134,6 @@ export default function ScrollVideoHero() {
     observer.observe(sticky);
     return () => observer.disconnect();
   }, [isMobile]);
-
-  // Unlock scrubbing on iOS/Safari: a silent play+pause primes each video so
-  // setting currentTime afterwards actually seeks instead of no-op'ing.
-  useEffect(() => {
-    if (!started) return;
-    for (const ref of [entranceVideoRef, collectionVideoRef]) {
-      const video = ref.current;
-      if (!video) continue;
-      const primed = video.play();
-      if (primed && typeof primed.then === "function") {
-        primed.then(() => video.pause()).catch(() => {});
-      }
-    }
-  }, [started, isMobile]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -316,36 +299,7 @@ export default function ScrollVideoHero() {
           containRect={containRect}
           onChoose={handleFastMode}
         />
-
-        {products.map((p) => (
-          <VideoHotspotWired
-            key={p.id}
-            product={p}
-            isMobile={isMobile}
-            containRect={containRect}
-          />
-        ))}
       </div>
     </div>
-  );
-}
-
-function VideoHotspotWired({
-  product,
-  isMobile,
-  containRect,
-}: {
-  product: (typeof products)[number];
-  isMobile: boolean;
-  containRect: ContainRect | null;
-}) {
-  const progress = useSceneStore((s) => s.scrollOffset);
-  return (
-    <VideoHotspot
-      product={product}
-      progress={progress}
-      isMobile={isMobile}
-      containRect={containRect}
-    />
   );
 }

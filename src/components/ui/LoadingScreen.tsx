@@ -7,6 +7,20 @@ export default function LoadingScreen() {
   const started = useSceneStore((s) => s.started);
   const setStarted = useSceneStore((s) => s.setStarted);
 
+  // Unlock video scrubbing (iOS/Safari requires currentTime writes to
+  // follow a real user-gesture play()) right inside this click handler —
+  // a later effect runs outside the gesture's call stack and Safari may
+  // refuse to honor it, leaving the video stuck on its poster frame.
+  const handleStart = () => {
+    document.querySelectorAll("video").forEach((video) => {
+      const primed = video.play();
+      if (primed && typeof primed.then === "function") {
+        primed.then(() => video.pause()).catch(() => {});
+      }
+    });
+    setStarted(true);
+  };
+
   if (started) return null;
 
   return (
@@ -24,7 +38,7 @@ export default function LoadingScreen() {
           Snob · Villain · Arrogant
         </span>
         <button
-          onClick={() => setStarted(true)}
+          onClick={handleStart}
           className="mt-8 rounded-full bg-[#f2c300] px-8 py-3 text-sm font-bold uppercase tracking-wide text-black transition-transform hover:scale-105 active:scale-95"
         >
           Entrer dans la boutique
