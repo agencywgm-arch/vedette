@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type TouchEvent, type WheelEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type WheelEvent,
+} from "react";
 import Image from "next/image";
 import { useSceneStore } from "@/store/useSceneStore";
 import { products } from "@/data/products";
@@ -10,16 +17,28 @@ function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
+const DRAG_SNAP_THRESHOLD = 0.28; // slot units of drag before it commits to the next/prev card
+const FLICK_VELOCITY_THRESHOLD = 0.5; // px/ms — a fast flick commits even over a short distance
+
 /** Full-screen coverflow-style product browser — opens on any hotspot click,
- * shows the whole collection, not just the item that was clicked. */
+ * shows the whole collection, not just the item that was clicked. Cards
+ * follow the pointer 1:1 while dragging (mouse or touch) and glide to rest
+ * on release, rather than snapping in discrete steps. */
 export default function CollectionViewer() {
   const activeProductId = useSceneStore((s) => s.activeProductId);
   const setActiveProductId = useSceneStore((s) => s.setActiveProductId);
   const open = activeProductId !== null;
 
   const [activeIndex, setActiveIndex] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const wheelLockRef = useRef(false);
-  const touchStartXRef = useRef<number | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragStartXRef = useRef<number | null>(null);
+  const dragLastXRef = useRef(0);
+  const dragLastTRef = useRef(0);
+  const dragVelocityRef = useRef(0);
+  const hasDraggedRef = useRef(false);
 
   // Reset the active card to whichever product was clicked, each time the
   // viewer opens on a (possibly different) product — done during render
@@ -65,16 +84,46 @@ export default function CollectionViewer() {
     }, 380);
   };
 
-  const handleTouchStart = (e: TouchEvent) => {
-    touchStartXRef.current = e.touches[0]?.clientX ?? null;
+  // Pointer events unify mouse-drag and touch-swipe: the carousel slides
+  // continuously under the cursor/finger instead of jumping one card per
+  // gesture. (Dragging the active card's 3D object itself stops propagation
+  // before it reaches these handlers, so rotating it never triggers a
+  // card change.)
+  const handlePointerDown = (e: ReactPointerEvent) => {
+    dragStartXRef.current = e.clientX;
+    dragLastXRef.current = e.clientX;
+    dragLastTRef.current = performance.now();
+    dragVelocityRef.current = 0;
+    hasDraggedRef.current = false;
+    setIsDragging(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
-  const handleTouchEnd = (e: TouchEvent) => {
-    if (touchStartXRef.current == null) return;
-    const dx = (e.changedTouches[0]?.clientX ?? touchStartXRef.current) - touchStartXRef.current;
-    if (Math.abs(dx) > 40) {
-      setActiveIndex((i) => clamp(i + (dx < 0 ? 1 : -1), 0, products.length - 1));
+
+  const handlePointerMove = (e: ReactPointerEvent) => {
+    if (dragStartXRef.current == null) return;
+    const width = trackRef.current?.offsetWidth || 1;
+    const now = performance.now();
+    const dt = now - dragLastTRef.current;
+    if (dt > 0) dragVelocityRef.current = (e.clientX - dragLastXRef.current) / dt;
+    dragLastXRef.current = e.clientX;
+    dragLastTRef.current = now;
+    const dx = e.clientX - dragStartXRef.current;
+    if (Math.abs(dx) > 5) hasDraggedRef.current = true;
+    setDragOffset(-dx / (width * 0.58));
+  };
+
+  const endDrag = () => {
+    if (dragStartXRef.current == null) return;
+    dragStartXRef.current = null;
+    setIsDragging(false);
+    let delta = 0;
+    if (Math.abs(dragOffset) > DRAG_SNAP_THRESHOLD) {
+      delta = dragOffset > 0 ? 1 : -1;
+    } else if (Math.abs(dragVelocityRef.current) > FLICK_VELOCITY_THRESHOLD) {
+      delta = dragVelocityRef.current < 0 ? 1 : -1;
     }
-    touchStartXRef.current = null;
+    setActiveIndex((i) => clamp(i + delta, 0, products.length - 1));
+    setDragOffset(0);
   };
 
   const activeProduct = products[activeIndex];
@@ -85,8 +134,6 @@ export default function CollectionViewer() {
         open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       }`}
       onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(242,195,0,0.1),transparent_62%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.6),transparent_18%,transparent_78%,rgba(0,0,0,0.75))]" />
@@ -122,21 +169,38 @@ export default function CollectionViewer() {
           ›
         </button>
 
-        <div className="relative h-[48vh] w-full max-w-5xl sm:h-[56vh]">
+        <div
+          ref={trackRef}
+          className={`relative h-[48vh] w-full max-w-5xl select-none sm:h-[56vh] ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
+          style={{ touchAction: "pan-y" }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onPointerLeave={(e) => {
+            // Only bail the drag if the pointer actually left with the
+            // button up — losing capture mid-drag would otherwise strand it.
+            if (dragStartXRef.current != null && e.buttons === 0) endDrag();
+          }}
+        >
           {products.map((p, i) => {
-            const offset = i - activeIndex;
-            const abs = Math.abs(offset);
-            if (abs > 2) return null;
-            const isActive = offset === 0;
-            const translateX = offset * 58;
-            const rotateY = offset === 0 ? 0 : offset > 0 ? -38 : 38;
-            const scale = 1 - abs * 0.18;
-            const z = 10 - abs;
+            const rawOffset = i - activeIndex;
+            const effectiveOffset = rawOffset - dragOffset;
+            const abs = Math.abs(effectiveOffset);
+            if (abs > 2.6) return null;
+            const isActive = rawOffset === 0;
+            const translateX = effectiveOffset * 58;
+            const rotateY = clamp(effectiveOffset * -38, -80, 80);
+            const scale = clamp(1 - abs * 0.18, 0.3, 1);
+            const z = Math.round(10 - abs);
 
             const cardStyle = {
               transform: `translate(-50%, -50%) translateX(${translateX}%) rotateY(${rotateY}deg) scale(${scale})`,
               zIndex: z,
-              opacity: abs > 2 ? 0 : 1 - abs * 0.32,
+              opacity: clamp(1 - abs * 0.32, 0, 1),
+              transition: isDragging ? "none" : undefined,
             };
 
             // The active card hosts a real draggable 3D object (its own
@@ -156,7 +220,7 @@ export default function CollectionViewer() {
                     <span className="hotspot-corner hotspot-corner-bl is-hovered" />
                     <span className="hotspot-corner hotspot-corner-br is-hovered" />
                   </span>
-                  {open && p.image && <ProductViewer3D imageSrc={p.image} />}
+                  {open && p.image && <ProductViewer3D imageSrc={p.image} model={p.model} />}
                   {p.tag && <span className="collection-card-tag">{p.tag}</span>}
                 </div>
               );
@@ -166,7 +230,10 @@ export default function CollectionViewer() {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setActiveIndex(i)}
+                onClick={() => {
+                  if (hasDraggedRef.current) return;
+                  setActiveIndex(i);
+                }}
                 className="collection-card"
                 style={cardStyle}
                 aria-label={p.name}
@@ -178,6 +245,7 @@ export default function CollectionViewer() {
                     fill
                     sizes="(max-width: 640px) 70vw, 340px"
                     className="collection-card-image"
+                    draggable={false}
                   />
                 )}
               </button>

@@ -1,4 +1,5 @@
 import { BOUNDARY } from "@/lib/video-timeline";
+import type { GarmentModel } from "@/components/ui/ProductViewer3D";
 
 export interface Product {
   id: string;
@@ -27,6 +28,8 @@ export interface Product {
   /** Size of the highlight frame drawn around the item, as a percentage of the video frame. */
   highlightWidth: number;
   highlightHeight: number;
+  /** Which procedural 3D silhouette the collection viewer builds for this item. */
+  model: GarmentModel;
 }
 
 /** Hotspots live in the collection phase; revealAtLocal is a fraction of
@@ -52,6 +55,7 @@ export const products: Product[] = [
     image: "/products/jparis-tee.jpg",
     highlightWidth: 14,
     highlightHeight: 22,
+    model: "tee",
   },
   {
     id: "security-hoodie",
@@ -68,6 +72,7 @@ export const products: Product[] = [
     image: "/products/security-hoodie.jpg",
     highlightWidth: 14,
     highlightHeight: 22,
+    model: "hoodie",
   },
   {
     id: "snapback",
@@ -84,5 +89,6 @@ export const products: Product[] = [
     image: "/products/snapback.jpg",
     highlightWidth: 10,
     highlightHeight: 10,
+    model: "cap",
   },
 ];
