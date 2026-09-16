@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import type {
   MutableRefObject,
@@ -8,6 +9,10 @@ import type {
 } from "react";
 import type { CollectionItem } from "@/data/collection";
 import type { Rect } from "@/lib/media-rect";
+
+// three.js is a big download and most of the wall is still flat packshots, so
+// it only arrives once a piece that actually has a model is opened.
+const ModelStage = dynamic(() => import("./ModelStage"), { ssr: false });
 
 const FLY_IN_MS = 1000;
 const FLY_BACK_MS = 800;
@@ -84,6 +89,8 @@ export default function FloatingProduct({
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStart = useRef<{ dist: number; zoom: number } | null>(null);
   const settled = useRef(false);
+  // The float, in model units rather than pixels, for the 3D path to read.
+  const bobRef = useRef(0);
 
   // The animation loop is mounted once and reads the newest props off these
   // mirrors, so a resize or a close never restarts the flight mid-air.
@@ -93,6 +100,7 @@ export default function FloatingProduct({
   const closingRef = useRef(closing);
   const onReturnedRef = useRef(onReturned);
   const itemBackRef = useRef(item.back);
+  const has3dRef = useRef(Boolean(item.model));
 
   useEffect(() => {
     originRef.current = origin;
@@ -101,12 +109,15 @@ export default function FloatingProduct({
     closingRef.current = closing;
     onReturnedRef.current = onReturned;
     itemBackRef.current = item.back;
+    has3dRef.current = Boolean(item.model);
   });
 
   useEffect(() => {
     const box = boxRef.current;
+    // `spin` only exists on the flat-packshot path; the 3D one has no such
+    // element, and requiring it here stopped the flight from ever starting.
     const spin = spinRef.current;
-    if (!box || !spin) return;
+    if (!box) return;
 
     const startedAt = performance.now();
     let backStartedAt: number | null = null;
@@ -173,6 +184,11 @@ export default function FloatingProduct({
       const bob = settled.current && !closingRef.current
         ? Math.sin(now / BOB_PERIOD_MS * Math.PI * 2) * BOB_AMPLITUDE
         : 0;
+      bobRef.current = rect.height > 0 ? bob / rect.height : 0;
+
+      // A real model reads angle, zoom and bob off the refs and turns itself;
+      // there is nothing here to transform.
+      if (has3dRef.current || !spin) return;
 
       spin.style.transform = `translateY(${bob}px) scale(${zoomRef.current}) rotateY(${angle.current}deg)`;
 
@@ -262,7 +278,10 @@ export default function FloatingProduct({
       onPointerCancel={endPointer}
       onWheel={onWheel}
     >
-      <div ref={groundRef} className="fp-ground" />
+      {!item.model && <div ref={groundRef} className="fp-ground" />}
+      {item.model ? (
+        <ModelStage url={item.model} angleRef={angle} zoomRef={zoomRef} bobRef={bobRef} />
+      ) : (
       <div className="fp-stage">
         <div ref={spinRef} className="fp-spin">
           {item.front && (
@@ -288,6 +307,7 @@ export default function FloatingProduct({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

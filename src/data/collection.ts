@@ -31,6 +31,12 @@ export interface CollectionItem {
    */
   front: string | null;
   back: string | null;
+  /**
+   * A real scanned model of the piece. When one exists it replaces the two
+   * flat faces entirely: the piece turns in actual space rather than flipping
+   * between two photographs. `null` falls back to the packshots.
+   */
+  model?: string | null;
 }
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */

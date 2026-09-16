@@ -319,6 +319,15 @@ body {
   mask-image: linear-gradient(to bottom, transparent 80%, #000 100%);
 }
 
+/* la toile 3D occupe toute la boîte en vol : c'est elle qui remplace les deux
+   faces plates, l'animation de trajet ne change pas */
+.fp-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .shop-wall.is-dimmed {
   filter: brightness(0.42) saturate(0.85) blur(2.5px);
 }
