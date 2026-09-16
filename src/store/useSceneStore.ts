@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-export type SceneStage = "street" | "approach" | "threshold" | "collection";
+export type SceneStage = "street" | "approach" | "threshold" | "boutique";
 export type EntryMode = "fast" | null;
 
 interface SceneState {

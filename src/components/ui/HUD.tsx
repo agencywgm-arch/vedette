@@ -7,7 +7,6 @@ const STAGE_LABEL: Record<string, string> = {
   street: "Rue",
   approach: "Approche",
   threshold: "Entrée",
-  collection: "Collection",
 };
 
 export default function HUD() {
@@ -15,7 +14,9 @@ export default function HUD() {
   const scrollOffset = useSceneStore((s) => s.scrollOffset);
   const stage = useSceneStore((s) => s.stage);
 
-  if (!started) return null;
+  // The boutique has its own header/HUD once entered — this scroll-progress
+  // overlay only makes sense during the entrance walk-in.
+  if (!started || stage === "boutique") return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 flex flex-col justify-between p-4 sm:p-6">
