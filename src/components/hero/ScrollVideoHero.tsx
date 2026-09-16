@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
 import {
   BOUNDARY,
@@ -14,6 +14,7 @@ import {
   type Phase,
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
+import { createVideoScrubber } from "@/lib/video-scrubber";
 import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
@@ -62,19 +63,6 @@ function computeContainRect(containerW: number, containerH: number): ContainRect
   };
 }
 
-/** Set currentTime from local progress, live-reading duration and skipping
- * mid-seek writes so rapid scroll-driven seeks can't stall mobile decoders. */
-function scrubVideo(video: HTMLVideoElement | null, localProgress: number) {
-  if (!video) return;
-  const duration = video.duration || 0;
-  if (duration > 0 && !video.seeking) {
-    const targetTime = localProgress * duration;
-    if (Math.abs(video.currentTime - targetTime) > 0.05) {
-      video.currentTime = targetTime;
-    }
-  }
-}
-
 export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -90,6 +78,10 @@ export default function ScrollVideoHero() {
   const [roomOpen, setRoomOpen] = useState(false);
   const roomOpenRef = useRef(false);
   const selectedId = useShopStore((s) => s.selectedId);
+  // One queue per clip: each converges on the newest scroll position instead
+  // of dropping updates that land while the decoder is busy.
+  const scrubEntrance = useMemo(() => createVideoScrubber(), []);
+  const scrubCollection = useMemo(() => createVideoScrubber(), []);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -168,8 +160,8 @@ export default function ScrollVideoHero() {
       // scrolling backward across the phase boundary look broken.
       const entranceLocal = clamp(progress / BOUNDARY, 0, 1);
       const collectionLocal = clamp((progress - BOUNDARY) / (1 - BOUNDARY), 0, 1);
-      scrubVideo(entranceVideoRef.current, entranceLocal);
-      scrubVideo(collectionVideoRef.current, collectionLocal);
+      scrubEntrance(entranceVideoRef.current, entranceLocal);
+      scrubCollection(collectionVideoRef.current, collectionLocal);
       setActivePhase((prev) => (prev === phase ? prev : phase));
 
       // The two clips don't quite line up frame-to-frame at the cut (the
@@ -211,12 +203,24 @@ export default function ScrollVideoHero() {
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
+    // A clip that isn't decodable yet can't be scrubbed, and scroll events
+    // stop the moment the visitor holds still — so a clip that becomes ready
+    // after the last one would sit on frame zero until they moved again.
+    const videos = [entranceVideoRef.current, collectionVideoRef.current];
+    for (const video of videos) {
+      video?.addEventListener("loadedmetadata", onScroll);
+      video?.addEventListener("loadeddata", onScroll);
+    }
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      for (const video of videos) {
+        video?.removeEventListener("loadedmetadata", onScroll);
+        video?.removeEventListener("loadeddata", onScroll);
+      }
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
-  }, [setScrollOffset, setStage, isMobile, entryMode]);
+  }, [setScrollOffset, setStage, isMobile, entryMode, scrubEntrance, scrubCollection]);
 
   // Hold the loading bumper up until the collection clip actually has a
   // frame ready to paint, so the visitor never sees the raw poster's own

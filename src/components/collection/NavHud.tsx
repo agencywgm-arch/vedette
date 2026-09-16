@@ -10,7 +10,7 @@ export default function NavHud({ compact }: { compact: boolean }) {
       <div className="shop-hud shop-hud-compact">
         {inspecting
           ? "Glisse pour tourner · Pince pour zoomer"
-          : "Glisse pour parcourir le mur · Tape une pièce"}
+          : "Tape une pièce pour la faire venir à toi"}
       </div>
     );
   }

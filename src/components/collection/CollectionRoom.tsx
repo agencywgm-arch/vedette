@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   WALL_IMAGE,
   WALL_SIZE,
@@ -20,11 +19,18 @@ import ShopFooter from "./ShopFooter";
 
 const MIN_ZOOM = 0.8;
 const MAX_ZOOM = 1.8;
-/** On a phone the wall runs a little wider than the screen: enough that the
- * pieces are comfortable to tap, not so much that you lose the shop around
- * them. The rest of it comes in by dragging sideways. */
-const PHONE_OVERSCAN = 1.72;
-const PHONE_WALL_CENTRE = 0.43;
+/** Where the wall sits vertically, as a fraction of the room's height: high
+ * enough to clear the carousel, low enough to clear the header. */
+const PHONE_WALL_CENTRE = 0.46;
+const DESKTOP_WALL_CENTRE = 0.46;
+/** A 4:3 wall on a 16:9 screen always leaves gutters. The left one is the key
+ * hints and the category list, so the wall is centred in what's left of the
+ * room rather than in the room itself — otherwise it sits against the nav on
+ * one side and a slab of black on the other. */
+const DESKTOP_NAV_GUTTER = 260;
+/** Vertical share of the room the wall may occupy, leaving the header and the
+ * carousel their own air. */
+const DESKTOP_WALL_HEIGHT = 0.78;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -42,10 +48,7 @@ function clamp(v: number, min: number, max: number) {
  */
 export default function CollectionRoom({ compact }: { compact: boolean }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const layerRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(1);
-  const panRef = useRef(0);
-  const dragRef = useRef<{ x: number; pan: number; moved: boolean } | null>(null);
   const hotspotEls = useRef(new Map<string, HTMLButtonElement | null>());
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
 
@@ -86,13 +89,6 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     setClosing(true);
   }
 
-  const panLimits = () => {
-    const root = rootRef.current;
-    const layer = layerRef.current;
-    if (!root || !layer) return 0;
-    return Math.max(0, (layer.offsetWidth - root.clientWidth) / 2);
-  };
-
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -100,12 +96,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
       const r = entries[0]?.contentRect;
       if (!r) return;
       setSize({ width: r.width, height: r.height });
-      // re-clamp the pan and re-measure the piece in flight against the new box
-      const limit = panLimits();
-      panRef.current = clamp(panRef.current, -limit, limit);
-      if (layerRef.current) {
-        layerRef.current.style.transform = `translateX(${panRef.current}px)`;
-      }
+      // re-measure the piece in flight against the new box
       setDisplayedId((current) => {
         if (current) {
           const rect = measure(current);
@@ -117,27 +108,6 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-
-  const onPointerDown = (e: ReactPointerEvent) => {
-    if (selectedId !== null || panLimits() === 0) return;
-    dragRef.current = { x: e.clientX, pan: panRef.current, moved: false };
-  };
-
-  const onPointerMove = (e: ReactPointerEvent) => {
-    const d = dragRef.current;
-    if (!d) return;
-    const dx = e.clientX - d.x;
-    if (Math.abs(dx) > 4) d.moved = true;
-    const limit = panLimits();
-    panRef.current = clamp(d.pan + dx, -limit, limit);
-    if (layerRef.current) {
-      layerRef.current.style.transform = `translateX(${panRef.current}px)`;
-    }
-  };
-
-  const endPan = () => {
-    dragRef.current = null;
-  };
 
   const step = (direction: -1 | 1) => {
     if (selectableItems.length === 0) return;
@@ -167,37 +137,45 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     // `step` closes over the current selection, which is what we want rebound.
   }, [selectedId, select]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The whole collection has to be on screen at once — every piece reachable
+  // without dragging the picture around first. So the wall is always contained,
+  // never cropped: on a phone that means the full width of the screen, on a
+  // desktop the largest 4:3 that fits between the chrome.
   let wall: Rect | null = null;
   if (size) {
     if (compact) {
-      const width = size.width * PHONE_OVERSCAN;
+      const width = size.width;
       const height = (width * WALL_SIZE.h) / WALL_SIZE.w;
       wall = {
-        left: (size.width - width) / 2,
+        left: 0,
         top: size.height * PHONE_WALL_CENTRE - height / 2,
         width,
         height,
       };
     } else {
-      wall = mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "cover");
+      const free = Math.max(320, size.width - DESKTOP_NAV_GUTTER);
+      const fitted = mediaRect(
+        free * 0.96,
+        size.height * DESKTOP_WALL_HEIGHT,
+        WALL_SIZE.w,
+        WALL_SIZE.h,
+        "contain"
+      );
+      wall = {
+        left: size.width - free + (free - fitted.width) / 2,
+        top: size.height * DESKTOP_WALL_CENTRE - fitted.height / 2,
+        width: fitted.width,
+        height: fitted.height,
+      };
     }
   }
   const displayed = displayedId ? collection.find((i) => i.id === displayedId) ?? null : null;
   const inspecting = displayed !== null && !closing;
 
   return (
-    <div
-      ref={rootRef}
-      className="shop-room"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endPan}
-      onPointerCancel={endPan}
-      onPointerLeave={endPan}
-    >
+    <div ref={rootRef} className="shop-room">
       {wall && (
         <div
-          ref={layerRef}
           className={`shop-wall-layer ${compact ? "is-compact" : ""}`}
           style={{ left: wall.left, top: wall.top, width: wall.width, height: wall.height }}
         >
@@ -208,6 +186,19 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
             className={`shop-wall ${inspecting ? "is-dimmed" : ""}`}
             draggable={false}
           />
+
+          {/* A 4:3 wall on a phone leaves a lot of screen under it. Rather than
+              a slab of black, the boutique's own floor carries on downward. */}
+          {compact && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={WALL_IMAGE}
+              alt=""
+              aria-hidden="true"
+              className="shop-wall-reflection"
+              draggable={false}
+            />
+          )}
 
           {collection.map((item) => {
             if (item.front === null) return null;
@@ -229,11 +220,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                 }}
                 onPointerEnter={() => setHovered(item.id)}
                 onPointerLeave={() => setHovered(null)}
-                onClick={() => {
-                  // a pan gesture shouldn't also pick the piece it ended on
-                  if (dragRef.current?.moved) return;
-                  open(item.id);
-                }}
+                onClick={() => open(item.id)}
                 aria-label={item.name}
               />
             );

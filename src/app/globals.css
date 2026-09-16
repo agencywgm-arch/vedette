@@ -286,26 +286,10 @@ body {
   --ink: rgba(255, 255, 255, 0.62);
 }
 
+/* le mur tient entier dans l'écran : plus de recadrage, donc plus de fondu
+   sur les bords — il masquerait de vrais produits */
 .shop-wall-layer {
   position: absolute;
-  will-change: transform;
-}
-
-.shop-wall-layer.is-compact {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    #000 7%,
-    #000 93%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    #000 7%,
-    #000 93%,
-    transparent 100%
-  );
 }
 
 .shop-wall {
@@ -316,6 +300,23 @@ body {
   user-select: none;
   -webkit-user-drag: none;
   transition: filter 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* le sol de la boutique qui continue sous le mur : image miroir, floutée, que
+   le masque éteint en descendant. Le masque est posé avant la transformation,
+   d'où le dégradé inversé. */
+.shop-wall-reflection {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  width: 100%;
+  height: 100%;
+  transform: scaleY(-1);
+  filter: blur(16px) brightness(0.5) saturate(1.05);
+  opacity: 0.5;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 80%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 80%, #000 100%);
 }
 
 .shop-wall.is-dimmed {
@@ -991,8 +992,8 @@ body {
 /* --- mobile --- */
 
 @media (max-width: 767px) {
-  /* le mur est plus large que l'écran : on le balaie, les pièces restent
-     assez grandes pour être touchées du doigt */
+  /* le mur tient entier dans la largeur : rien à balayer, le doigt ne sert
+     qu'à faire défiler la page */
   .shop-room {
     touch-action: pan-y;
   }
