@@ -6,12 +6,16 @@ import {
   BOUNDARY,
   DIALOGUE_AT,
   FAST_MODE_TARGET,
+  ROOM_ENTER_AT,
+  ROOM_LEAVE_AT,
   TOTAL_SCROLL_VH,
   phaseForProgress,
   stageForProgress,
   type Phase,
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
+import { useShopStore } from "@/store/useShopStore";
+import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
 import PhaseTransition from "./PhaseTransition";
 
@@ -83,6 +87,9 @@ export default function ScrollVideoHero() {
   const lastPhaseRef = useRef<Phase>("entrance");
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
+  const [roomOpen, setRoomOpen] = useState(false);
+  const roomOpenRef = useRef(false);
+  const selectedId = useShopStore((s) => s.selectedId);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -176,6 +183,16 @@ export default function ScrollVideoHero() {
       }
       lastPhaseRef.current = phase;
 
+      // Hand off to the live collection room once the clip has settled on the
+      // wall; hysteresis so scroll jitter at the threshold can't strobe it.
+      const wantRoom = roomOpenRef.current
+        ? progress >= ROOM_LEAVE_AT
+        : progress >= ROOM_ENTER_AT;
+      if (wantRoom !== roomOpenRef.current) {
+        roomOpenRef.current = wantRoom;
+        setRoomOpen(wantRoom);
+      }
+
       setScrollOffset(progress);
       const stage = stageForProgress(progress);
       if (stage !== lastStageRef.current) {
@@ -236,6 +253,17 @@ export default function ScrollVideoHero() {
     };
   }, [showPhaseTransition]);
 
+  // While a piece is being inspected the wheel belongs to it (zoom), not to
+  // the page — and scrolling away mid-inspection would yank the room out.
+  useEffect(() => {
+    if (selectedId === null) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [selectedId]);
+
   return (
     <div
       ref={wrapperRef}
@@ -290,6 +318,17 @@ export default function ScrollVideoHero() {
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
+
+        <div
+          className="absolute inset-0 z-20 transition-opacity duration-500"
+          style={{
+            opacity: roomOpen ? 1 : 0,
+            pointerEvents: roomOpen ? "auto" : "none",
+          }}
+          aria-hidden={!roomOpen}
+        >
+          <CollectionRoom compact={isMobile} />
+        </div>
 
         <PhaseTransition visible={showPhaseTransition} />
 

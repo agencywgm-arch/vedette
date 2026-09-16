@@ -46,6 +46,15 @@ export const GUARD_ANCHOR = { x: 30, y: 34, mobileX: 27, mobileY: 55 };
 /** "Mode rapide" skips straight to the start of the collection reveal. */
 export const FAST_MODE_TARGET = BOUNDARY + 0.01;
 
+/**
+ * The collection clip ends settled on the clothing wall. From here the crisp
+ * still takes over and every piece on it becomes live. Hysteresis (enter
+ * high, leave lower) keeps the handoff from flickering when scroll jitters
+ * around a single threshold.
+ */
+export const ROOM_ENTER_AT = 0.985;
+export const ROOM_LEAVE_AT = 0.955;
+
 export type SceneStageLabel = "street" | "approach" | "threshold" | "collection";
 
 export function stageForProgress(progress: number): SceneStageLabel {

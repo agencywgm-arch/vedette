@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useSceneStore } from "@/store/useSceneStore";
+import { ROOM_LEAVE_AT } from "@/lib/video-timeline";
 
 const STAGE_LABEL: Record<string, string> = {
   street: "Rue",
@@ -15,7 +16,8 @@ export default function HUD() {
   const scrollOffset = useSceneStore((s) => s.scrollOffset);
   const stage = useSceneStore((s) => s.stage);
 
-  if (!started) return null;
+  // The collection room brings its own header — this walk-in HUD steps aside.
+  if (!started || scrollOffset >= ROOM_LEAVE_AT) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 flex flex-col justify-between p-4 sm:p-6">
