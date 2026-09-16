@@ -1,7 +1,7 @@
 /**
  * The experience is two back-to-back clips sharing one continuous scroll:
  *
- *   Phase "entrance"   (public/videos/entrance.mp4, ~8.04s)
+ *   Phase "entrance"   (public/videos/entrance.mp4, ~6.02s)
  *     street -> approach -> through the open doors, ending just inside.
  *   Phase "collection" (public/videos/collection.mp4, ~7.04s)
  *     the same doorway view continuing to push in until it settles facing
@@ -11,7 +11,7 @@
  * handoff between the two <video> elements happens. Each phase also has its
  * own local 0..1 progress (used to drive that phase's video.currentTime).
  */
-const ENTRANCE_DURATION = 8.04;
+const ENTRANCE_DURATION = 6.02;
 const COLLECTION_DURATION = 7.04;
 
 /** Scroll length per phase, as a multiple of the viewport height — kept
@@ -40,8 +40,9 @@ export function phaseForProgress(progress: number): Phase {
 const DIALOGUE_AT_LOCAL = 0.38;
 export const DIALOGUE_AT = DIALOGUE_AT_LOCAL * BOUNDARY;
 
-/** Where the guard's head sits on screen at DIALOGUE_AT, for the speech bubble's tail. */
-export const GUARD_ANCHOR = { x: 30, y: 34, mobileX: 27, mobileY: 55 };
+/** Where the guard's head sits on screen at DIALOGUE_AT, for the speech
+ * bubble's tail. Desktop only — the mobile bubble is centered instead. */
+export const GUARD_ANCHOR = { x: 30, y: 34 };
 
 /** "Mode rapide" skips straight to the start of the collection reveal. */
 export const FAST_MODE_TARGET = BOUNDARY + 0.01;
