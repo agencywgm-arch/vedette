@@ -1,10 +1,16 @@
 "use client";
 
+import { useShopStore } from "@/store/useShopStore";
+
 export default function NavHud({ compact }: { compact: boolean }) {
+  const inspecting = useShopStore((s) => s.selectedId !== null);
+
   if (compact) {
     return (
       <div className="shop-hud shop-hud-compact">
-        Glisse pour tourner · Pince pour zoomer · Tape pour choisir
+        {inspecting
+          ? "Glisse pour tourner · Pince pour zoomer"
+          : "Glisse pour parcourir le mur · Tape une pièce"}
       </div>
     );
   }

@@ -1,20 +1,25 @@
 "use client";
 
 import Image from "next/image";
-import { collection, thumbFor } from "@/data/collection";
+import { selectableItems, thumbFor } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
 
 export default function ProductRail({
   onStep,
+  onPick,
 }: {
   onStep: (direction: -1 | 1) => void;
+  onPick: (id: string) => void;
 }) {
   const selectedId = useShopStore((s) => s.selectedId);
   const category = useShopStore((s) => s.category);
-  const select = useShopStore((s) => s.select);
 
   const shown =
-    category === "TOUS" ? collection : collection.filter((i) => i.category === category);
+    category === "TOUS"
+      ? selectableItems
+      : selectableItems.filter((i) => i.category === category);
+
+  if (shown.length === 0) return null;
 
   return (
     <div className="shop-rail">
@@ -28,30 +33,24 @@ export default function ProductRail({
       </button>
 
       <div className="shop-rail-track">
-        {shown.map((item) => {
-          const pending = item.front === null;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              disabled={pending}
-              title={pending ? `${item.name} — packshot à venir` : item.name}
-              aria-label={item.name}
-              className={`shop-tile ${selectedId === item.id ? "is-active" : ""} ${
-                pending ? "is-pending" : ""
-              }`}
-              onClick={() => select(item.id)}
-            >
-              <Image
-                src={thumbFor(item.id)}
-                alt={item.name}
-                fill
-                sizes="110px"
-                className="shop-tile-img"
-              />
-            </button>
-          );
-        })}
+        {shown.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            title={item.name}
+            aria-label={item.name}
+            className={`shop-tile ${selectedId === item.id ? "is-active" : ""}`}
+            onClick={() => onPick(item.id)}
+          >
+            <Image
+              src={thumbFor(item.id)}
+              alt={item.name}
+              fill
+              sizes="110px"
+              className="shop-tile-img"
+            />
+          </button>
+        ))}
       </div>
 
       <button

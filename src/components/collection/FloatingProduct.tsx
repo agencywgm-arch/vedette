@@ -34,11 +34,11 @@ function clamp(v: number, min: number, max: number) {
 
 /** Where the piece comes to rest, centred and floating clear of the UI. */
 function restRect(container: { width: number; height: number }, compact: boolean): Rect {
-  const height = clamp(container.height * (compact ? 0.42 : 0.52), 180, 560);
+  const height = clamp(container.height * (compact ? 0.36 : 0.52), 180, 560);
   const width = height * BOX_ASPECT;
   return {
     left: container.width / 2 - width / 2,
-    top: container.height * (compact ? 0.4 : 0.46) - height / 2,
+    top: container.height * (compact ? 0.31 : 0.46) - height / 2,
     width,
     height,
   };

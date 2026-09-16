@@ -210,19 +210,19 @@ body {
   --ink: rgba(255, 255, 255, 0.62);
 }
 
+.shop-wall-layer {
+  position: absolute;
+  will-change: transform;
+}
+
 .shop-wall {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   user-select: none;
-  transition: filter 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.shop-wall.is-contain {
-  object-fit: contain;
+  -webkit-user-drag: none;
+  transition: filter 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .shop-wall.is-dimmed {
@@ -254,10 +254,15 @@ body {
 .shop-hotspot {
   position: absolute;
   z-index: 5;
+  touch-action: none;
   border-radius: 10px;
   cursor: pointer;
   background: transparent;
   transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.shop-hotspot.is-locked {
+  pointer-events: none;
 }
 
 .shop-hotspot.is-hovered {
@@ -840,8 +845,8 @@ body {
   height: 84px;
   overflow: hidden;
   border: 1.5px solid rgba(255, 255, 255, 0.16);
-  background: #12100e;
-  opacity: 0.9;
+  background: linear-gradient(to bottom, #1b1b1d, #0b0b0c);
+  opacity: 0.92;
   transition: opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease,
     box-shadow 0.2s ease;
 }
@@ -858,15 +863,8 @@ body {
   box-shadow: 0 0 0 1px rgba(242, 195, 0, 0.55), 0 8px 24px rgba(0, 0, 0, 0.55);
 }
 
-.shop-tile.is-pending {
-  opacity: 0.5;
-  cursor: not-allowed;
-  filter: grayscale(0.6);
-}
-
 .shop-tile-img {
   object-fit: contain;
-  padding: 7px;
 }
 
 /* --- footer --- */
@@ -901,50 +899,145 @@ body {
 /* --- mobile --- */
 
 @media (max-width: 767px) {
+  /* le mur est plus large que l'écran : on le balaie, les pièces restent
+     assez grandes pour être touchées du doigt */
+  .shop-room {
+    touch-action: none;
+  }
+
   .shop-header {
-    padding: 14px 16px;
+    padding: 12px 14px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
   }
 
   .shop-header-logo {
-    height: 19px;
+    height: 18px;
   }
 
   .shop-header-nav {
     display: none;
   }
 
+  .shop-header-icons svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .shop-room::after {
+    height: 300px;
+  }
+
+  /* fiche produit : feuille compacte posée au-dessus du carrousel */
   .shop-panel {
     left: 10px;
     right: 10px;
     top: auto;
-    bottom: 104px;
+    bottom: 92px;
     width: auto;
-    padding: 18px 18px 16px;
-    max-height: 46vh;
+    padding: 15px 16px 16px;
+    max-height: 38vh;
     overflow-y: auto;
+    border-radius: 6px;
+    animation: sheet-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .shop-panel-title {
-    font-size: 16px;
+    font-size: 15px;
+    padding-right: 30px;
   }
 
   .shop-panel-price {
-    font-size: 18px;
+    margin-top: 4px;
+    font-size: 17px;
   }
 
+  .shop-panel-rule {
+    margin: 11px 0 10px;
+  }
+
+  .shop-panel-desc {
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+
+  .shop-panel-label {
+    margin-top: 13px;
+    margin-bottom: 8px;
+    font-size: 11.5px;
+  }
+
+  .shop-swatch {
+    width: 26px;
+    height: 26px;
+  }
+
+  .shop-size {
+    min-width: 44px;
+    padding: 9px 8px;
+  }
+
+  .shop-cta {
+    margin-top: 14px;
+    padding: 12px;
+    font-size: 11px;
+  }
+
+  .shop-cta-ghost {
+    display: none;
+  }
+
+  /* carrousel collé en bas, vignettes tactiles */
   .shop-rail {
-    bottom: 16px;
+    bottom: 14px;
+    gap: 6px;
+    max-width: 100vw;
+  }
+
+  .shop-rail-track {
+    max-width: calc(100vw - 86px);
     gap: 8px;
   }
 
   .shop-tile {
-    width: 64px;
+    width: 62px;
     height: 58px;
   }
 
-  .shop-spin-hint {
-    bottom: 52%;
+  .shop-rail-arrow {
+    width: 26px;
+    height: 26px;
+    font-size: 21px;
+  }
+
+  /* une seule ligne d'aide, juste au-dessus du carrousel */
+  .shop-hud-compact {
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: 82px;
+    width: auto;
+    padding: 7px 10px;
+    text-align: center;
     font-size: 9px;
-    gap: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.66);
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+  }
+
+  .shop-panel ~ .shop-hud-compact {
+    display: none;
   }
 }
