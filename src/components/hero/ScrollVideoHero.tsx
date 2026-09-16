@@ -234,14 +234,24 @@ export default function ScrollVideoHero() {
           key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
           ref={entranceVideoRef}
           className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
+          // This clip is scrubbed by scroll, never actually played — a tap has
+          // no business reaching it. Without pointer-events: none, a click on
+          // a paused, uncontrolled <video> can trigger the browser's own
+          // native play affordance (Safari shows one even with no `controls`
+          // attribute once the clip has been primed), which starts it running
+          // in real time and fights the scrub, looking like the scroll itself
+          // just fast-forwarded to the end.
           style={{
             opacity: activePhase === "entrance" ? 1 : 0,
             transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
+            pointerEvents: "none",
           }}
           poster={isMobile ? "/videos/poster-vertical.jpg" : "/videos/poster.jpg"}
           muted
           playsInline
           preload="auto"
+          disablePictureInPicture
+          disableRemotePlayback
         >
           {isMobile ? (
             <>
@@ -262,11 +272,14 @@ export default function ScrollVideoHero() {
           style={{
             opacity: activePhase === "collection" ? 1 : 0,
             transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
+            pointerEvents: "none",
           }}
           poster={isMobile ? "/videos/collection-poster-vertical.jpg" : "/videos/collection-poster.jpg"}
           muted
           playsInline
           preload="auto"
+          disablePictureInPicture
+          disableRemotePlayback
         >
           {isMobile ? (
             <>
