@@ -442,14 +442,6 @@ body {
   pointer-events: auto;
 }
 
-.shop-header-cities {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--ink);
-  white-space: nowrap;
-}
-
 .shop-header-icons {
   display: flex;
   align-items: center;
@@ -899,7 +891,6 @@ body {
   width: auto;
 }
 
-.shop-footer-cities,
 .shop-footer-legal {
   font-size: 9.5px;
   text-transform: uppercase;
@@ -918,8 +909,7 @@ body {
     height: 19px;
   }
 
-  .shop-header-nav,
-  .shop-header-cities {
+  .shop-header-nav {
     display: none;
   }
 

@@ -25,7 +25,6 @@ export default function ShopHeader() {
       </nav>
 
       <div className="shop-header-right">
-        <span className="shop-header-cities">Paris / London / New York</span>
         <span className="shop-header-icons">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="7" />
