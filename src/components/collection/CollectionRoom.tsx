@@ -8,6 +8,7 @@ import {
   selectableItems,
 } from "@/data/collection";
 import { mediaRect, type Rect } from "@/lib/media-rect";
+import { VERTICAL_VIDEO_CONTENT, VERTICAL_VIDEO_SIZE } from "@/lib/video-timeline";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
 import ProductPanel from "./ProductPanel";
@@ -31,9 +32,58 @@ const DESKTOP_NAV_GUTTER = 260;
 /** Vertical share of the room the wall may occupy, leaving the header and the
  * carousel their own air. */
 const DESKTOP_WALL_HEIGHT = 0.78;
+/** How long the still takes to settle from matching the video's last frame
+ * into its resting, fully-visible position. */
+const SETTLE_MS = 900;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
+}
+
+/**
+ * Where the wall settles once the room has arrived: the whole collection has
+ * to be on screen at once — every piece reachable without dragging the
+ * picture around first. So this is always contained, never cropped: on a
+ * phone the full width of the screen, on a desktop the largest 4:3 that fits
+ * between the chrome.
+ */
+function restRect(size: { width: number; height: number }, compact: boolean): Rect {
+  if (compact) {
+    const width = size.width;
+    const height = (width * WALL_SIZE.h) / WALL_SIZE.w;
+    return { left: 0, top: size.height * PHONE_WALL_CENTRE - height / 2, width, height };
+  }
+  const free = Math.max(320, size.width - DESKTOP_NAV_GUTTER);
+  const fitted = mediaRect(free * 0.96, size.height * DESKTOP_WALL_HEIGHT, WALL_SIZE.w, WALL_SIZE.h, "contain");
+  return {
+    left: size.width - free + (free - fitted.width) / 2,
+    top: size.height * DESKTOP_WALL_CENTRE - fitted.height / 2,
+    width: fitted.width,
+    height: fitted.height,
+  };
+}
+
+/**
+ * Where the wall has to start: exactly the rect the collection video was
+ * just showing, so the still photo taking over reads as the same picture
+ * rather than a pop to a different size. On a desktop the video is
+ * object-cover, full-bleed; on a phone it's a letterboxed file, and the
+ * hotspot picture sits inside that letterboxing at a known fraction (see
+ * VERTICAL_VIDEO_CONTENT) — not the padded frame itself.
+ */
+function handoffRect(size: { width: number; height: number }, compact: boolean): Rect {
+  if (compact) {
+    const scale = Math.min(size.width / VERTICAL_VIDEO_SIZE.w, size.height / VERTICAL_VIDEO_SIZE.h);
+    const boxWidth = VERTICAL_VIDEO_SIZE.w * scale;
+    const boxHeight = VERTICAL_VIDEO_SIZE.h * scale;
+    return {
+      left: (size.width - boxWidth) / 2,
+      top: (size.height - boxHeight) / 2 + boxHeight * VERTICAL_VIDEO_CONTENT.topFraction,
+      width: boxWidth,
+      height: boxHeight * VERTICAL_VIDEO_CONTENT.heightFraction,
+    };
+  }
+  return mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "cover");
 }
 
 /**
@@ -51,6 +101,14 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const zoomRef = useRef(1);
   const hotspotEls = useRef(new Map<string, HTMLButtonElement | null>());
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  // Mounted already matching the video's last frame; flipped one tick later
+  // so the browser has something to transition *from* — see the effect below.
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setSettled(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   // A model's file and the three.js chunk to render it both take real time to
   // fetch — time a click can't hide once the flight is already underway. The
@@ -149,38 +207,11 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     // `step` closes over the current selection, which is what we want rebound.
   }, [selectedId, select]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The whole collection has to be on screen at once — every piece reachable
-  // without dragging the picture around first. So the wall is always contained,
-  // never cropped: on a phone that means the full width of the screen, on a
-  // desktop the largest 4:3 that fits between the chrome.
-  let wall: Rect | null = null;
-  if (size) {
-    if (compact) {
-      const width = size.width;
-      const height = (width * WALL_SIZE.h) / WALL_SIZE.w;
-      wall = {
-        left: 0,
-        top: size.height * PHONE_WALL_CENTRE - height / 2,
-        width,
-        height,
-      };
-    } else {
-      const free = Math.max(320, size.width - DESKTOP_NAV_GUTTER);
-      const fitted = mediaRect(
-        free * 0.96,
-        size.height * DESKTOP_WALL_HEIGHT,
-        WALL_SIZE.w,
-        WALL_SIZE.h,
-        "contain"
-      );
-      wall = {
-        left: size.width - free + (free - fitted.width) / 2,
-        top: size.height * DESKTOP_WALL_CENTRE - fitted.height / 2,
-        width: fitted.width,
-        height: fitted.height,
-      };
-    }
-  }
+  // Starts exactly where the video left off, then eases into its resting
+  // frame one tick later — see the `settled` effect above. Both rects are
+  // pure functions of `size`, so a mid-transition resize just re-targets the
+  // tween instead of snapping.
+  const wall: Rect | null = size ? (settled ? restRect(size, compact) : handoffRect(size, compact)) : null;
   const displayed = displayedId ? collection.find((i) => i.id === displayedId) ?? null : null;
   const inspecting = displayed !== null && !closing;
 
@@ -189,7 +220,15 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
       {wall && (
         <div
           className={`shop-wall-layer ${compact ? "is-compact" : ""}`}
-          style={{ left: wall.left, top: wall.top, width: wall.width, height: wall.height }}
+          style={{
+            left: wall.left,
+            top: wall.top,
+            width: wall.width,
+            height: wall.height,
+            transition: settled
+              ? `left ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), top ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), width ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), height ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`
+              : "none",
+          }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

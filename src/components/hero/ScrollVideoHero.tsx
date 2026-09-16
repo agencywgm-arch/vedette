@@ -9,6 +9,7 @@ import {
   ROOM_ENTER_AT,
   ROOM_LEAVE_AT,
   TOTAL_SCROLL_VH,
+  VERTICAL_VIDEO_SIZE,
   phaseForProgress,
   stageForProgress,
   type Phase,
@@ -33,9 +34,6 @@ const MOBILE_QUERY = "(max-width: 767px)";
 // the scrollable distance keeps the same BOUNDARY fraction (both phases
 // scale together) while requiring more scroll per second of playback.
 const MOBILE_SCROLL_STRETCH = 1.4;
-// Intrinsic size of the vertical clips (public/videos/*-vertical.*), needed
-// to compute their rendered rect under object-fit: contain.
-const MOBILE_VIDEO_SIZE = { w: 720, h: 900 };
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -56,9 +54,9 @@ function getMobileServerSnapshot() {
 }
 
 function computeContainRect(containerW: number, containerH: number): ContainRect {
-  const scale = Math.min(containerW / MOBILE_VIDEO_SIZE.w, containerH / MOBILE_VIDEO_SIZE.h);
-  const width = MOBILE_VIDEO_SIZE.w * scale;
-  const height = MOBILE_VIDEO_SIZE.h * scale;
+  const scale = Math.min(containerW / VERTICAL_VIDEO_SIZE.w, containerH / VERTICAL_VIDEO_SIZE.h);
+  const width = VERTICAL_VIDEO_SIZE.w * scale;
+  const height = VERTICAL_VIDEO_SIZE.h * scale;
   return {
     left: (containerW - width) / 2,
     top: (containerH - height) / 2,

@@ -195,19 +195,6 @@ body {
   }
 }
 
-.shop-reveal .shop-wall {
-  animation: wall-settle 2.1s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes wall-settle {
-  from {
-    transform: scale(1.09);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
 @keyframes chrome-in {
   from {
     opacity: 0;

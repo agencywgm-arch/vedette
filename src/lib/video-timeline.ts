@@ -56,6 +56,19 @@ export const FAST_MODE_TARGET = BOUNDARY + 0.01;
 export const ROOM_ENTER_AT = 0.985;
 export const ROOM_LEAVE_AT = 0.955;
 
+/**
+ * The letterboxed canvas the *-vertical.mp4/webm files are encoded at, and
+ * where the actual shop footage sits within it. The encode pads a 4:3 frame
+ * into this taller canvas with equal bars top and bottom (see the ffmpeg
+ * recipe: `pad=720:900:0:(900-ih)/2`, content scaled to 540 tall) — the
+ * fractions below describe that split. CollectionRoom uses these to line its
+ * still photo up with exactly where the video's own picture was, not the
+ * padded frame around it; ScrollVideoHero uses the outer size for hotspot
+ * placement, which is expressed against the full padded canvas.
+ */
+export const VERTICAL_VIDEO_SIZE = { w: 720, h: 900 };
+export const VERTICAL_VIDEO_CONTENT = { topFraction: 0.2, heightFraction: 0.6 };
+
 export type SceneStageLabel = "street" | "approach" | "threshold" | "collection";
 
 export function stageForProgress(progress: number): SceneStageLabel {
