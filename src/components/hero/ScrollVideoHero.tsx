@@ -18,10 +18,13 @@ import { createVideoScrubber } from "@/lib/video-scrubber";
 import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
-import PhaseTransition from "./PhaseTransition";
 
-const PHASE_TRANSITION_MIN_MS = 350;
-const PHASE_TRANSITION_MAX_MS = 1500;
+// The two clips' frames at the cut don't quite line up (the camera sits at a
+// slightly different distance from the door in each), so the hard cut this
+// dissolves instead of a jump — both clips are already scrubbed to the right
+// side of the cut by the time it plays, so it's blending two settled frames,
+// not waiting on anything.
+const CROSSFADE_MS = 450;
 
 const MOBILE_QUERY = "(max-width: 767px)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
@@ -71,8 +74,6 @@ export default function ScrollVideoHero() {
   const rafRef = useRef<number | null>(null);
   const [containRect, setContainRect] = useState<ContainRect | null>(null);
   const [activePhase, setActivePhase] = useState<Phase>("entrance");
-  const [showPhaseTransition, setShowPhaseTransition] = useState(false);
-  const lastPhaseRef = useRef<Phase>("entrance");
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
   const [roomOpen, setRoomOpen] = useState(false);
@@ -105,10 +106,9 @@ export default function ScrollVideoHero() {
     setEntryMode("fast");
     const wrapper = wrapperRef.current;
     if (wrapper) {
-      // Cover the jump with the loading bumper first — an animated scroll
-      // through this much of the entrance clip plays back like a jarring
-      // fast-forward, so land on the collection view in one cut instead.
-      setShowPhaseTransition(true);
+      // The jump itself needs no cover: the crossfade dissolves it exactly
+      // like the natural boundary crossing does, and the seek it costs the
+      // entrance clip is now fast enough (a fraction of the fade) not to show.
       const rect = wrapper.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       // rect.top is negative once scrolled into the wrapper; the wrapper's
@@ -164,17 +164,6 @@ export default function ScrollVideoHero() {
       scrubCollection(collectionVideoRef.current, collectionLocal);
       setActivePhase((prev) => (prev === phase ? prev : phase));
 
-      // The two clips don't quite line up frame-to-frame at the cut (the
-      // camera sits at a slightly different distance from the door at the
-      // very end of entrance vs. the very start of collection), so mask it
-      // with the branded loading bumper on every crossing, not just the
-      // first — otherwise scrolling back and forth across the boundary
-      // shows a visible "bounce" on the second pass onward.
-      if (lastPhaseRef.current !== phase) {
-        setShowPhaseTransition(true);
-      }
-      lastPhaseRef.current = phase;
-
       // Hand off to the live collection room once the clip has settled on the
       // wall; hysteresis so scroll jitter at the threshold can't strobe it.
       const wantRoom = roomOpenRef.current
@@ -222,44 +211,6 @@ export default function ScrollVideoHero() {
     };
   }, [setScrollOffset, setStage, isMobile, entryMode, scrubEntrance, scrubCollection]);
 
-  // Hold the loading bumper up until the collection clip actually has a
-  // frame ready to paint, so the visitor never sees the raw poster's own
-  // logo bands flash underneath it — bounded so a slow connection doesn't
-  // hang the bumper forever.
-  useEffect(() => {
-    if (!showPhaseTransition) return;
-    const video = collectionVideoRef.current;
-    const start = performance.now();
-    let settled = false;
-    let hideTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      const elapsed = performance.now() - start;
-      hideTimer = setTimeout(
-        () => setShowPhaseTransition(false),
-        Math.max(0, PHASE_TRANSITION_MIN_MS - elapsed)
-      );
-    };
-
-    const maxTimer = setTimeout(finish, PHASE_TRANSITION_MAX_MS);
-
-    if (video && video.readyState >= 3) {
-      finish();
-    } else if (video) {
-      video.addEventListener("canplay", finish, { once: true });
-    } else {
-      finish();
-    }
-
-    return () => {
-      clearTimeout(maxTimer);
-      if (hideTimer != null) clearTimeout(hideTimer);
-      video?.removeEventListener("canplay", finish);
-    };
-  }, [showPhaseTransition]);
-
   // While a piece is being inspected the wheel belongs to it (zoom), not to
   // the page — and scrolling away mid-inspection would yank the room out.
   useEffect(() => {
@@ -282,7 +233,10 @@ export default function ScrollVideoHero() {
           key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
           ref={entranceVideoRef}
           className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
-          style={{ opacity: activePhase === "entrance" ? 1 : 0 }}
+          style={{
+            opacity: activePhase === "entrance" ? 1 : 0,
+            transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
+          }}
           poster={isMobile ? "/videos/poster-vertical.jpg" : "/videos/poster.jpg"}
           muted
           playsInline
@@ -304,7 +258,10 @@ export default function ScrollVideoHero() {
           key={isMobile ? "collection-vertical" : "collection-horizontal"}
           ref={collectionVideoRef}
           className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
-          style={{ opacity: activePhase === "collection" ? 1 : 0 }}
+          style={{
+            opacity: activePhase === "collection" ? 1 : 0,
+            transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
+          }}
           poster={isMobile ? "/videos/collection-poster-vertical.jpg" : "/videos/collection-poster.jpg"}
           muted
           playsInline
@@ -334,8 +291,6 @@ export default function ScrollVideoHero() {
             <CollectionRoom compact={isMobile} />
           </div>
         )}
-
-        <PhaseTransition visible={showPhaseTransition} />
 
         <DialogueBubble
           visible={showDialogue}
