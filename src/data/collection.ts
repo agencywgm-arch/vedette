@@ -62,6 +62,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 23.5, y: 37.5, w: 13, h: 24 },
     front: P + "jparis-tee-front.webp",
     back: null,
+    model: "/models/jparis-tee.glb",
   },
   {
     id: "champions-tee",
@@ -116,6 +117,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 23.5, y: 56, w: 8, h: 8.5 },
     front: P + "cap-vedette-front.webp",
     back: P + "cap-vedette-back.webp",
+    model: "/models/cap-vedette.glb",
   },
   {
     id: "cap-flames",
@@ -153,6 +155,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 72, y: 56, w: 9, h: 9 },
     front: P + "cap-heart-front.webp",
     back: null,
+    model: "/models/cap-heart.glb",
   },
   {
     id: "paris-longsleeve",
