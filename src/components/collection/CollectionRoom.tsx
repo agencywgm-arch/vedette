@@ -260,8 +260,10 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
       <ShopHeader />
       {!compact && <NavHud compact={false} />}
       {!compact && <CategoryRail />}
-      {compact && <NavHud compact />}
       {displayed && <ProductPanel item={displayed} onClose={() => select(null)} />}
+      {/* after the panel, so the CSS that moves it out of the sheet's way can
+          reach it — a sibling combinator only looks forward */}
+      {compact && <NavHud compact />}
       <ProductRail onStep={step} onPick={open} />
       {!compact && <ShopFooter />}
     </div>

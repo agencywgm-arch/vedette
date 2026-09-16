@@ -28,40 +28,51 @@ export default function ProductPanel({
         </svg>
       </button>
 
-      <h2 className="shop-panel-title">{item.name}</h2>
-      <p className="shop-panel-price">{formatPrice(item.price)}</p>
+      {/* The wrappers do nothing on desktop, where the sheet stacks. On a phone
+          they let the title sit beside the price and the two pickers share one
+          row, which is most of what makes the sheet short enough there. */}
+      <div className="shop-panel-head">
+        <h2 className="shop-panel-title">{item.name}</h2>
+        <p className="shop-panel-price">{formatPrice(item.price)}</p>
+      </div>
       <hr className="shop-panel-rule" />
       <p className="shop-panel-desc">{item.description}</p>
 
-      <p className="shop-panel-label">Couleurs</p>
-      <div className="shop-swatches">
-        {item.colors.map((c) => (
-          <button
-            key={c.name}
-            type="button"
-            title={c.name}
-            aria-label={c.name}
-            aria-pressed={color === c.name}
-            className={`shop-swatch ${color === c.name ? "is-active" : ""}`}
-            style={{ background: c.hex }}
-            onClick={() => setColor(c.name)}
-          />
-        ))}
-      </div>
+      <div className="shop-panel-fields">
+        <div className="shop-panel-field">
+          <p className="shop-panel-label">Couleurs</p>
+          <div className="shop-swatches">
+            {item.colors.map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                title={c.name}
+                aria-label={c.name}
+                aria-pressed={color === c.name}
+                className={`shop-swatch ${color === c.name ? "is-active" : ""}`}
+                style={{ background: c.hex }}
+                onClick={() => setColor(c.name)}
+              />
+            ))}
+          </div>
+        </div>
 
-      <p className="shop-panel-label">Tailles</p>
-      <div className="shop-sizes">
-        {item.sizes.map((s) => (
-          <button
-            key={s}
-            type="button"
-            aria-pressed={size === s}
-            className={`shop-size ${size === s ? "is-active" : ""}`}
-            onClick={() => setSize(s)}
-          >
-            {s}
-          </button>
-        ))}
+        <div className="shop-panel-field">
+          <p className="shop-panel-label">Tailles</p>
+          <div className="shop-sizes">
+            {item.sizes.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={size === s}
+                className={`shop-size ${size === s ? "is-active" : ""}`}
+                onClick={() => setSize(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <button

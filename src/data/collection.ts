@@ -128,11 +128,12 @@ export const collection: CollectionItem[] = [
     name: "CASQUETTE CAMO",
     price: 45,
     category: "CASQUETTES",
-    description: "Casquette camo noire, visière jaune. Broderie ton sur ton.",
+    description:
+      "Camo digital noir, liseré jaune fluo sous la visière, sangle réglable à boucle D.",
     colors: [{ name: "Camo", hex: "#23231f" }],
     sizes: ["TU"],
     spot: { x: 55.5, y: 56, w: 8.5, h: 8.5 },
-    front: null,
+    front: P + "cap-camo-front.webp",
     back: null,
   },
   {
