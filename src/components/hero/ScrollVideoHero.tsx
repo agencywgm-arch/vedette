@@ -20,11 +20,12 @@ import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
 
 // The two clips' frames at the cut don't quite line up (the camera sits at a
-// slightly different distance from the door in each), so the hard cut this
-// dissolves instead of a jump — both clips are already scrubbed to the right
-// side of the cut by the time it plays, so it's blending two settled frames,
-// not waiting on anything.
-const CROSSFADE_MS = 450;
+// slightly different distance from the door in each), so a bare swap pops.
+// This just needs to be long enough to break that pop — a fade slow enough to
+// actually see reads as two images ghosting through each other, which is more
+// visible than the mismatch it's covering for. Quick enough to register as a
+// clean cut, not a dissolve.
+const CROSSFADE_MS = 120;
 
 const MOBILE_QUERY = "(max-width: 767px)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
