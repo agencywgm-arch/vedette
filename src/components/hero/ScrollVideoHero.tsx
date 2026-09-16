@@ -191,6 +191,9 @@ export default function ScrollVideoHero() {
       if (wantRoom !== roomOpenRef.current) {
         roomOpenRef.current = wantRoom;
         setRoomOpen(wantRoom);
+        // Scrolling back out of the room must also drop whatever was being
+        // inspected, or its scroll lock would strand the page.
+        if (!wantRoom) useShopStore.getState().select(null);
       }
 
       setScrollOffset(progress);
@@ -319,16 +322,14 @@ export default function ScrollVideoHero() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
 
-        <div
-          className="absolute inset-0 z-20 transition-opacity duration-500"
-          style={{
-            opacity: roomOpen ? 1 : 0,
-            pointerEvents: roomOpen ? "auto" : "none",
-          }}
-          aria-hidden={!roomOpen}
-        >
-          <CollectionRoom compact={isMobile} />
-        </div>
+        {/* Mounted only once the clip has settled, so the reveal plays from
+            the top every time you arrive — and the long dissolve keeps it
+            feeling like the camera coming to rest, not a mode switch. */}
+        {roomOpen && (
+          <div className="shop-reveal absolute inset-0 z-20">
+            <CollectionRoom compact={isMobile} />
+          </div>
+        )}
 
         <PhaseTransition visible={showPhaseTransition} />
 

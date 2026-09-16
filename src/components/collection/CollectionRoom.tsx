@@ -20,6 +20,11 @@ import ShopFooter from "./ShopFooter";
 
 const MIN_ZOOM = 0.8;
 const MAX_ZOOM = 1.8;
+/** On a phone the wall runs a little wider than the screen: enough that the
+ * pieces are comfortable to tap, not so much that you lose the shop around
+ * them. The rest of it comes in by dragging sideways. */
+const PHONE_OVERSCAN = 1.72;
+const PHONE_WALL_CENTRE = 0.43;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -162,9 +167,21 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     // `step` closes over the current selection, which is what we want rebound.
   }, [selectedId, select]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const wall = size
-    ? mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "cover")
-    : null;
+  let wall: Rect | null = null;
+  if (size) {
+    if (compact) {
+      const width = size.width * PHONE_OVERSCAN;
+      const height = (width * WALL_SIZE.h) / WALL_SIZE.w;
+      wall = {
+        left: (size.width - width) / 2,
+        top: size.height * PHONE_WALL_CENTRE - height / 2,
+        width,
+        height,
+      };
+    } else {
+      wall = mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "cover");
+    }
+  }
   const displayed = displayedId ? collection.find((i) => i.id === displayedId) ?? null : null;
   const inspecting = displayed !== null && !closing;
 
@@ -181,7 +198,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
       {wall && (
         <div
           ref={layerRef}
-          className="shop-wall-layer"
+          className={`shop-wall-layer ${compact ? "is-compact" : ""}`}
           style={{ left: wall.left, top: wall.top, width: wall.width, height: wall.height }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
