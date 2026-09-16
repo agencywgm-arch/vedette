@@ -52,6 +52,18 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const hotspotEls = useRef(new Map<string, HTMLButtonElement | null>());
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
 
+  // A model's file and the three.js chunk to render it both take real time to
+  // fetch — time a click can't hide once the flight is already underway. The
+  // room arriving is spare time the visitor spends looking at the wall before
+  // touching anything, so warm the cache then instead of at the click.
+  useEffect(() => {
+    const models = collection.map((i) => i.model).filter((m): m is string => Boolean(m));
+    if (models.length === 0) return;
+    import("./ModelStage").then(({ preloadModel }) => {
+      for (const url of models) preloadModel(url);
+    });
+  }, []);
+
   const selectedId = useShopStore((s) => s.selectedId);
   const select = useShopStore((s) => s.select);
   const hoveredId = useShopStore((s) => s.hoveredId);

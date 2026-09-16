@@ -7,6 +7,16 @@ import { useGLTF, Environment, Lightformer, ContactShadows } from "@react-three/
 import * as THREE from "three";
 
 /**
+ * Fetching and parsing a GLB takes real time — this is what a click was
+ * waiting on. Call this as early as there's spare time to spend (the room
+ * arriving, a hotspot under the pointer) so the file is already in drei's
+ * cache by the time a click actually asks for it.
+ */
+export function preloadModel(url: string) {
+  useGLTF.preload(url);
+}
+
+/**
  * A scanned piece can come out of the scanner at any scale, off-centre, facing
  * anywhere. Rather than hand-tuning each one in the data, the model is measured
  * on load and normalised: centred on its own bounding box and scaled so its
