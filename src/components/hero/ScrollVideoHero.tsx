@@ -3,18 +3,20 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
 import {
+  BOUNDARY,
   DIALOGUE_AT,
   FAST_MODE_TARGET,
   TOTAL_SCROLL_VH,
   phaseForProgress,
   stageForProgress,
+  type Phase,
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
 import DialogueBubble from "./DialogueBubble";
 import PhaseTransition from "./PhaseTransition";
-import BoutiqueSection from "@/components/boutique/BoutiqueSection";
 
-const PHASE_TRANSITION_MS = 600;
+const PHASE_TRANSITION_MIN_MS = 350;
+const PHASE_TRANSITION_MAX_MS = 1500;
 
 const MOBILE_QUERY = "(max-width: 767px)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
@@ -73,11 +75,12 @@ export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const entranceVideoRef = useRef<HTMLVideoElement>(null);
+  const collectionVideoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
   const [containRect, setContainRect] = useState<ContainRect | null>(null);
+  const [activePhase, setActivePhase] = useState<Phase>("entrance");
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
-  const [hasEnteredBoutique, setHasEnteredBoutique] = useState(false);
-  const hasEnteredBoutiqueRef = useRef(false);
+  const lastPhaseRef = useRef<Phase>("entrance");
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
   const isMobile = useSyncExternalStore(
@@ -150,21 +153,28 @@ export default function ScrollVideoHero() {
         setHasReachedDialogue(true);
       }
 
-      scrubVideo(entranceVideoRef.current, progress);
-
       const phase = phaseForProgress(progress);
-      if (phase === "boutique" && !hasEnteredBoutiqueRef.current) {
-        // One-way door: mask the video->3D handoff with the branded bumper,
-        // then swap the sticky view over to the interactive boutique and
-        // lock page scroll (further scroll position is meaningless once
-        // navigation happens inside the boutique's own controls).
-        hasEnteredBoutiqueRef.current = true;
+      // Keep BOTH clips in sync with scroll at all times (each clamped to
+      // its own 0..1 range), not just the currently visible one. Otherwise
+      // the hidden clip sits frozen wherever it last was and has to seek —
+      // with visible lag — the moment it becomes active again, which made
+      // scrolling backward across the phase boundary look broken.
+      const entranceLocal = clamp(progress / BOUNDARY, 0, 1);
+      const collectionLocal = clamp((progress - BOUNDARY) / (1 - BOUNDARY), 0, 1);
+      scrubVideo(entranceVideoRef.current, entranceLocal);
+      scrubVideo(collectionVideoRef.current, collectionLocal);
+      setActivePhase((prev) => (prev === phase ? prev : phase));
+
+      // The two clips don't quite line up frame-to-frame at the cut (the
+      // camera sits at a slightly different distance from the door at the
+      // very end of entrance vs. the very start of collection), so mask it
+      // with the branded loading bumper on every crossing, not just the
+      // first — otherwise scrolling back and forth across the boundary
+      // shows a visible "bounce" on the second pass onward.
+      if (lastPhaseRef.current !== phase) {
         setShowPhaseTransition(true);
-        setTimeout(() => {
-          setHasEnteredBoutique(true);
-          setShowPhaseTransition(false);
-        }, PHASE_TRANSITION_MS);
       }
+      lastPhaseRef.current = phase;
 
       setScrollOffset(progress);
       const stage = stageForProgress(progress);
@@ -188,16 +198,43 @@ export default function ScrollVideoHero() {
     };
   }, [setScrollOffset, setStage, isMobile, entryMode]);
 
-  // Once inside the boutique, page scroll no longer means anything — all
-  // navigation happens through the boutique's own camera controls.
+  // Hold the loading bumper up until the collection clip actually has a
+  // frame ready to paint, so the visitor never sees the raw poster's own
+  // logo bands flash underneath it — bounded so a slow connection doesn't
+  // hang the bumper forever.
   useEffect(() => {
-    if (!hasEnteredBoutique) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
+    if (!showPhaseTransition) return;
+    const video = collectionVideoRef.current;
+    const start = performance.now();
+    let settled = false;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      const elapsed = performance.now() - start;
+      hideTimer = setTimeout(
+        () => setShowPhaseTransition(false),
+        Math.max(0, PHASE_TRANSITION_MIN_MS - elapsed)
+      );
     };
-  }, [hasEnteredBoutique]);
+
+    const maxTimer = setTimeout(finish, PHASE_TRANSITION_MAX_MS);
+
+    if (video && video.readyState >= 3) {
+      finish();
+    } else if (video) {
+      video.addEventListener("canplay", finish, { once: true });
+    } else {
+      finish();
+    }
+
+    return () => {
+      clearTimeout(maxTimer);
+      if (hideTimer != null) clearTimeout(hideTimer);
+      video?.removeEventListener("canplay", finish);
+    };
+  }, [showPhaseTransition]);
 
   return (
     <div
@@ -206,44 +243,62 @@ export default function ScrollVideoHero() {
       className="relative"
     >
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
-        {hasEnteredBoutique ? (
-          <BoutiqueSection />
-        ) : (
-          <>
-            <video
-              key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
-              ref={entranceVideoRef}
-              className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
-              poster={isMobile ? "/videos/poster-vertical.jpg" : "/videos/poster.jpg"}
-              muted
-              playsInline
-              preload="auto"
-            >
-              {isMobile ? (
-                <>
-                  <source src="/videos/entrance-vertical.mp4" type="video/mp4" />
-                  <source src="/videos/entrance-vertical.webm" type="video/webm" />
-                </>
-              ) : (
-                <>
-                  <source src="/videos/entrance.mp4" type="video/mp4" />
-                  <source src="/videos/entrance.webm" type="video/webm" />
-                </>
-              )}
-            </video>
-            {!isMobile && (
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
-            )}
-            <DialogueBubble
-              visible={showDialogue}
-              isMobile={isMobile}
-              containRect={containRect}
-              onChoose={handleFastMode}
-            />
-          </>
+        <video
+          key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
+          ref={entranceVideoRef}
+          className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
+          style={{ opacity: activePhase === "entrance" ? 1 : 0 }}
+          poster={isMobile ? "/videos/poster-vertical.jpg" : "/videos/poster.jpg"}
+          muted
+          playsInline
+          preload="auto"
+        >
+          {isMobile ? (
+            <>
+              <source src="/videos/entrance-vertical.mp4" type="video/mp4" />
+              <source src="/videos/entrance-vertical.webm" type="video/webm" />
+            </>
+          ) : (
+            <>
+              <source src="/videos/entrance.mp4" type="video/mp4" />
+              <source src="/videos/entrance.webm" type="video/webm" />
+            </>
+          )}
+        </video>
+        <video
+          key={isMobile ? "collection-vertical" : "collection-horizontal"}
+          ref={collectionVideoRef}
+          className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
+          style={{ opacity: activePhase === "collection" ? 1 : 0 }}
+          poster={isMobile ? "/videos/collection-poster-vertical.jpg" : "/videos/collection-poster.jpg"}
+          muted
+          playsInline
+          preload="auto"
+        >
+          {isMobile ? (
+            <>
+              <source src="/videos/collection-vertical.mp4" type="video/mp4" />
+              <source src="/videos/collection-vertical.webm" type="video/webm" />
+            </>
+          ) : (
+            <>
+              <source src="/videos/collection.mp4" type="video/mp4" />
+              <source src="/videos/collection.webm" type="video/webm" />
+            </>
+          )}
+        </video>
+        {!isMobile && (
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
 
         <PhaseTransition visible={showPhaseTransition} />
+
+        <DialogueBubble
+          visible={showDialogue}
+          isMobile={isMobile}
+          containRect={containRect}
+          onChoose={handleFastMode}
+        />
       </div>
     </div>
   );
