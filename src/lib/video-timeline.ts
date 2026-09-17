@@ -77,6 +77,17 @@ export const SKIP_TO_ROOM_TARGET = Math.min(1, ROOM_ENTER_AT + 0.01);
  * placement, which is expressed against the full padded canvas.
  */
 export const VERTICAL_VIDEO_SIZE = { w: 720, h: 900 };
+
+/**
+ * entrance.mp4's own pixel size. GUARD_ANCHOR is expressed as a % of this
+ * frame, not of whatever window is showing it — object-fit: cover crops a
+ * different slice depending on the viewport's own aspect (a landscape phone
+ * crops far more off the top and bottom than a 16:9 desktop does), so an
+ * anchor read as plain container % drifts away from the guard on anything
+ * that isn't close to that one aspect. Projecting through mediaRect's cover
+ * math keeps it pinned to him regardless.
+ */
+export const ENTRANCE_INTRINSIC_SIZE = { w: 2048, h: 1536 };
 export const VERTICAL_VIDEO_CONTENT = { topFraction: 0.2, heightFraction: 0.6 };
 
 export type SceneStageLabel = "street" | "approach" | "threshold" | "collection";

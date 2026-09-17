@@ -5,6 +5,7 @@ import { useSceneStore } from "@/store/useSceneStore";
 import {
   BOUNDARY,
   DIALOGUE_AT,
+  ENTRANCE_INTRINSIC_SIZE,
   FAST_MODE_TARGET,
   ROOM_ENTER_AT,
   ROOM_LEAVE_AT,
@@ -16,6 +17,7 @@ import {
   type Phase,
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
+import { mediaRect } from "@/lib/media-rect";
 import { createVideoScrubber } from "@/lib/video-scrubber";
 import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
@@ -138,17 +140,23 @@ export default function ScrollVideoHero() {
     }
   }, [jumpToProgress]);
 
-  // On mobile the clips are shown with object-fit: contain (never cropped), so
-  // hotspots need the video's actual rendered rect within the container.
+  // On mobile the clips are shown with object-fit: contain (never cropped);
+  // on desktop they're cover-cropped, and how much of the frame that crops
+  // away depends on the viewport's own aspect. Either way, anything anchored
+  // to a point *in the picture* (mobile hotspots, the guard's speech bubble)
+  // needs the video's actual rendered rect, not the container's own box.
   useEffect(() => {
-    if (!isMobile) return;
     const sticky = stickyRef.current;
     if (!sticky) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (!entry) return;
       const { width, height } = entry.contentRect;
-      setContainRect(computeContainRect(width, height));
+      setContainRect(
+        isMobile
+          ? computeContainRect(width, height)
+          : mediaRect(width, height, ENTRANCE_INTRINSIC_SIZE.w, ENTRANCE_INTRINSIC_SIZE.h, "cover")
+      );
     });
     observer.observe(sticky);
     return () => observer.disconnect();
