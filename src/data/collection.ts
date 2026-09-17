@@ -40,7 +40,7 @@ export interface CollectionItem {
 }
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
-export const WALL_SIZE = { w: 1448, h: 1086 };
+export const WALL_SIZE = { w: 2880, h: 2160 };
 export const WALL_IMAGE = "/collection/wall.webp";
 
 const P = "/collection/products/";

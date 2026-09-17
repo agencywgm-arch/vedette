@@ -1,18 +1,24 @@
 /**
  * The experience is two back-to-back clips sharing one continuous scroll:
  *
- *   Phase "entrance"   (public/videos/entrance.mp4, ~6.02s)
+ *   Phase "entrance"   (public/videos/entrance.mp4, ~6.04s)
  *     street -> approach -> through the open doors, ending just inside.
- *   Phase "collection" (public/videos/collection.mp4, ~7.04s)
+ *   Phase "collection" (public/videos/collection.mp4, ~6.04s)
  *     the same doorway view continuing to push in until it settles facing
  *     the full clothing wall — this is where visitors browse and buy.
  *
  * Global scroll progress is 0..1 across BOTH clips; BOUNDARY is where the
  * handoff between the two <video> elements happens. Each phase also has its
  * own local 0..1 progress (used to drive that phase's video.currentTime).
+ *
+ * collection.mp4 is trimmed 1s off its master's start: the raw footage begins
+ * pulled back wider than where entrance ends, so the cut popped like the
+ * camera jumped backward. Frame 24 of the master is the closest match to
+ * entrance's own last frame (found by comparing candidates pixel-for-pixel),
+ * so that's where the trimmed file's t=0 now sits.
  */
-const ENTRANCE_DURATION = 6.02;
-const COLLECTION_DURATION = 7.04;
+const ENTRANCE_DURATION = 6.041667;
+const COLLECTION_DURATION = 6.041667;
 
 /** Scroll length per phase, as a multiple of the viewport height — kept
  * proportional to each clip's duration so scroll speed feels consistent. */
