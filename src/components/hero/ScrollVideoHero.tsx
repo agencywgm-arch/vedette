@@ -295,6 +295,15 @@ export default function ScrollVideoHero() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
 
+        {/* A tap during this phase has nothing to do — no hotspot exists until
+            the room mounts — but some browsers still route it to the <video>
+            underneath as a native play gesture regardless of the video's own
+            pointer-events: none (a known WebKit/Chrome-on-Android quirk with
+            media elements), which starts it running in real time and looks
+            like the scroll itself raced ahead to the end. A plain div, with
+            no such special-casing, reliably absorbs the tap instead. */}
+        {!roomOpen && <div className="absolute inset-0 z-10" />}
+
         {/* Mounted only once the clip has settled, so the reveal plays from
             the top every time you arrive — and the long dissolve keeps it
             feeling like the camera coming to rest, not a mode switch. */}

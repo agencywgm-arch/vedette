@@ -20,9 +20,6 @@ import ShopFooter from "./ShopFooter";
 
 const MIN_ZOOM = 0.8;
 const MAX_ZOOM = 1.8;
-/** Where the wall sits vertically, as a fraction of the room's height: high
- * enough to clear the carousel, low enough to clear the header. */
-const PHONE_WALL_CENTRE = 0.46;
 const DESKTOP_WALL_CENTRE = 0.46;
 /** A 4:3 wall on a 16:9 screen always leaves gutters. The left one is the key
  * hints and the category list, so the wall is centred in what's left of the
@@ -43,16 +40,16 @@ function clamp(v: number, min: number, max: number) {
 /**
  * Where the wall settles once the room has arrived: the whole collection has
  * to be on screen at once — every piece reachable without dragging the
- * picture around first. So this is always contained, never cropped: on a
- * phone the full width of the screen, on a desktop the largest 4:3 that fits
+ * picture around first. On a phone the video is already object-contain (the
+ * whole photo, full width, never cropped) — its own rect already satisfies
+ * that, and it's the same size a from-scratch "fit the width" box would come
+ * out to, so resting anywhere else would just be an unmotivated drift. On a
+ * desktop the video is object-cover (full-bleed, cropped), which does need
+ * to relax into a smaller, uncropped frame — the largest 4:3 that fits
  * between the chrome.
  */
 function restRect(size: { width: number; height: number }, compact: boolean): Rect {
-  if (compact) {
-    const width = size.width;
-    const height = (width * WALL_SIZE.h) / WALL_SIZE.w;
-    return { left: 0, top: size.height * PHONE_WALL_CENTRE - height / 2, width, height };
-  }
+  if (compact) return handoffRect(size, compact);
   const free = Math.max(320, size.width - DESKTOP_NAV_GUTTER);
   const fitted = mediaRect(free * 0.96, size.height * DESKTOP_WALL_HEIGHT, WALL_SIZE.w, WALL_SIZE.h, "contain");
   return {
