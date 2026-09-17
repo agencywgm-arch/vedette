@@ -62,6 +62,10 @@ export const FAST_MODE_TARGET = BOUNDARY + 0.01;
 export const ROOM_ENTER_AT = 0.985;
 export const ROOM_LEAVE_AT = 0.955;
 
+/** A double tap/click anywhere during the scroll skips straight past both
+ * clips into the live collection room, clear of ROOM_ENTER_AT's threshold. */
+export const SKIP_TO_ROOM_TARGET = Math.min(1, ROOM_ENTER_AT + 0.01);
+
 /**
  * The letterboxed canvas the *-vertical.mp4/webm files are encoded at, and
  * where the actual shop footage sits within it. The encode pads a 4:3 frame

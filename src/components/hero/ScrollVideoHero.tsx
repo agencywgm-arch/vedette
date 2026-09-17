@@ -8,6 +8,7 @@ import {
   FAST_MODE_TARGET,
   ROOM_ENTER_AT,
   ROOM_LEAVE_AT,
+  SKIP_TO_ROOM_TARGET,
   TOTAL_SCROLL_VH,
   VERTICAL_VIDEO_SIZE,
   phaseForProgress,
@@ -27,6 +28,9 @@ import DialogueBubble from "./DialogueBubble";
 // visible than the mismatch it's covering for. Quick enough to register as a
 // clean cut, not a dissolve.
 const CROSSFADE_MS = 120;
+
+// Two clicks/taps this close together count as one double tap.
+const DOUBLE_TAP_MS = 400;
 
 const MOBILE_QUERY = "(max-width: 767px)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
@@ -101,21 +105,38 @@ export default function ScrollVideoHero() {
   // backward wobble — it only goes away once they actually answer.
   const showDialogue = entryMode === null && hasReachedDialogue;
 
-  const handleFastMode = useCallback(() => {
+  // Both jumps land on a bare scrollTo: the crossfade dissolves the cut
+  // exactly like the natural boundary crossing does, and the seek it costs
+  // each clip is now fast enough (a fraction of the fade) not to show.
+  const jumpToProgress = useCallback((target: number) => {
     setEntryMode("fast");
     const wrapper = wrapperRef.current;
-    if (wrapper) {
-      // The jump itself needs no cover: the crossfade dissolves it exactly
-      // like the natural boundary crossing does, and the seek it costs the
-      // entrance clip is now fast enough (a fraction of the fade) not to show.
-      const rect = wrapper.getBoundingClientRect();
-      const total = rect.height - window.innerHeight;
-      // rect.top is negative once scrolled into the wrapper; the wrapper's
-      // own top in absolute document coordinates is window.scrollY + rect.top.
-      const targetY = window.scrollY + rect.top + total * FAST_MODE_TARGET;
-      window.scrollTo(0, targetY);
-    }
+    if (!wrapper) return;
+    const rect = wrapper.getBoundingClientRect();
+    const total = rect.height - window.innerHeight;
+    // rect.top is negative once scrolled into the wrapper; the wrapper's own
+    // top in absolute document coordinates is window.scrollY + rect.top.
+    const targetY = window.scrollY + rect.top + total * target;
+    window.scrollTo(0, targetY);
   }, [setEntryMode]);
+
+  const handleFastMode = useCallback(
+    () => jumpToProgress(FAST_MODE_TARGET),
+    [jumpToProgress]
+  );
+
+  // A double tap/click anywhere on the scroll phase skips both clips
+  // entirely and drops the visitor straight into the live collection room.
+  const lastTapRef = useRef(0);
+  const handleScrollTap = useCallback(() => {
+    const now = performance.now();
+    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+      lastTapRef.current = 0;
+      jumpToProgress(SKIP_TO_ROOM_TARGET);
+    } else {
+      lastTapRef.current = now;
+    }
+  }, [jumpToProgress]);
 
   // On mobile the clips are shown with object-fit: contain (never cropped), so
   // hotspots need the video's actual rendered rect within the container.
@@ -295,14 +316,23 @@ export default function ScrollVideoHero() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
 
-        {/* A tap during this phase has nothing to do — no hotspot exists until
-            the room mounts — but some browsers still route it to the <video>
-            underneath as a native play gesture regardless of the video's own
-            pointer-events: none (a known WebKit/Chrome-on-Android quirk with
-            media elements), which starts it running in real time and looks
-            like the scroll itself raced ahead to the end. A plain div, with
-            no such special-casing, reliably absorbs the tap instead. */}
-        {!roomOpen && <div className="absolute inset-0 z-10" />}
+        {/* A single tap during this phase has nothing to do — no hotspot
+            exists until the room mounts — but some browsers still route it
+            to the <video> underneath as a native play gesture regardless of
+            the video's own pointer-events: none (a known WebKit/
+            Chrome-on-Android quirk with media elements), which starts it
+            running in real time and looks like the scroll itself raced
+            ahead to the end. A plain div, with no such special-casing,
+            reliably absorbs the tap instead — and doubles as the double
+            tap/click shortcut straight into the collection room, since the
+            video is otherwise the slowest part of arriving there. */}
+        {!roomOpen && (
+          <div
+            className="absolute inset-0 z-10"
+            style={{ touchAction: "manipulation" }}
+            onClick={handleScrollTap}
+          />
+        )}
 
         {/* Mounted only once the clip has settled, so the reveal plays from
             the top every time you arrive — and the long dissolve keeps it
