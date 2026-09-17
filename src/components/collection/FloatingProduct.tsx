@@ -9,6 +9,7 @@ import type {
 } from "react";
 import type { CollectionItem } from "@/data/collection";
 import type { Rect } from "@/lib/media-rect";
+import { useShopStore } from "@/store/useShopStore";
 
 // three.js is a big download and most of the wall is still flat packshots, so
 // it only arrives once a piece that actually has a model is opened.
@@ -73,6 +74,7 @@ export default function FloatingProduct({
   zoomRef: MutableRefObject<number>;
   onReturned: () => void;
 }) {
+  const bundleAccessory = useShopStore((s) => s.bundleAccessory);
   const boxRef = useRef<HTMLDivElement>(null);
   const spinRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLImageElement>(null);
@@ -280,7 +282,13 @@ export default function FloatingProduct({
     >
       {!item.model && <div ref={groundRef} className="fp-ground" />}
       {item.model ? (
-        <ModelStage url={item.model} angleRef={angle} zoomRef={zoomRef} bobRef={bobRef} />
+        <ModelStage
+          url={item.model}
+          angleRef={angle}
+          zoomRef={zoomRef}
+          bobRef={bobRef}
+          accessoryUrl={bundleAccessory ? item.accessory?.model : null}
+        />
       ) : (
       <div className="fp-stage">
         <div ref={spinRef} className="fp-spin">

@@ -124,7 +124,9 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   // room arriving is spare time the visitor spends looking at the wall before
   // touching anything, so warm the cache then instead of at the click.
   useEffect(() => {
-    const models = collection.map((i) => i.model).filter((m): m is string => Boolean(m));
+    const models = collection
+      .flatMap((i) => [i.model, i.accessory?.model])
+      .filter((m): m is string => Boolean(m));
     if (models.length === 0) return;
     import("./ModelStage").then(({ preloadModel }) => {
       for (const url of models) preloadModel(url);

@@ -37,6 +37,11 @@ export interface CollectionItem {
    * between two photographs. `null` falls back to the packshots.
    */
   model?: string | null;
+  /**
+   * A free companion piece shown turning alongside this one in the
+   * inspector when the shopper opts in — never sold or listed on its own.
+   */
+  accessory?: { name: string; model: string } | null;
 }
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
@@ -179,8 +184,9 @@ export const collection: CollectionItem[] = [
     colors: [{ name: "Noir", hex: "#111111" }],
     sizes: ["S", "M", "L", "XL"],
     spot: { x: 35, y: 75, w: 11, h: 27 },
-    front: null,
+    front: P + "forreal-tee-front.webp",
     back: null,
+    model: "/models/forreal-tee.glb",
   },
   {
     id: "rainbow-jersey",
@@ -218,6 +224,7 @@ export const collection: CollectionItem[] = [
     front: P + "black-jacket-front.webp",
     back: P + "black-jacket-back.webp",
     model: "/models/black-jacket.glb",
+    accessory: { name: "Cagoule Vedette", model: "/models/balaclava.glb" },
   },
 ];
 

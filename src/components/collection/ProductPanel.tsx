@@ -16,6 +16,8 @@ export default function ProductPanel({
   onClose: () => void;
 }) {
   const addToCart = useShopStore((s) => s.addToCart);
+  const bundleAccessory = useShopStore((s) => s.bundleAccessory);
+  const setBundleAccessory = useShopStore((s) => s.setBundleAccessory);
   const [color, setColor] = useState(item.colors[0]?.name ?? "");
   const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
@@ -74,6 +76,17 @@ export default function ProductPanel({
           </div>
         </div>
       </div>
+
+      {item.accessory && (
+        <label className="shop-accessory-toggle">
+          <input
+            type="checkbox"
+            checked={bundleAccessory}
+            onChange={(e) => setBundleAccessory(e.target.checked)}
+          />
+          + {item.accessory.name.toUpperCase()} (offerte)
+        </label>
+      )}
 
       <button
         type="button"

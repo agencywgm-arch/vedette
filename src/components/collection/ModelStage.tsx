@@ -28,11 +28,16 @@ function Piece({
   angleRef,
   zoomRef,
   bobRef,
+  offsetX = 0,
+  scaleFactor = 1,
 }: {
   url: string;
   angleRef: MutableRefObject<number>;
   zoomRef: MutableRefObject<number>;
   bobRef: MutableRefObject<number>;
+  /** Side-by-side placement when a companion accessory shares the stage. */
+  offsetX?: number;
+  scaleFactor?: number;
 }) {
   const { scene } = useGLTF(url);
   const pivot = useRef<THREE.Group>(null);
@@ -64,7 +69,8 @@ function Piece({
     if (!group) return;
     group.rotation.y = (angleRef.current * Math.PI) / 180;
     group.position.y = bobRef.current;
-    group.scale.setScalar(zoomRef.current);
+    group.position.x = offsetX;
+    group.scale.setScalar(zoomRef.current * scaleFactor);
   });
 
   return (
@@ -83,12 +89,16 @@ export default function ModelStage({
   angleRef,
   zoomRef,
   bobRef,
+  accessoryUrl,
 }: {
   url: string;
   angleRef: MutableRefObject<number>;
   zoomRef: MutableRefObject<number>;
   bobRef: MutableRefObject<number>;
+  /** A free companion piece shown turning beside this one, when opted in. */
+  accessoryUrl?: string | null;
 }) {
+  const paired = Boolean(accessoryUrl);
   return (
     <Canvas
       className="fp-canvas"
@@ -99,7 +109,7 @@ export default function ModelStage({
       camera={{ position: [0, 0, 2.6], fov: 32 }}
       style={{ pointerEvents: "none" }}
     >
-      <Fit />
+      <Fit paired={paired} />
       <ambientLight intensity={0.55} />
       {/* the key light stays put while the piece turns under it, matching the
           lighting the flat faces faked with a brightness filter */}
@@ -114,21 +124,39 @@ export default function ModelStage({
         <Lightformer form="rect" intensity={1.1} color="#9fb4ff" position={[-3.5, 0.5, -2]} scale={[3, 3, 1]} rotation={[0, Math.PI / 3, 0]} />
       </Environment>
       <Suspense fallback={null}>
-        <Piece url={url} angleRef={angleRef} zoomRef={zoomRef} bobRef={bobRef} />
+        <Piece
+          url={url}
+          angleRef={angleRef}
+          zoomRef={zoomRef}
+          bobRef={bobRef}
+          offsetX={paired ? -0.62 : 0}
+          scaleFactor={paired ? 0.85 : 1}
+        />
+        {accessoryUrl && (
+          <Piece
+            url={accessoryUrl}
+            angleRef={angleRef}
+            zoomRef={zoomRef}
+            bobRef={bobRef}
+            offsetX={0.62}
+            scaleFactor={0.85}
+          />
+        )}
       </Suspense>
       <ContactShadows position={[0, -0.62, 0]} opacity={0.5} scale={3} blur={2.6} far={1.4} />
     </Canvas>
   );
 }
 
-/** Pull the camera back on a narrow canvas so a phone doesn't crop the piece. */
-function Fit() {
+/** Pull the camera back on a narrow canvas so a phone doesn't crop the piece —
+ * and further still when a companion accessory shares the frame. */
+function Fit({ paired }: { paired: boolean }) {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
     const aspect = size.width / size.height || 1;
-    const distance = 2.6 / Math.min(1, Math.max(0.6, aspect / 0.92));
+    const distance = (paired ? 3.6 : 2.6) / Math.min(1, Math.max(0.6, aspect / 0.92));
     camera.position.set(0, 0, distance);
     camera.updateProjectionMatrix();
-  }, [camera, size.width, size.height]);
+  }, [camera, size.width, size.height, paired]);
   return null;
 }
