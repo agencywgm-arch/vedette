@@ -130,6 +130,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 38.5, y: 56, w: 8.5, h: 9 },
     front: P + "cap-flames-front.webp",
     back: null,
+    model: "/models/cap-flames.glb",
   },
   {
     id: "cap-camo",
@@ -216,6 +217,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 75, y: 75, w: 12, h: 27 },
     front: P + "black-jacket-front.webp",
     back: P + "black-jacket-back.webp",
+    model: "/models/black-jacket.glb",
   },
 ];
 
