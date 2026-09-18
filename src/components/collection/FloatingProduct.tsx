@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   MutableRefObject,
   PointerEvent as ReactPointerEvent,
@@ -75,6 +75,13 @@ export default function FloatingProduct({
   onReturned: () => void;
 }) {
   const bundleAccessory = useShopStore((s) => s.bundleAccessory);
+  // A scanned piece is a megabyte or two that only starts downloading when
+  // it's opened, and three.js has to arrive before any of it can be drawn.
+  // Flying an empty box to the middle of the room while that happens is the
+  // one moment the illusion drops, so the flat packshot makes the trip
+  // instead and dissolves into the real mesh once there is one.
+  const [modelReady, setModelReady] = useState(false);
+  const onModelReady = useCallback(() => setModelReady(true), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const spinRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLImageElement>(null);
@@ -282,13 +289,26 @@ export default function FloatingProduct({
     >
       {!item.model && <div ref={groundRef} className="fp-ground" />}
       {item.model ? (
-        <ModelStage
-          url={item.model}
-          angleRef={angle}
-          zoomRef={zoomRef}
-          bobRef={bobRef}
-          accessoryUrl={bundleAccessory ? item.accessory?.model : null}
-        />
+        <>
+          {item.front && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="fp-model-standin"
+              style={{ opacity: modelReady ? 0 : 1 }}
+              src={item.front}
+              alt={item.name}
+              draggable={false}
+            />
+          )}
+          <ModelStage
+            url={item.model}
+            angleRef={angle}
+            zoomRef={zoomRef}
+            bobRef={bobRef}
+            accessoryUrl={bundleAccessory ? item.accessory?.model : null}
+            onReady={onModelReady}
+          />
+        </>
       ) : (
       <div className="fp-stage">
         <div ref={spinRef} className="fp-spin">

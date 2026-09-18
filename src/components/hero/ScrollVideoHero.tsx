@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
 import {
   BOUNDARY,
@@ -33,6 +34,27 @@ const CROSSFADE_MS = 120;
 
 // Two clicks/taps this close together count as one double tap.
 const DOUBLE_TAP_MS = 400;
+
+// Looking around the street: both clips are 4:3, the window almost never is,
+// so object-fit: cover is already hiding a band of real picture off two of the
+// edges. Leaning into it is the whole trick — no extra footage, just the part
+// of the frame that was being thrown away. The slight scale is what buys room
+// to move on the axis that happens to fit exactly, and caps how far the eye
+// travels so the clip can't ever pull its own edge into view.
+const LOOK_SCALE = 1.05;
+// A phone letterboxes the clip instead of cropping it, so there is no hidden
+// band to lean into and the scale margin is all the travel there is. Push it
+// further there: what the extra crop takes off the sides, the gesture gives
+// straight back, and the rest of it grows into the bars rather than the
+// picture.
+const LOOK_SCALE_LETTERBOXED = 1.14;
+const LOOK_MAX_PX = 64;
+const LOOK_EASE = 0.08;
+// How far a finger has to travel before it counts as looking around rather
+// than as the double tap that skips ahead.
+const LOOK_DRAG_PX = 8;
+/** A drag crosses this much of the screen to reach the far edge of the view. */
+const LOOK_DRAG_SPAN = 0.45;
 
 const MOBILE_QUERY = "(max-width: 767px)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
@@ -130,7 +152,13 @@ export default function ScrollVideoHero() {
   // A double tap/click anywhere on the scroll phase skips both clips
   // entirely and drops the visitor straight into the live collection room.
   const lastTapRef = useRef(0);
-  const handleScrollTap = useCallback(() => {
+  const handleScrollTap = () => {
+    // A drag that ended up looking around still ends in a click. It isn't one.
+    if (lookDrag.current?.moved) {
+      lookDrag.current = null;
+      lastTapRef.current = 0;
+      return;
+    }
     const now = performance.now();
     if (now - lastTapRef.current < DOUBLE_TAP_MS) {
       lastTapRef.current = 0;
@@ -138,7 +166,107 @@ export default function ScrollVideoHero() {
     } else {
       lastTapRef.current = now;
     }
-  }, [jumpToProgress]);
+  };
+
+  // Where the eye is leaning, -1..1 per axis. Kept in refs and written
+  // straight to the layer's transform: this runs on every pointer move, and
+  // pushing it through React would re-render the whole hero to move a picture.
+  const lookTarget = useRef({ x: 0, y: 0 });
+  const lookCurrent = useRef({ x: 0, y: 0 });
+  const lookLayerRef = useRef<HTMLDivElement>(null);
+  const lookBubbleRef = useRef<HTMLDivElement>(null);
+  // `moved` doubles as the tap guard: a press that turned into looking around
+  // still ends in a click event, and that click is not a tap.
+  const lookDrag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const containRectRef = useRef<ContainRect | null>(null);
+  const containerSizeRef = useRef({ width: 0, height: 0 });
+
+  useEffect(() => {
+    let raf = 0;
+    const frame = () => {
+      raf = requestAnimationFrame(frame);
+      // Under the live room the clips are covered anyway, and a drifting
+      // picture beneath it would only fight the wall for attention.
+      const target = roomOpenRef.current ? { x: 0, y: 0 } : lookTarget.current;
+      const current = lookCurrent.current;
+      current.x += (target.x - current.x) * LOOK_EASE;
+      current.y += (target.y - current.y) * LOOK_EASE;
+
+      const layer = lookLayerRef.current;
+      const bubbleLayer = lookBubbleRef.current;
+      if (!layer) return;
+      const size = containerSizeRef.current;
+      const rect = containRectRef.current;
+      // What cover already crops away is free to pan into; the scale margin
+      // covers the axis that happens to fit the window exactly.
+      const hiddenX = rect ? Math.max(0, (rect.width - size.width) / 2) : 0;
+      const hiddenY = rect ? Math.max(0, (rect.height - size.height) / 2) : 0;
+      // Nothing hidden on either side means the clip is being letterboxed
+      // rather than cropped — no need to know which layout produced that.
+      const letterboxed = hiddenX < 1 && hiddenY < 1;
+      const scale = letterboxed ? LOOK_SCALE_LETTERBOXED : LOOK_SCALE;
+      const ampX = Math.min(hiddenX + (size.width * (scale - 1)) / 2, LOOK_MAX_PX);
+      const ampY = Math.min(hiddenY + (size.height * (scale - 1)) / 2, LOOK_MAX_PX);
+      const transform = `translate3d(${(-current.x * ampX).toFixed(2)}px, ${(
+        -current.y * ampY
+      ).toFixed(2)}px, 0) scale(${scale})`;
+      layer.style.transform = transform;
+      if (bubbleLayer) bubbleLayer.style.transform = transform;
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const aimLook = (x: number, y: number) => {
+    lookTarget.current = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) };
+  };
+
+  const onLookPointerDown = (e: ReactPointerEvent) => {
+    lookDrag.current = { x: e.clientX, y: e.clientY, moved: false };
+  };
+
+  const onLookPointerMove = (e: ReactPointerEvent) => {
+    const bounds = e.currentTarget.getBoundingClientRect();
+    // A mouse looks wherever it points; a finger drags the view with it,
+    // which is the gesture that reads as leaning to see past the frame.
+    if (e.pointerType === "mouse") {
+      aimLook(
+        ((e.clientX - bounds.left) / bounds.width - 0.5) * 2,
+        ((e.clientY - bounds.top) / bounds.height - 0.5) * 2
+      );
+      return;
+    }
+    const drag = lookDrag.current;
+    if (!drag) return;
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (Math.abs(dx) > LOOK_DRAG_PX || Math.abs(dy) > LOOK_DRAG_PX) drag.moved = true;
+    if (!drag.moved) return;
+    aimLook(-dx / (bounds.width * LOOK_DRAG_SPAN), -dy / (bounds.height * LOOK_DRAG_SPAN));
+  };
+
+  // Letting go re-centres the view, so the framing the guard's bubble is
+  // anchored against is always the one it was measured against. The drag
+  // itself is left in place for the click that follows to read.
+  const onLookRelease = () => {
+    aimLook(0, 0);
+  };
+
+  // Rotating a phone crosses the mobile query, and React swaps both <video>
+  // elements for their other-orientation twins. Those replacements have never
+  // been played: iOS won't paint a frame on a media element that hasn't run at
+  // least once, so the clip sits on its poster and the whole walk-in looks
+  // frozen for the rest of the visit. Muted playback needs no gesture, so
+  // prime each new pair the way the entry screen primes the first one.
+  useEffect(() => {
+    for (const video of [entranceVideoRef.current, collectionVideoRef.current]) {
+      if (!video) continue;
+      const primed = video.play();
+      if (primed && typeof primed.then === "function") {
+        primed.then(() => video.pause()).catch(() => {});
+      }
+    }
+  }, [isMobile]);
 
   // On mobile the clips are shown with object-fit: contain (never cropped);
   // on desktop they're cover-cropped, and how much of the frame that crops
@@ -152,11 +280,12 @@ export default function ScrollVideoHero() {
       const entry = entries[0];
       if (!entry) return;
       const { width, height } = entry.contentRect;
-      setContainRect(
-        isMobile
-          ? computeContainRect(width, height)
-          : mediaRect(width, height, ENTRANCE_INTRINSIC_SIZE.w, ENTRANCE_INTRINSIC_SIZE.h, "cover")
-      );
+      const rect = isMobile
+        ? computeContainRect(width, height)
+        : mediaRect(width, height, ENTRANCE_INTRINSIC_SIZE.w, ENTRANCE_INTRINSIC_SIZE.h, "cover");
+      containerSizeRef.current = { width, height };
+      containRectRef.current = rect;
+      setContainRect(rect);
     });
     observer.observe(sticky);
     return () => observer.disconnect();
@@ -257,6 +386,13 @@ export default function ScrollVideoHero() {
       className="relative"
     >
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
+        {/* Everything the eye can lean into rides this layer together. It gets
+            its own transform rather than one per clip, so the two never drift
+            apart mid-crossfade. */}
+        <div
+          ref={lookLayerRef}
+          className="pointer-events-none absolute inset-0 will-change-transform"
+        >
         <video
           key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
           ref={entranceVideoRef}
@@ -320,6 +456,7 @@ export default function ScrollVideoHero() {
             </>
           )}
         </video>
+        </div>
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
         )}
@@ -337,8 +474,17 @@ export default function ScrollVideoHero() {
         {!roomOpen && (
           <div
             className="absolute inset-0 z-10"
-            style={{ touchAction: "manipulation" }}
+            // pan-y rather than manipulation: a finger dragging sideways is
+            // looking around, a finger dragging down is still scrolling the
+            // page, and the browser keeps owning the second one. It also
+            // keeps double-tap zoom off the shortcut.
+            style={{ touchAction: "pan-y" }}
             onClick={handleScrollTap}
+            onPointerDown={onLookPointerDown}
+            onPointerMove={onLookPointerMove}
+            onPointerUp={onLookRelease}
+            onPointerCancel={onLookRelease}
+            onPointerLeave={onLookRelease}
           />
         )}
 
@@ -351,12 +497,21 @@ export default function ScrollVideoHero() {
           </div>
         )}
 
-        <DialogueBubble
-          visible={showDialogue}
-          isMobile={isMobile}
-          containRect={containRect}
-          onChoose={handleFastMode}
-        />
+        {/* The bubble is pinned to a point in the picture, so it leans with
+            it. Its own layer rather than the clips' one: a transform opens a
+            stacking context, and inside theirs the bubble would fall behind
+            the tap absorber and stop being clickable. */}
+        <div
+          ref={lookBubbleRef}
+          className="pointer-events-none absolute inset-0 z-30 will-change-transform"
+        >
+          <DialogueBubble
+            visible={showDialogue}
+            isMobile={isMobile}
+            containRect={containRect}
+            onChoose={handleFastMode}
+          />
+        </div>
       </div>
     </div>
   );

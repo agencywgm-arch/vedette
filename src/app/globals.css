@@ -294,6 +294,22 @@ body {
   height: 100% !important;
 }
 
+/* The packshot that flies in a scanned piece's place until its mesh lands.
+   Framed like .fp-face so the two occupy the same space and the swap reads
+   as the piece resolving rather than as one image replacing another. */
+.fp-model-standin {
+  position: absolute;
+  inset: 0 0 13% 0;
+  width: 100%;
+  height: 87%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 26px 30px rgba(0, 0, 0, 0.55));
+  transition: opacity 0.5s ease;
+}
+
 .shop-wall.is-dimmed {
   filter: brightness(0.42) saturate(0.85) blur(2.5px);
 }

@@ -36,6 +36,11 @@ const DESKTOP_WALL_HEIGHT = 0.78;
 const SETTLE_MS = 900;
 /** Dragging this many px fully reveals the cashier clip — short enough for a
  * comfortable thumb swipe, long enough that it doesn't fire on a stray tap. */
+/** Spacing between warm-up fetches, so they queue rather than pile up. */
+const PRELOAD_GAP_MS = 700;
+
+type Preloader = (url: string) => void;
+
 const PEEK_DRAG_PX = 220;
 /** A drag under this is a tap, not a swipe — read as a click on whichever
  * chevron it landed on rather than starting the drag-scrub. */
@@ -109,6 +114,8 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(1);
   const hotspotEls = useRef(new Map<string, HTMLButtonElement | null>());
+  /** Held once the chunk lands, so hovering a piece can pull its model in. */
+  const preload = useRef<Preloader | null>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   // Mounted already matching the video's last frame; flipped one tick later
   // so the browser has something to transition *from* — see the effect below.
@@ -123,14 +130,41 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   // fetch — time a click can't hide once the flight is already underway. The
   // room arriving is spare time the visitor spends looking at the wall before
   // touching anything, so warm the cache then instead of at the click.
+  //
+  // One at a time, though: firing all of them at once is fifteen megabytes of
+  // parallel requests competing with the clip still being scrubbed behind the
+  // room, which costs the arrival its smoothness to save a click that hasn't
+  // happened yet. Spaced out, the first pieces are ready well before anyone
+  // reaches them and nothing else is starved. A connection that says it is
+  // slow, or metered, gets none of it — those visitors pay per megabyte and
+  // the click-time fetch still works.
   useEffect(() => {
     const models = collection
       .flatMap((i) => [i.model, i.accessory?.model])
       .filter((m): m is string => Boolean(m));
     if (models.length === 0) return;
+
+    const link = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
+      .connection;
+    if (link?.saveData || (link?.effectiveType && /2g/.test(link.effectiveType))) return;
+
+    let timer = 0;
+    let cancelled = false;
     import("./ModelStage").then(({ preloadModel }) => {
-      for (const url of models) preloadModel(url);
+      if (cancelled) return;
+      preload.current = preloadModel;
+      let next = 0;
+      const step = () => {
+        if (cancelled || next >= models.length) return;
+        preloadModel(models[next++]);
+        timer = window.setTimeout(step, PRELOAD_GAP_MS);
+      };
+      step();
     });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, []);
 
   const selectedId = useShopStore((s) => s.selectedId);
@@ -363,7 +397,12 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                     width: `${item.spot.w}%`,
                     height: `${item.spot.h}%`,
                   }}
-                  onPointerEnter={() => setHovered(item.id)}
+                  onPointerEnter={() => {
+                    setHovered(item.id);
+                    // Reaching for a piece is the clearest signal of which
+                    // model matters next, so let it jump the warm-up queue.
+                    if (item.model) preload.current?.(item.model);
+                  }}
                   onPointerLeave={() => setHovered(null)}
                   onClick={() => open(item.id)}
                   aria-label={item.name}

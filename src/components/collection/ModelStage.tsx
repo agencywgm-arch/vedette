@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type { MutableRefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, Lightformer, ContactShadows } from "@react-three/drei";
@@ -30,6 +30,7 @@ function Piece({
   bobRef,
   offsetX = 0,
   scaleFactor = 1,
+  onReady,
 }: {
   url: string;
   angleRef: MutableRefObject<number>;
@@ -38,6 +39,8 @@ function Piece({
   /** Side-by-side placement when a companion accessory shares the stage. */
   offsetX?: number;
   scaleFactor?: number;
+  /** Fires once the mesh is on screen, so the flat stand-in can step aside. */
+  onReady?: () => void;
 }) {
   const { scene } = useGLTF(url);
   const pivot = useRef<THREE.Group>(null);
@@ -63,6 +66,15 @@ function Piece({
     });
     return copy;
   }, [scene]);
+
+  // useGLTF suspends until the file is parsed, so reaching this point already
+  // means the mesh exists — one frame's grace is just to let it be drawn
+  // before anything covering it starts to dissolve.
+  useEffect(() => {
+    if (!onReady) return;
+    const raf = requestAnimationFrame(onReady);
+    return () => cancelAnimationFrame(raf);
+  }, [onReady]);
 
   useFrame(() => {
     const group = pivot.current;
@@ -90,6 +102,7 @@ export default function ModelStage({
   zoomRef,
   bobRef,
   accessoryUrl,
+  onReady,
 }: {
   url: string;
   angleRef: MutableRefObject<number>;
@@ -97,6 +110,8 @@ export default function ModelStage({
   bobRef: MutableRefObject<number>;
   /** A free companion piece shown turning beside this one, when opted in. */
   accessoryUrl?: string | null;
+  /** Fires once the mesh is on screen, so the flat stand-in can step aside. */
+  onReady?: () => void;
 }) {
   const paired = Boolean(accessoryUrl);
   return (
@@ -131,6 +146,7 @@ export default function ModelStage({
           bobRef={bobRef}
           offsetX={paired ? -0.62 : 0}
           scaleFactor={paired ? 0.85 : 1}
+          onReady={onReady}
         />
         {accessoryUrl && (
           <Piece
