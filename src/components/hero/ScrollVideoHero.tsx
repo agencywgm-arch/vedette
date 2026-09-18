@@ -9,6 +9,7 @@ import {
   ENTRANCE_INTRINSIC_SIZE,
   FAST_MODE_TARGET,
   ROAD_ARRIVED,
+  ROAD_COMMIT,
   ROAD_DRAG_SPAN,
   ROOM_ENTER_AT,
   ROOM_LEAVE_AT,
@@ -316,6 +317,15 @@ export default function ScrollVideoHero() {
   // anchored against is always the one it was measured against. The drag
   // itself is left in place for the click that follows to read.
   const onLookRelease = () => {
+    // On a road, letting go commits: a thumb swipe is a couple of hundred
+    // pixels, nowhere near a whole road, so releasing has to carry you the
+    // rest of the way rather than parking the clip mid-aisle. Short of the
+    // commit point it falls back to the junction, where both signs are up
+    // again — there is no state here you can be stranded in.
+    if (atJunctionRef.current) {
+      const s = roadTarget.current;
+      roadTarget.current = s <= -ROAD_COMMIT ? -1 : s >= ROAD_COMMIT ? 1 : 0;
+    }
     aimLook(0, 0);
   };
 

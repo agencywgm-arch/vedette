@@ -67,10 +67,19 @@ export const FAST_MODE_TARGET = BOUNDARY + 0.01;
  * back to the junction, where the other road is still waiting.
  */
 /** Fraction of the viewport a drag crosses to run a road end to end. */
-export const ROAD_DRAG_SPAN = 0.55;
+export const ROAD_DRAG_SPAN = 0.45;
 
 /** How far down a road counts as having arrived at the far end of it. */
 export const ROAD_ARRIVED = 0.995;
+
+/**
+ * Past this much of a road, letting go carries you the rest of the way; short
+ * of it, you fall back to the junction. Without it a thumb swipe — which
+ * covers a couple of hundred pixels, not a whole road — parks the clip
+ * halfway down the aisle and simply stops there, which reads as the site
+ * having broken rather than as a road you were supposed to keep pushing.
+ */
+export const ROAD_COMMIT = 0.28;
 
 /**
  * The collection clip ends settled on the clothing wall. From here the crisp
