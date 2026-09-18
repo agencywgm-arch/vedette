@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   WALL_IMAGE,
   WALL_SIZE,
@@ -9,7 +8,6 @@ import {
   selectableItems,
 } from "@/data/collection";
 import { mediaRect, type Rect } from "@/lib/media-rect";
-import { createVideoScrubber } from "@/lib/video-scrubber";
 import { VERTICAL_VIDEO_CONTENT, VERTICAL_VIDEO_SIZE } from "@/lib/video-timeline";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
@@ -34,21 +32,10 @@ const DESKTOP_WALL_HEIGHT = 0.78;
 /** How long the still takes to settle from matching the video's last frame
  * into its resting, fully-visible position. */
 const SETTLE_MS = 900;
-/** Dragging this many px fully reveals the cashier clip — short enough for a
- * comfortable thumb swipe, long enough that it doesn't fire on a stray tap. */
 /** Spacing between warm-up fetches, so they queue rather than pile up. */
 const PRELOAD_GAP_MS = 700;
 
 type Preloader = (url: string) => void;
-
-const PEEK_DRAG_PX = 220;
-/** A drag under this is a tap, not a swipe — read as a click on whichever
- * chevron it landed on rather than starting the drag-scrub. */
-const PEEK_DRAG_THRESHOLD = 6;
-/** How fast the click-triggered (rather than dragged) peek eases toward its
- * target each frame — a fraction of the remaining distance, not a fixed ms,
- * so it still feels immediate if released partway through a drag. */
-const PEEK_EASE = 0.16;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -172,81 +159,8 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const hoveredId = useShopStore((s) => s.hoveredId);
   const setHovered = useShopStore((s) => s.setHovered);
 
-  // Sliding — or clicking the chevron — toward the cashier plays a second
-  // clip cross-fading in over the wall, giving the illusion of turning to
-  // look further into the room. 0 is the wall, 1 is fully on the cashier.
-  // Lives in a ref and gets written to the DOM every frame by the rAF loop
-  // below, the same way FloatingProduct drives its own transform — a drag
-  // gesture moves at 60fps and re-rendering React for each step would be
-  // both slower and pointless, since nothing here needs to be in the tree.
-  const lookRight = useRef(0);
-  const peekTarget = useRef<number | null>(null);
-  const peekDrag = useRef<{ startX: number; startLook: number; moved: boolean } | null>(null);
-  const [peeking, setPeeking] = useState(false);
   const wallImgRef = useRef<HTMLImageElement>(null);
-  const peekVideoRef = useRef<HTMLVideoElement>(null);
   const hotspotLayerRef = useRef<HTMLDivElement>(null);
-  const scrubPeek = useState(() => createVideoScrubber())[0];
-
-  useEffect(() => {
-    let raf = 0;
-    const frame = () => {
-      raf = requestAnimationFrame(frame);
-      if (peekTarget.current !== null) {
-        const t = peekTarget.current;
-        const next = lookRight.current + (t - lookRight.current) * PEEK_EASE;
-        lookRight.current = Math.abs(t - next) < 0.001 ? t : next;
-        if (lookRight.current === t) peekTarget.current = null;
-      }
-      const v = lookRight.current;
-      if (wallImgRef.current) wallImgRef.current.style.opacity = `${1 - v}`;
-      if (hotspotLayerRef.current) {
-        hotspotLayerRef.current.style.opacity = `${1 - v}`;
-        hotspotLayerRef.current.style.pointerEvents = v > 0.05 ? "none" : "auto";
-      }
-      if (peekVideoRef.current) {
-        peekVideoRef.current.style.opacity = `${v}`;
-        scrubPeek(peekVideoRef.current, v);
-      }
-    };
-    raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
-  }, [scrubPeek]);
-
-  const setPeek = (v: number) => {
-    peekTarget.current = null;
-    lookRight.current = clamp(v, 0, 1);
-    setPeeking(lookRight.current > 0.5);
-  };
-
-  const animatePeekTo = (v: number) => {
-    peekTarget.current = clamp(v, 0, 1);
-    setPeeking(peekTarget.current > 0.5);
-  };
-
-  const onPeekPointerDown = (e: ReactPointerEvent) => {
-    if (selectedId !== null) return;
-    peekDrag.current = { startX: e.clientX, startLook: lookRight.current, moved: false };
-    peekTarget.current = null;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-
-  const onPeekPointerMove = (e: ReactPointerEvent) => {
-    const d = peekDrag.current;
-    if (!d) return;
-    const dx = e.clientX - d.startX;
-    if (Math.abs(dx) > PEEK_DRAG_THRESHOLD) d.moved = true;
-    if (d.moved) setPeek(d.startLook + dx / PEEK_DRAG_PX);
-  };
-
-  const endPeekDrag = () => {
-    const d = peekDrag.current;
-    peekDrag.current = null;
-    if (!d || !d.moved) return;
-    // Release mid-drag settles toward whichever side it's closer to, like a
-    // carousel snapping to the nearest card rather than freezing half-turned.
-    animatePeekTo(lookRight.current > 0.5 ? 1 : 0);
-  };
 
   // Keep the piece on screen while it flies home, then drop it. `origin` is
   // read off the real hotspot element, so the flight starts and lands exactly
@@ -351,10 +265,6 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
               : "none",
             touchAction: "pan-y",
           }}
-          onPointerDown={onPeekPointerDown}
-          onPointerMove={onPeekPointerMove}
-          onPointerUp={endPeekDrag}
-          onPointerCancel={endPeekDrag}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -411,46 +321,6 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
             })}
           </div>
 
-          {/* Sliding — or clicking the chevron — toward the cashier reveals
-              this clip in place of the wall photo: same rect, cross-faded, so
-              it reads as turning to look further into the room rather than a
-              second picture appearing. Never actually played — scrubbed by
-              the rAF loop exactly like the hero videos — and pointer-events:
-              none for the same reason theirs are: a tap on a <video> can
-              still reach its native play gesture on some browsers regardless
-              of this style, so the drag itself is handled one level up, on
-              the wall layer. */}
-          <video
-            ref={peekVideoRef}
-            className="shop-peek-video"
-            style={{ opacity: 0, pointerEvents: "none" }}
-            poster="/videos/cashier-peek-poster.jpg"
-            muted
-            playsInline
-            preload="auto"
-            disablePictureInPicture
-            disableRemotePlayback
-          >
-            <source src="/videos/cashier-peek.mp4" type="video/mp4" />
-            <source src="/videos/cashier-peek.webm" type="video/webm" />
-          </video>
-
-          <button
-            type="button"
-            className={`shop-peek-chevron shop-peek-chevron-right ${peeking ? "is-hidden" : ""}`}
-            onClick={() => animatePeekTo(1)}
-            aria-label="Regarder vers la caisse"
-          >
-            ›
-          </button>
-          <button
-            type="button"
-            className={`shop-peek-chevron shop-peek-chevron-left ${peeking ? "" : "is-hidden"}`}
-            onClick={() => animatePeekTo(0)}
-            aria-label="Revenir à la collection"
-          >
-            ‹
-          </button>
         </div>
       )}
 

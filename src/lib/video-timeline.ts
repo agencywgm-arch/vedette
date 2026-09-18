@@ -54,6 +54,25 @@ export const GUARD_ANCHOR = { x: 30, y: 34 };
 export const FAST_MODE_TARGET = BOUNDARY + 0.01;
 
 /**
+ * Through the door, the walk stops being a corridor and becomes a choice, so
+ * scroll hands over to the hand. Progress is pinned at BOUNDARY — the
+ * threshold, standing inside — until a road has been taken:
+ *
+ *   sliding left   scrubs the collection clip in close on the clothes, and
+ *                  reaching its end opens the wall you actually buy from;
+ *   sliding right  scrubs shop-walk.mp4 down the aisle into the wider room,
+ *                  and the cashier at the counter is where it stops.
+ *
+ * The cabine road is a dead end by design: it runs out at the till and slides
+ * back to the junction, where the other road is still waiting.
+ */
+/** Fraction of the viewport a drag crosses to run a road end to end. */
+export const ROAD_DRAG_SPAN = 0.55;
+
+/** How far down a road counts as having arrived at the far end of it. */
+export const ROAD_ARRIVED = 0.995;
+
+/**
  * The collection clip ends settled on the clothing wall. From here the crisp
  * still takes over and every piece on it becomes live. Hysteresis (enter
  * high, leave lower) keeps the handoff from flickering when scroll jitters
