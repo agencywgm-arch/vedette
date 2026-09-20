@@ -87,6 +87,21 @@ function getMobileServerSnapshot() {
   return false;
 }
 
+/**
+ * iOS won't paint a frame — or honour a currentTime write — on a media
+ * element that has never run, so every clip has to be played once before it
+ * can be scrubbed. Muted playback needs no gesture, but doing it inside one
+ * is the case Safari never argues with, so this gets called both on mount and
+ * on the press that starts a road.
+ */
+function primeVideo(video: HTMLVideoElement | null) {
+  if (!video) return;
+  const primed = video.play();
+  if (primed && typeof primed.then === "function") {
+    primed.then(() => video.pause()).catch(() => {});
+  }
+}
+
 function computeContainRect(containerW: number, containerH: number): ContainRect {
   const scale = Math.min(containerW / VERTICAL_VIDEO_SIZE.w, containerH / VERTICAL_VIDEO_SIZE.h);
   const width = VERTICAL_VIDEO_SIZE.w * scale;
@@ -278,6 +293,11 @@ export default function ScrollVideoHero() {
 
   const onLookPointerDown = (e: ReactPointerEvent) => {
     lookDrag.current = { x: e.clientX, y: e.clientY, s0: road.current, moved: false };
+    // The press that starts a road is a real gesture, which is the one moment
+    // Safari will never refuse: the aisle clip has to have run once before a
+    // currentTime write can show anything, or the road just sits on its
+    // poster looking broken.
+    if (atJunctionRef.current) primeVideo(walkVideoRef.current);
   };
 
   const onLookPointerMove = (e: ReactPointerEvent) => {
@@ -336,13 +356,9 @@ export default function ScrollVideoHero() {
   // frozen for the rest of the visit. Muted playback needs no gesture, so
   // prime each new pair the way the entry screen primes the first one.
   useEffect(() => {
-    for (const video of [entranceVideoRef.current, collectionVideoRef.current]) {
-      if (!video) continue;
-      const primed = video.play();
-      if (primed && typeof primed.then === "function") {
-        primed.then(() => video.pause()).catch(() => {});
-      }
-    }
+    primeVideo(entranceVideoRef.current);
+    primeVideo(collectionVideoRef.current);
+    primeVideo(walkVideoRef.current);
   }, [isMobile]);
 
   // On mobile the clips are shown with object-fit: contain (never cropped);
