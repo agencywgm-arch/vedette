@@ -645,7 +645,8 @@ export default function ScrollVideoHero() {
               </div>
             </div>
             <div ref={cashierStopRef} className="road-stop" style={{ opacity: 0 }}>
-              <p className="road-stop-line">Le caissier vous arrête.</p>
+              <p className="road-stop-speaker">Le caissier</p>
+              <p className="road-stop-line">Eh, on va où comme ça ?</p>
               <p className="road-stop-sub">← glissez pour revenir</p>
             </div>
           </>
