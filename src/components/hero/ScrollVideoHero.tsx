@@ -8,9 +8,6 @@ import {
   DIALOGUE_AT,
   ENTRANCE_INTRINSIC_SIZE,
   FAST_MODE_TARGET,
-  ROAD_ARRIVED,
-  ROAD_COMMIT,
-  ROAD_DRAG_SPAN,
   ROOM_ENTER_AT,
   ROOM_LEAVE_AT,
   SKIP_TO_ROOM_TARGET,
@@ -53,9 +50,6 @@ const LOOK_SCALE = 1.05;
 const LOOK_SCALE_LETTERBOXED = 1.14;
 const LOOK_MAX_PX = 64;
 const LOOK_EASE = 0.08;
-/** The roads ease a little harder than the eye: a hand pushing a whole clip
- * along wants to feel like it's carrying weight, not chasing a cursor. */
-const ROAD_EASE = 0.14;
 // How far a finger has to travel before it counts as looking around rather
 // than as the double tap that skips ahead.
 const LOOK_DRAG_PX = 8;
@@ -119,7 +113,6 @@ export default function ScrollVideoHero() {
   const stickyRef = useRef<HTMLDivElement>(null);
   const entranceVideoRef = useRef<HTMLVideoElement>(null);
   const collectionVideoRef = useRef<HTMLVideoElement>(null);
-  const walkVideoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
   const [containRect, setContainRect] = useState<ContainRect | null>(null);
   const [activePhase, setActivePhase] = useState<Phase>("entrance");
@@ -132,21 +125,6 @@ export default function ScrollVideoHero() {
   // of dropping updates that land while the decoder is busy.
   const scrubEntrance = useMemo(() => createVideoScrubber(), []);
   const scrubCollection = useMemo(() => createVideoScrubber(), []);
-  const scrubWalk = useMemo(() => createVideoScrubber(), []);
-
-  // The junction, once through the door. `road` is signed: negative is the
-  // way in close on the clothes, positive is the way down the aisle into the
-  // wider room. Magnitude is how far along that road the slide has gone.
-  const road = useRef(0);
-  const roadTarget = useRef(0);
-  const [atJunction, setAtJunction] = useState(false);
-  const atJunctionRef = useRef(false);
-  // Set for good once the collection road has been walked to its end (or
-  // skipped past). From then on scroll owns the interior again, exactly as it
-  // did before the junction existed.
-  const roadTakenRef = useRef(false);
-  const junctionHintRef = useRef<HTMLDivElement>(null);
-  const cashierStopRef = useRef<HTMLDivElement>(null);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -199,9 +177,6 @@ export default function ScrollVideoHero() {
     const now = performance.now();
     if (now - lastTapRef.current < DOUBLE_TAP_MS) {
       lastTapRef.current = 0;
-      // The shortcut means "I've seen the shop, put me at the clothes", so it
-      // settles the junction too rather than being held at it.
-      roadTakenRef.current = true;
       jumpToProgress(SKIP_TO_ROOM_TARGET);
     } else {
       lastTapRef.current = now;
@@ -217,7 +192,7 @@ export default function ScrollVideoHero() {
   const lookBubbleRef = useRef<HTMLDivElement>(null);
   // `moved` doubles as the tap guard: a press that turned into looking around
   // still ends in a click event, and that click is not a tap.
-  const lookDrag = useRef<{ x: number; y: number; s0: number; moved: boolean } | null>(null);
+  const lookDrag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const containRectRef = useRef<ContainRect | null>(null);
   const containerSizeRef = useRef({ width: 0, height: 0 });
 
@@ -225,35 +200,6 @@ export default function ScrollVideoHero() {
     let raf = 0;
     const frame = () => {
       raf = requestAnimationFrame(frame);
-
-      // The junction runs here rather than off scroll events, because at the
-      // junction the page isn't scrolling — the hand is doing the moving, and
-      // both clips have to follow it frame by frame.
-      if (atJunctionRef.current) {
-        const eased = road.current + (roadTarget.current - road.current) * ROAD_EASE;
-        road.current = Math.abs(roadTarget.current - eased) < 0.0005 ? roadTarget.current : eased;
-        const s = road.current;
-
-        scrubCollection(collectionVideoRef.current, Math.max(0, -s));
-        scrubWalk(walkVideoRef.current, Math.max(0, s));
-
-        // The aisle clip sits over the collection one and is simply faded in
-        // as the slide commits to it, so the two never have to be sequenced.
-        const walk = walkVideoRef.current;
-        if (walk) walk.style.opacity = `${clamp(s * 3, 0, 1)}`;
-        const hint = junctionHintRef.current;
-        if (hint) hint.style.opacity = `${clamp(1 - Math.abs(s) * 4, 0, 1)}`;
-        const stop = cashierStopRef.current;
-        if (stop) stop.style.opacity = `${clamp((s - 0.86) * 7, 0, 1)}`;
-
-        // Walking the collection road to its end is what opens the wall: hand
-        // the scroll back its timeline and let the room mount the way it
-        // always has, rather than teaching it a second way in.
-        if (-s >= ROAD_ARRIVED && !roadTakenRef.current) {
-          roadTakenRef.current = true;
-          jumpToProgress(SKIP_TO_ROOM_TARGET);
-        }
-      }
 
       // Under the live room the clips are covered anyway, and a drifting
       // picture beneath it would only fight the wall for attention.
@@ -285,36 +231,19 @@ export default function ScrollVideoHero() {
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [jumpToProgress, scrubCollection, scrubWalk]);
+  }, []);
 
   const aimLook = (x: number, y: number) => {
     lookTarget.current = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) };
   };
 
   const onLookPointerDown = (e: ReactPointerEvent) => {
-    lookDrag.current = { x: e.clientX, y: e.clientY, s0: road.current, moved: false };
-    // The press that starts a road is a real gesture, which is the one moment
-    // Safari will never refuse: the aisle clip has to have run once before a
-    // currentTime write can show anything, or the road just sits on its
-    // poster looking broken.
-    if (atJunctionRef.current) primeVideo(walkVideoRef.current);
+    lookDrag.current = { x: e.clientX, y: e.clientY, moved: false };
   };
 
   const onLookPointerMove = (e: ReactPointerEvent) => {
     const bounds = e.currentTarget.getBoundingClientRect();
     const drag = lookDrag.current;
-
-    // Standing at the junction, a drag isn't leaning to look — it's taking a
-    // road. Left pulls the collection clip in close on the clothes, right
-    // pushes down the aisle into the room. Mouse and finger both, because
-    // here the gesture is the navigation rather than a flourish on top of it.
-    if (atJunctionRef.current && drag) {
-      const dx = e.clientX - drag.x;
-      if (Math.abs(dx) > LOOK_DRAG_PX) drag.moved = true;
-      if (!drag.moved) return;
-      roadTarget.current = clamp(drag.s0 + dx / (bounds.width * ROAD_DRAG_SPAN), -1, 1);
-      return;
-    }
 
     // A mouse looks wherever it points; a finger drags the view with it,
     // which is the gesture that reads as leaning to see past the frame.
@@ -337,15 +266,6 @@ export default function ScrollVideoHero() {
   // anchored against is always the one it was measured against. The drag
   // itself is left in place for the click that follows to read.
   const onLookRelease = () => {
-    // On a road, letting go commits: a thumb swipe is a couple of hundred
-    // pixels, nowhere near a whole road, so releasing has to carry you the
-    // rest of the way rather than parking the clip mid-aisle. Short of the
-    // commit point it falls back to the junction, where both signs are up
-    // again — there is no state here you can be stranded in.
-    if (atJunctionRef.current) {
-      const s = roadTarget.current;
-      roadTarget.current = s <= -ROAD_COMMIT ? -1 : s >= ROAD_COMMIT ? 1 : 0;
-    }
     aimLook(0, 0);
   };
 
@@ -358,7 +278,6 @@ export default function ScrollVideoHero() {
   useEffect(() => {
     primeVideo(entranceVideoRef.current);
     primeVideo(collectionVideoRef.current);
-    primeVideo(walkVideoRef.current);
   }, [isMobile]);
 
   // On mobile the clips are shown with object-fit: contain (never cropped);
@@ -393,17 +312,9 @@ export default function ScrollVideoHero() {
       const rect = wrapper.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       const rawProgress = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
-      // Two holds on the way in, in the order they're met: the guard's
-      // question at the door, then the junction just inside it. Scroll only
-      // owns the interior again once a road has actually been taken.
+      // The guard's question holds scroll at the door until answered.
       const heldAtDoor = entryMode === null && rawProgress >= DIALOGUE_AT;
-      const heldAtJunction = !heldAtDoor && !roadTakenRef.current && rawProgress >= BOUNDARY;
-      const progress = heldAtDoor ? DIALOGUE_AT : heldAtJunction ? BOUNDARY : rawProgress;
-
-      if (heldAtJunction !== atJunctionRef.current) {
-        atJunctionRef.current = heldAtJunction;
-        setAtJunction(heldAtJunction);
-      }
+      const progress = heldAtDoor ? DIALOGUE_AT : rawProgress;
 
       if (!hasReachedDialogueRef.current && entryMode === null && rawProgress >= DIALOGUE_AT) {
         hasReachedDialogueRef.current = true;
@@ -419,9 +330,7 @@ export default function ScrollVideoHero() {
       const entranceLocal = clamp(progress / BOUNDARY, 0, 1);
       const collectionLocal = clamp((progress - BOUNDARY) / (1 - BOUNDARY), 0, 1);
       scrubEntrance(entranceVideoRef.current, entranceLocal);
-      // At the junction the slide owns the collection clip — a stray scroll
-      // event here would otherwise yank it back to its first frame mid-road.
-      if (!heldAtJunction) scrubCollection(collectionVideoRef.current, collectionLocal);
+      scrubCollection(collectionVideoRef.current, collectionLocal);
       setActivePhase((prev) => (prev === phase ? prev : phase));
 
       // Hand off to the live collection room once the clip has settled on the
@@ -559,34 +468,6 @@ export default function ScrollVideoHero() {
             </>
           )}
         </video>
-
-        {/* The road into the room, over the collection clip and faded in by
-            the slide itself rather than by a phase swap — the two roads leave
-            from the same frame, so there is nothing to cut between. */}
-        <video
-          key={isMobile ? "walk-vertical" : "walk-horizontal"}
-          ref={walkVideoRef}
-          className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
-          style={{ opacity: 0, pointerEvents: "none" }}
-          poster={isMobile ? "/videos/shop-walk-poster-vertical.jpg" : "/videos/shop-walk-poster.jpg"}
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          disableRemotePlayback
-        >
-          {isMobile ? (
-            <>
-              <source src="/videos/shop-walk-vertical.mp4" type="video/mp4" />
-              <source src="/videos/shop-walk-vertical.webm" type="video/webm" />
-            </>
-          ) : (
-            <>
-              <source src="/videos/shop-walk.mp4" type="video/mp4" />
-              <source src="/videos/shop-walk.webm" type="video/webm" />
-            </>
-          )}
-        </video>
         </div>
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
@@ -626,30 +507,6 @@ export default function ScrollVideoHero() {
           <div className="shop-reveal absolute inset-0 z-20">
             <CollectionRoom compact={isMobile} />
           </div>
-        )}
-
-        {/* Standing just inside, two ways to go. Both fade out as soon as the
-            slide commits to one of them — they are there to say the choice
-            exists, not to sit on top of the shop while you make it. */}
-        {atJunction && (
-          <>
-            <div ref={junctionHintRef} className="road-signs" aria-hidden="true">
-              <div className="road-sign road-sign-left">
-                <span className="road-sign-arrow">←</span>
-                <span className="road-sign-label">Les vêtements</span>
-              </div>
-              <p className="road-sign-verb">Glissez</p>
-              <div className="road-sign road-sign-right">
-                <span className="road-sign-label">Le fond de la boutique</span>
-                <span className="road-sign-arrow">→</span>
-              </div>
-            </div>
-            <div ref={cashierStopRef} className="road-stop" style={{ opacity: 0 }}>
-              <p className="road-stop-speaker">Le caissier</p>
-              <p className="road-stop-line">Eh, on va où comme ça ?</p>
-              <p className="road-stop-sub">← glissez pour revenir</p>
-            </div>
-          </>
         )}
 
         {/* The bubble is pinned to a point in the picture, so it leans with
