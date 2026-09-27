@@ -115,6 +115,10 @@ export default function ScrollVideoHero() {
   const collectionVideoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
   const [activePhase, setActivePhase] = useState<Phase>("entrance");
+  // On mobile the letterboxed video only fills a middle band of the screen —
+  // the guard's line has to stay near his own black bar, not the screen's, or
+  // it drifts down into the letterbox once the video stops being full-bleed.
+  const [subtitleBottomPercent, setSubtitleBottomPercent] = useState<number | null>(null);
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
   const [roomOpen, setRoomOpen] = useState(false);
@@ -293,6 +297,12 @@ export default function ScrollVideoHero() {
         : mediaRect(width, height, ENTRANCE_INTRINSIC_SIZE.w, ENTRANCE_INTRINSIC_SIZE.h, "cover");
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
+      // Same "9% up from the video's own bottom edge" the CSS default gives
+      // desktop for free, just measured against the letterboxed rect instead
+      // of the full screen.
+      setSubtitleBottomPercent(
+        isMobile ? ((height - (rect.top + rect.height)) + rect.height * 0.18) / height * 100 : null
+      );
     });
     observer.observe(sticky);
     return () => observer.disconnect();
@@ -506,7 +516,11 @@ export default function ScrollVideoHero() {
 
         {/* Screen-locked like a HUD element rather than pinned to the guard —
             it doesn't pan with the look-around. */}
-        <DialogueBubble visible={showDialogue} onChoose={handleFastMode} />
+        <DialogueBubble
+          visible={showDialogue}
+          onChoose={handleFastMode}
+          bottomPercent={subtitleBottomPercent}
+        />
       </div>
     </div>
   );
