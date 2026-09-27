@@ -151,6 +151,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 55.5, y: 56, w: 8.5, h: 8.5 },
     front: P + "cap-camo-front.webp",
     back: null,
+    model: "/models/cap-camo.glb",
   },
   {
     id: "cap-heart",
