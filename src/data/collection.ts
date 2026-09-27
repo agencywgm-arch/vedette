@@ -109,8 +109,9 @@ export const collection: CollectionItem[] = [
     colors: [{ name: "Crème", hex: "#efe7d4" }],
     sizes: ["S", "M", "L", "XL"],
     spot: { x: 73.5, y: 36.5, w: 16.5, h: 24 },
-    front: null,
+    front: P + "vedette-vneck-front.webp",
     back: null,
+    model: "/models/vedette-vneck.glb",
   },
   {
     id: "cap-vedette",
