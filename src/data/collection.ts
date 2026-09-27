@@ -248,8 +248,10 @@ export const categories: (Category | "TOUS")[] = [
 /** Only pieces whose packshot has landed can be lifted off the wall. */
 export const selectableItems = collection.filter((i) => i.front !== null);
 
-/** Carousel tile — cropped straight out of the wall still, so the rail always
- * mirrors what is actually hanging in the room. */
+/** Carousel tile. For a scanned piece it's rendered straight from the 3D
+ * model (same lighting rig as ModelStage), matching what actually turns in
+ * the inspector; a piece still waiting on its scan falls back to a crop of
+ * the wall still. */
 export function thumbFor(id: string) {
   return `/collection/thumbs/${id}.webp`;
 }
