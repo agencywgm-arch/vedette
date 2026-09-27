@@ -42,6 +42,12 @@ export interface CollectionItem {
    * inspector when the shopper opts in — never sold or listed on its own.
    */
   accessory?: { name: string; model: string } | null;
+  /**
+   * Real photos of the actual piece worn, cropped from community/press
+   * shots — shown alongside the studio scan or packshots, never in place
+   * of them.
+   */
+  lifestyle?: string[];
 }
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
@@ -126,6 +132,11 @@ export const collection: CollectionItem[] = [
     front: P + "cap-vedette-front.webp",
     back: P + "cap-vedette-back.webp",
     model: "/models/cap-vedette.glb",
+    lifestyle: [
+      "/collection/lifestyle/cap-vedette-1.webp",
+      "/collection/lifestyle/cap-vedette-2.webp",
+      "/collection/lifestyle/cap-vedette-3.webp",
+    ],
   },
   {
     id: "cap-flames",
@@ -204,6 +215,10 @@ export const collection: CollectionItem[] = [
     spot: { x: 48, y: 75, w: 12.5, h: 27 },
     front: P + "rainbow-jersey-front.webp",
     back: P + "rainbow-jersey-back.webp",
+    lifestyle: [
+      "/collection/lifestyle/rainbow-jersey-1.webp",
+      "/collection/lifestyle/rainbow-jersey-2.webp",
+    ],
   },
   {
     id: "jparis-sweat",

@@ -21,8 +21,10 @@ export default function ProductPanel({
   const [color, setColor] = useState(item.colors[0]?.name ?? "");
   const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   return (
+    <>
     <aside className="shop-panel">
       <button type="button" className="shop-panel-close" onClick={onClose} aria-label="Fermer">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -77,6 +79,26 @@ export default function ProductPanel({
         </div>
       </div>
 
+      {item.lifestyle && item.lifestyle.length > 0 && (
+        <div className="shop-panel-field">
+          <p className="shop-panel-label">Porté par la communauté</p>
+          <div className="shop-lifestyle-row">
+            {item.lifestyle.map((src) => (
+              <button
+                key={src}
+                type="button"
+                className="shop-lifestyle-thumb"
+                onClick={() => setLightbox(src)}
+                aria-label={`Voir la photo — ${item.name}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" draggable={false} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {item.accessory && (
         <label className="shop-accessory-toggle">
           <input
@@ -108,5 +130,19 @@ export default function ProductPanel({
         Voir les détails
       </button>
     </aside>
+
+    {lightbox && (
+      <div
+        className="shop-lightbox"
+        onClick={() => setLightbox(null)}
+        role="button"
+        tabIndex={-1}
+        aria-label="Fermer la photo"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={lightbox} alt="" />
+      </div>
+    )}
+    </>
   );
 }
