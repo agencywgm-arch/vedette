@@ -10,9 +10,15 @@
 export default function DialogueBubble({
   visible,
   onChoose,
+  bottomPercent,
 }: {
   visible: boolean;
   onChoose: () => void;
+  /** On mobile the video is letterboxed, not full-bleed — this re-anchors the
+   * subtitle to the video's own bottom edge instead of the screen's, so it
+   * never lands in the black bar below the picture. Null on desktop, where
+   * the video is cover-cropped full-bleed and the CSS default already works. */
+  bottomPercent?: number | null;
 }) {
   return (
     <div
@@ -20,6 +26,7 @@ export default function DialogueBubble({
       style={{
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
+        ...(bottomPercent != null ? { bottom: `${bottomPercent}%` } : null),
       }}
     >
       <p className="entry-subtitle-speaker">Le vigile</p>
