@@ -98,6 +98,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 57, y: 37, w: 14.5, h: 24 },
     front: P + "paris-polo-front.webp",
     back: P + "paris-polo-back.webp",
+    model: "/models/paris-polo.glb",
   },
   {
     id: "vedette-vneck",
@@ -211,6 +212,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 61, y: 75, w: 12.5, h: 27 },
     front: P + "jparis-sweat-front.webp",
     back: null,
+    model: "/models/jparis-sweat.glb",
   },
   {
     id: "black-jacket",
