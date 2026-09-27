@@ -268,7 +268,9 @@ body {
 /* Le temps que le chunk three.js et le glb arrivent, la boîte serait sinon
    vide et invisible en plein vol — ça se lisait comme une panne plutôt que
    comme un chargement. Le logo tourne sur lui-même à la place du modèle,
-   pile où il apparaîtra, et s'efface dès que la pièce est là. */
+   pile où il apparaîtra, et s'efface dès que la pièce est là. La perspective
+   + rotateY (plutôt qu'un simple rotate 2D) le fait tourner comme une plaque
+   vue en 3D — le même registre que ce qui va s'afficher derrière lui. */
 .fp-model-loading {
   position: absolute;
   inset: 0;
@@ -276,24 +278,25 @@ body {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  perspective: 700px;
   transition: opacity 0.4s ease;
 }
 
 .fp-model-loading img {
-  width: 15%;
-  min-width: 34px;
-  max-width: 64px;
+  width: 26%;
+  min-width: 52px;
+  max-width: 108px;
   height: auto;
-  animation: model-loading-spin 1.1s linear infinite;
+  animation: model-loading-spin 1.6s linear infinite;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
 }
 
 @keyframes model-loading-spin {
   from {
-    transform: rotate(0deg);
+    transform: rotateY(0deg);
   }
   to {
-    transform: rotate(360deg);
+    transform: rotateY(360deg);
   }
 }
 

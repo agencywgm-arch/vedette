@@ -41,14 +41,18 @@ const DOUBLE_TAP_MS = 400;
 // of the frame that was being thrown away. The slight scale is what buys room
 // to move on the axis that happens to fit exactly, and caps how far the eye
 // travels so the clip can't ever pull its own edge into view.
-const LOOK_SCALE = 1.05;
+const LOOK_SCALE = 1.1;
 // A phone letterboxes the clip instead of cropping it, so there is no hidden
 // band to lean into and the scale margin is all the travel there is. Push it
 // further there: what the extra crop takes off the sides, the gesture gives
 // straight back, and the rest of it grows into the bars rather than the
 // picture.
 const LOOK_SCALE_LETTERBOXED = 1.14;
-const LOOK_MAX_PX = 64;
+// However far this reaches, the amplitude math below still clamps it to
+// whatever margin the crop and the scale above actually bought — never more
+// than that, so a bigger number here only means "use more of what's already
+// hidden," not a risk of ever pulling the clip's own edge into view.
+const LOOK_MAX_PX = 130;
 const LOOK_EASE = 0.08;
 // How far a finger has to travel before it counts as looking around rather
 // than as the double tap that skips ahead.
