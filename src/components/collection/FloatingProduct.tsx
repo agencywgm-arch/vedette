@@ -81,6 +81,15 @@ export default function FloatingProduct({
   // something opening, so the spinner marks the wait as expected instead.
   const [modelReady, setModelReady] = useState(false);
   const onModelReady = useCallback(() => setModelReady(true), []);
+  // Wiring can't guarantee any given connection loads a model in under 5s, so
+  // this is the hard backstop: past that point the packshot stands in for it,
+  // then the real mesh swaps in the moment it does arrive.
+  const [fallbackDue, setFallbackDue] = useState(false);
+  useEffect(() => {
+    if (!item.model || modelReady) return;
+    const t = setTimeout(() => setFallbackDue(true), 5000);
+    return () => clearTimeout(t);
+  }, [item.model, modelReady]);
   const boxRef = useRef<HTMLDivElement>(null);
   const spinRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLImageElement>(null);
@@ -297,10 +306,20 @@ export default function FloatingProduct({
             accessoryUrl={bundleAccessory ? item.accessory?.model : null}
             onReady={onModelReady}
           />
-          <div className="fp-model-loading" style={{ opacity: modelReady ? 0 : 1 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-white.png" alt="" draggable={false} />
-          </div>
+          {!modelReady && fallbackDue && item.front ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="fp-model-fallback"
+              src={item.front}
+              alt={item.name}
+              draggable={false}
+            />
+          ) : (
+            <div className="fp-model-loading" style={{ opacity: modelReady ? 0 : 1 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-white.png" alt="" draggable={false} />
+            </div>
+          )}
         </>
       ) : (
       <div className="fp-stage">
