@@ -83,6 +83,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 39.5, y: 37, w: 13.5, h: 24 },
     front: P + "champions-tee-front.webp",
     back: P + "champions-tee-back.webp",
+    model: "/models/champions-tee.glb",
   },
   {
     id: "paris-polo",
