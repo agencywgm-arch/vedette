@@ -122,6 +122,22 @@ body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
+/* On mobile the video is letterboxed (object-fit: contain), not full-bleed —
+   bottom: 9% of the screen falls in the black bar below the picture rather
+   than on it. object-fit centers by default, so mid-screen is always mid-video
+   regardless of device aspect; centering there (instead of chasing the video's
+   own edges per-device) keeps the whole block, "Mode rapide" included, on the
+   picture without measuring anything. */
+@media (max-width: 767px) {
+  .entry-subtitle {
+    inset: auto;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+  }
+}
+
 /* ============================================================
    Boutique — la salle de collection interactive
    ============================================================ */

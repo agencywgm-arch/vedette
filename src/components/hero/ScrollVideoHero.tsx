@@ -115,12 +115,6 @@ export default function ScrollVideoHero() {
   const collectionVideoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
   const [activePhase, setActivePhase] = useState<Phase>("entrance");
-  // On mobile the letterboxed video only fills a middle band of the screen —
-  // the plain bottom-of-viewport subtitle position (right on desktop, where
-  // the video is full-bleed) lands in the black bar below it instead. This is
-  // that same offset, re-expressed from the video's own bottom edge once its
-  // rect is known, so the subtitle stays over the picture on any phone aspect.
-  const [subtitleBottomPercent, setSubtitleBottomPercent] = useState<number | null>(null);
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
   const [roomOpen, setRoomOpen] = useState(false);
@@ -299,12 +293,6 @@ export default function ScrollVideoHero() {
         : mediaRect(width, height, ENTRANCE_INTRINSIC_SIZE.w, ENTRANCE_INTRINSIC_SIZE.h, "cover");
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
-      // Same "9% up from the video's own bottom edge" the CSS default gives
-      // desktop for free, just measured against the letterboxed rect instead
-      // of the full screen.
-      setSubtitleBottomPercent(
-        isMobile ? ((height - (rect.top + rect.height)) + rect.height * 0.09) / height * 100 : null
-      );
     });
     observer.observe(sticky);
     return () => observer.disconnect();
@@ -516,13 +504,9 @@ export default function ScrollVideoHero() {
           </div>
         )}
 
-        {/* A subtitle low in frame, screen-locked like a HUD element rather
-            than pinned to the guard — it doesn't pan with the look-around. */}
-        <DialogueBubble
-          visible={showDialogue}
-          onChoose={handleFastMode}
-          bottomPercent={subtitleBottomPercent}
-        />
+        {/* Screen-locked like a HUD element rather than pinned to the guard —
+            it doesn't pan with the look-around. */}
+        <DialogueBubble visible={showDialogue} onChoose={handleFastMode} />
       </div>
     </div>
   );
