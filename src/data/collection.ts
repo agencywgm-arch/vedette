@@ -176,8 +176,9 @@ export const collection: CollectionItem[] = [
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
     sizes: ["S", "M", "L", "XL"],
     spot: { x: 21, y: 75, w: 13, h: 27 },
-    front: null,
+    front: P + "paris-longsleeve-front.webp",
     back: null,
+    model: "/models/paris-longsleeve.glb",
   },
   {
     id: "forreal-tee",

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   MutableRefObject,
   PointerEvent as ReactPointerEvent,
@@ -75,6 +75,12 @@ export default function FloatingProduct({
   onReturned: () => void;
 }) {
   const bundleAccessory = useShopStore((s) => s.bundleAccessory);
+  // A scanned piece's mesh only arrives once the JS chunk for three.js and the
+  // GLB itself have both loaded — flying an empty, invisible box to the middle
+  // of the room in the meantime read as the wall breaking rather than as
+  // something opening, so the spinner marks the wait as expected instead.
+  const [modelReady, setModelReady] = useState(false);
+  const onModelReady = useCallback(() => setModelReady(true), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const spinRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLImageElement>(null);
@@ -282,13 +288,20 @@ export default function FloatingProduct({
     >
       {!item.model && <div ref={groundRef} className="fp-ground" />}
       {item.model ? (
-        <ModelStage
-          url={item.model}
-          angleRef={angle}
-          zoomRef={zoomRef}
-          bobRef={bobRef}
-          accessoryUrl={bundleAccessory ? item.accessory?.model : null}
-        />
+        <>
+          <ModelStage
+            url={item.model}
+            angleRef={angle}
+            zoomRef={zoomRef}
+            bobRef={bobRef}
+            accessoryUrl={bundleAccessory ? item.accessory?.model : null}
+            onReady={onModelReady}
+          />
+          <div className="fp-model-loading" style={{ opacity: modelReady ? 0 : 1 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-white.png" alt="" draggable={false} />
+          </div>
+        </>
       ) : (
       <div className="fp-stage">
         <div ref={spinRef} className="fp-spin">
