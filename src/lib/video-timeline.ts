@@ -46,10 +46,6 @@ export function phaseForProgress(progress: number): Phase {
 const DIALOGUE_AT_LOCAL = 0.38;
 export const DIALOGUE_AT = DIALOGUE_AT_LOCAL * BOUNDARY;
 
-/** Where the guard's head sits on screen at DIALOGUE_AT, for the speech
- * bubble's tail. Desktop only — the mobile bubble is centered instead. */
-export const GUARD_ANCHOR = { x: 30, y: 34 };
-
 /** "Mode rapide" skips straight to the start of the collection reveal. */
 export const FAST_MODE_TARGET = BOUNDARY + 0.01;
 
@@ -79,13 +75,11 @@ export const SKIP_TO_ROOM_TARGET = Math.min(1, ROOM_ENTER_AT + 0.01);
 export const VERTICAL_VIDEO_SIZE = { w: 720, h: 900 };
 
 /**
- * entrance.mp4's own pixel size. GUARD_ANCHOR is expressed as a % of this
- * frame, not of whatever window is showing it — object-fit: cover crops a
- * different slice depending on the viewport's own aspect (a landscape phone
- * crops far more off the top and bottom than a 16:9 desktop does), so an
- * anchor read as plain container % drifts away from the guard on anything
- * that isn't close to that one aspect. Projecting through mediaRect's cover
- * math keeps it pinned to him regardless.
+ * entrance.mp4's own pixel size — object-fit: cover crops a different slice
+ * depending on the viewport's own aspect (a landscape phone crops far more
+ * off the top and bottom than a 16:9 desktop does), so anything anchored to a
+ * point in the picture has to be projected through mediaRect's cover math
+ * against this size rather than read as a plain container %.
  */
 export const ENTRANCE_INTRINSIC_SIZE = { w: 2048, h: 1536 };
 export const VERTICAL_VIDEO_CONTENT = { topFraction: 0.2, heightFraction: 0.6 };

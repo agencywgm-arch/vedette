@@ -114,7 +114,6 @@ export default function ScrollVideoHero() {
   const entranceVideoRef = useRef<HTMLVideoElement>(null);
   const collectionVideoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
-  const [containRect, setContainRect] = useState<ContainRect | null>(null);
   const [activePhase, setActivePhase] = useState<Phase>("entrance");
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
@@ -189,7 +188,6 @@ export default function ScrollVideoHero() {
   const lookTarget = useRef({ x: 0, y: 0 });
   const lookCurrent = useRef({ x: 0, y: 0 });
   const lookLayerRef = useRef<HTMLDivElement>(null);
-  const lookBubbleRef = useRef<HTMLDivElement>(null);
   // `moved` doubles as the tap guard: a press that turned into looking around
   // still ends in a click event, and that click is not a tap.
   const lookDrag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
@@ -209,7 +207,6 @@ export default function ScrollVideoHero() {
       current.y += (target.y - current.y) * LOOK_EASE;
 
       const layer = lookLayerRef.current;
-      const bubbleLayer = lookBubbleRef.current;
       if (!layer) return;
       const size = containerSizeRef.current;
       const rect = containRectRef.current;
@@ -227,7 +224,6 @@ export default function ScrollVideoHero() {
         -current.y * ampY
       ).toFixed(2)}px, 0) scale(${scale})`;
       layer.style.transform = transform;
-      if (bubbleLayer) bubbleLayer.style.transform = transform;
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -282,9 +278,9 @@ export default function ScrollVideoHero() {
 
   // On mobile the clips are shown with object-fit: contain (never cropped);
   // on desktop they're cover-cropped, and how much of the frame that crops
-  // away depends on the viewport's own aspect. Either way, anything anchored
-  // to a point *in the picture* (mobile hotspots, the guard's speech bubble)
-  // needs the video's actual rendered rect, not the container's own box.
+  // away depends on the viewport's own aspect. Anything anchored to a point
+  // *in the picture* (mobile hotspots, the look-around pan) needs the
+  // video's actual rendered rect, not the container's own box.
   useEffect(() => {
     const sticky = stickyRef.current;
     if (!sticky) return;
@@ -297,7 +293,6 @@ export default function ScrollVideoHero() {
         : mediaRect(width, height, ENTRANCE_INTRINSIC_SIZE.w, ENTRANCE_INTRINSIC_SIZE.h, "cover");
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
-      setContainRect(rect);
     });
     observer.observe(sticky);
     return () => observer.disconnect();
@@ -509,21 +504,9 @@ export default function ScrollVideoHero() {
           </div>
         )}
 
-        {/* The bubble is pinned to a point in the picture, so it leans with
-            it. Its own layer rather than the clips' one: a transform opens a
-            stacking context, and inside theirs the bubble would fall behind
-            the tap absorber and stop being clickable. */}
-        <div
-          ref={lookBubbleRef}
-          className="pointer-events-none absolute inset-0 z-30 will-change-transform"
-        >
-          <DialogueBubble
-            visible={showDialogue}
-            isMobile={isMobile}
-            containRect={containRect}
-            onChoose={handleFastMode}
-          />
-        </div>
+        {/* A subtitle low in frame, screen-locked like a HUD element rather
+            than pinned to the guard — it doesn't pan with the look-around. */}
+        <DialogueBubble visible={showDialogue} onChoose={handleFastMode} />
       </div>
     </div>
   );
