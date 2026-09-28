@@ -58,12 +58,6 @@ function Piece({
     copy.position.sub(centre);
     copy.scale.setScalar(1 / largest);
     copy.position.multiplyScalar(1 / largest);
-    copy.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = false;
-      }
-    });
     return copy;
   }, [scene]);
 
@@ -119,16 +113,26 @@ export default function ModelStage({
       className="fp-canvas"
       // The piece never fills the frame edge to edge, so alpha keeps the room
       // visible around it exactly as the cut-out packshots did.
-      gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false }}
-      dpr={[1, 2]}
+      // On a GPU that falls back to software rendering (no hardware
+      // acceleration — a known state on some laptops, VMs and locked-down
+      // corporate machines), this canvas was the whole page's bottleneck:
+      // independently measured, opening a piece dropped requestAnimationFrame
+      // from a steady 60/s to under 2/s, which reads as a still image, not a
+      // turntable that's merely slow. No antialiasing and a capped pixel
+      // ratio roughly halve the pixels the rasterizer has to touch.
+      gl={{ alpha: true, antialias: false, preserveDrawingBuffer: false }}
+      dpr={1}
       camera={{ position: [0, 0, 2.6], fov: 32 }}
       style={{ pointerEvents: "none" }}
     >
       <Fit paired={paired} />
       <ambientLight intensity={0.55} />
       {/* the key light stays put while the piece turns under it, matching the
-          lighting the flat faces faked with a brightness filter */}
-      <directionalLight position={[2.5, 3, 2]} intensity={2.1} castShadow />
+          lighting the flat faces faked with a brightness filter. No castShadow
+          here — a real-time shadow map is a second full render pass on top of
+          ContactShadows' own blurred one below, and paying for both doubled
+          the same bottleneck. */}
+      <directionalLight position={[2.5, 3, 2]} intensity={2.1} />
       <directionalLight position={[-3, 1, -2]} intensity={0.7} color="#b9c7ff" />
       {/* A preset environment would fetch an HDR off a CDN on every open. The
           reflections are built here instead: a softbox above, two rims, all
@@ -159,7 +163,10 @@ export default function ModelStage({
           />
         )}
       </Suspense>
-      <ContactShadows position={[0, -0.62, 0]} opacity={0.5} scale={3} blur={2.6} far={1.4} />
+      {/* frames=1: baked once on mount rather than re-rendered every frame —
+          the piece only turns in place, so the blob underneath it barely
+          changes shape, and this was the other half of the per-frame cost. */}
+      <ContactShadows position={[0, -0.62, 0]} opacity={0.5} scale={3} blur={2.6} far={1.4} frames={1} />
     </Canvas>
   );
 }
