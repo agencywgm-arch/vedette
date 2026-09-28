@@ -4,18 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
 import {
-  BOUNDARY,
+  CLIP_INTRINSIC_SIZE,
   DIALOGUE_AT,
-  ENTRANCE_INTRINSIC_SIZE,
   FAST_MODE_TARGET,
   ROOM_ENTER_AT,
   ROOM_LEAVE_AT,
   SKIP_TO_ROOM_TARGET,
   TOTAL_SCROLL_VH,
-  VERTICAL_VIDEO_SIZE,
-  phaseForProgress,
   stageForProgress,
-  type Phase,
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
 import { mediaRect } from "@/lib/media-rect";
@@ -24,34 +20,17 @@ import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
 
-// The two clips' frames at the cut don't quite line up (the camera sits at a
-// slightly different distance from the door in each), so a bare swap pops.
-// This just needs to be long enough to break that pop — a fade slow enough to
-// actually see reads as two images ghosting through each other, which is more
-// visible than the mismatch it's covering for. Quick enough to register as a
-// clean cut, not a dissolve.
-const CROSSFADE_MS = 120;
-
 // Two clicks/taps this close together count as one double tap.
 const DOUBLE_TAP_MS = 400;
 
-// Looking around the street: both clips are 4:3, the window almost never is,
-// so object-fit: cover is already hiding a band of real picture off two of the
-// edges. Leaning into it is the whole trick — no extra footage, just the part
-// of the frame that was being thrown away. The slight scale is what buys room
-// to move on the axis that happens to fit exactly, and caps how far the eye
-// travels so the clip can't ever pull its own edge into view.
-const LOOK_SCALE = 1.1;
-// A phone letterboxes the clip instead of cropping it, so there is no hidden
-// band to lean into and the scale margin is all the travel there is. Push it
-// further there: what the extra crop takes off the sides, the gesture gives
-// straight back, and the rest of it grows into the bars rather than the
-// picture.
-const LOOK_SCALE_LETTERBOXED = 1.14;
-// However far this reaches, the amplitude math below still clamps it to
-// whatever margin the crop and the scale above actually bought — never more
-// than that, so a bigger number here only means "use more of what's already
-// hidden," not a risk of ever pulling the clip's own edge into view.
+// Looking around the shop: the clip is shown in full (object-contain) on
+// every breakpoint, so there's no cover-crop margin to lean into — all the
+// travel comes from this zoom-in margin. However far this reaches, the
+// amplitude math below still clamps it to whatever margin the scale above
+// actually bought — never more than that, so a bigger number here only means
+// "use more of what's already hidden," not a risk of ever pulling the
+// clip's own edge into view.
+const LOOK_SCALE = 1.14;
 const LOOK_MAX_PX = 130;
 const LOOK_EASE = 0.08;
 // How far a finger has to travel before it counts as looking around rather
@@ -63,8 +42,7 @@ const LOOK_DRAG_SPAN = 0.45;
 const MOBILE_QUERY = "(max-width: 767px)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
 // phones was blowing through several seconds of video at once. Stretching
-// the scrollable distance keeps the same BOUNDARY fraction (both phases
-// scale together) while requiring more scroll per second of playback.
+// the scrollable distance requires more scroll per second of playback.
 const MOBILE_SCROLL_STRETCH = 1.4;
 
 function clamp(v: number, min: number, max: number) {
@@ -87,10 +65,10 @@ function getMobileServerSnapshot() {
 
 /**
  * iOS won't paint a frame — or honour a currentTime write — on a media
- * element that has never run, so every clip has to be played once before it
+ * element that has never run, so the clip has to be played once before it
  * can be scrubbed. Muted playback needs no gesture, but doing it inside one
  * is the case Safari never argues with, so this gets called both on mount and
- * on the press that starts a road.
+ * on the press that starts the walk-in.
  */
 function primeVideo(video: HTMLVideoElement | null) {
   if (!video) return;
@@ -100,25 +78,11 @@ function primeVideo(video: HTMLVideoElement | null) {
   }
 }
 
-function computeContainRect(containerW: number, containerH: number): ContainRect {
-  const scale = Math.min(containerW / VERTICAL_VIDEO_SIZE.w, containerH / VERTICAL_VIDEO_SIZE.h);
-  const width = VERTICAL_VIDEO_SIZE.w * scale;
-  const height = VERTICAL_VIDEO_SIZE.h * scale;
-  return {
-    left: (containerW - width) / 2,
-    top: (containerH - height) / 2,
-    width,
-    height,
-  };
-}
-
 export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
-  const entranceVideoRef = useRef<HTMLVideoElement>(null);
-  const collectionVideoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
-  const [activePhase, setActivePhase] = useState<Phase>("entrance");
   // On mobile the letterboxed video only fills a middle band of the screen —
   // the guard's line has to stay near his own black bar, not the screen's, or
   // it drifts down into the letterbox once the video stops being full-bleed.
@@ -128,10 +92,9 @@ export default function ScrollVideoHero() {
   const [roomOpen, setRoomOpen] = useState(false);
   const roomOpenRef = useRef(false);
   const selectedId = useShopStore((s) => s.selectedId);
-  // One queue per clip: each converges on the newest scroll position instead
-  // of dropping updates that land while the decoder is busy.
-  const scrubEntrance = useMemo(() => createVideoScrubber(), []);
-  const scrubCollection = useMemo(() => createVideoScrubber(), []);
+  // The queue converges on the newest scroll position instead of dropping
+  // updates that land while the decoder is busy.
+  const scrub = useMemo(() => createVideoScrubber(), []);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -151,9 +114,7 @@ export default function ScrollVideoHero() {
   // backward wobble — it only goes away once they actually answer.
   const showDialogue = entryMode === null && hasReachedDialogue;
 
-  // Both jumps land on a bare scrollTo: the crossfade dissolves the cut
-  // exactly like the natural boundary crossing does, and the seek it costs
-  // each clip is now fast enough (a fraction of the fade) not to show.
+  // Both jumps land on a bare scrollTo: the seek is fast enough not to show.
   const jumpToProgress = useCallback((target: number) => {
     setEntryMode("fast");
     const wrapper = wrapperRef.current;
@@ -171,8 +132,8 @@ export default function ScrollVideoHero() {
     [jumpToProgress]
   );
 
-  // A double tap/click anywhere on the scroll phase skips both clips
-  // entirely and drops the visitor straight into the live collection room.
+  // A double tap/click anywhere on the scroll phase skips straight into the
+  // live collection room.
   const lastTapRef = useRef(0);
   const handleScrollTap = () => {
     // A drag that ended up looking around still ends in a click. It isn't one.
@@ -207,7 +168,7 @@ export default function ScrollVideoHero() {
     const frame = () => {
       raf = requestAnimationFrame(frame);
 
-      // Under the live room the clips are covered anyway, and a drifting
+      // Under the live room the clip is covered anyway, and a drifting
       // picture beneath it would only fight the wall for attention.
       const target = roomOpenRef.current ? { x: 0, y: 0 } : lookTarget.current;
       const current = lookCurrent.current;
@@ -218,19 +179,15 @@ export default function ScrollVideoHero() {
       if (!layer) return;
       const size = containerSizeRef.current;
       const rect = containRectRef.current;
-      // What cover already crops away is free to pan into; the scale margin
-      // covers the axis that happens to fit the window exactly.
+      // The clip is always shown in full (object-contain) — nothing is
+      // cropped away, so the whole travel comes from the zoom margin below.
       const hiddenX = rect ? Math.max(0, (rect.width - size.width) / 2) : 0;
       const hiddenY = rect ? Math.max(0, (rect.height - size.height) / 2) : 0;
-      // Nothing hidden on either side means the clip is being letterboxed
-      // rather than cropped — no need to know which layout produced that.
-      const letterboxed = hiddenX < 1 && hiddenY < 1;
-      const scale = letterboxed ? LOOK_SCALE_LETTERBOXED : LOOK_SCALE;
-      const ampX = Math.min(hiddenX + (size.width * (scale - 1)) / 2, LOOK_MAX_PX);
-      const ampY = Math.min(hiddenY + (size.height * (scale - 1)) / 2, LOOK_MAX_PX);
+      const ampX = Math.min(hiddenX + (size.width * (LOOK_SCALE - 1)) / 2, LOOK_MAX_PX);
+      const ampY = Math.min(hiddenY + (size.height * (LOOK_SCALE - 1)) / 2, LOOK_MAX_PX);
       const transform = `translate3d(${(-current.x * ampX).toFixed(2)}px, ${(
         -current.y * ampY
-      ).toFixed(2)}px, 0) scale(${scale})`;
+      ).toFixed(2)}px, 0) scale(${LOOK_SCALE})`;
       layer.style.transform = transform;
     };
     raf = requestAnimationFrame(frame);
@@ -273,22 +230,14 @@ export default function ScrollVideoHero() {
     aimLook(0, 0);
   };
 
-  // Rotating a phone crosses the mobile query, and React swaps both <video>
-  // elements for their other-orientation twins. Those replacements have never
-  // been played: iOS won't paint a frame on a media element that hasn't run at
-  // least once, so the clip sits on its poster and the whole walk-in looks
-  // frozen for the rest of the visit. Muted playback needs no gesture, so
-  // prime each new pair the way the entry screen primes the first one.
   useEffect(() => {
-    primeVideo(entranceVideoRef.current);
-    primeVideo(collectionVideoRef.current);
-  }, [isMobile]);
+    primeVideo(videoRef.current);
+  }, []);
 
-  // On mobile the clips are shown with object-fit: contain (never cropped);
-  // on desktop they're cover-cropped, and how much of the frame that crops
-  // away depends on the viewport's own aspect. Anything anchored to a point
-  // *in the picture* (mobile hotspots, the look-around pan) needs the
-  // video's actual rendered rect, not the container's own box.
+  // The clip is shown object-contain on every breakpoint (it's portrait —
+  // there's no landscape footage to crop into), so anything anchored to a
+  // point in the picture has to be projected through mediaRect's contain
+  // math against the clip's own size rather than read as a plain container %.
   useEffect(() => {
     const sticky = stickyRef.current;
     if (!sticky) return;
@@ -296,21 +245,18 @@ export default function ScrollVideoHero() {
       const entry = entries[0];
       if (!entry) return;
       const { width, height } = entry.contentRect;
-      const rect = isMobile
-        ? computeContainRect(width, height)
-        : mediaRect(width, height, ENTRANCE_INTRINSIC_SIZE.w, ENTRANCE_INTRINSIC_SIZE.h, "cover");
+      const rect = mediaRect(width, height, CLIP_INTRINSIC_SIZE.w, CLIP_INTRINSIC_SIZE.h, "contain");
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
-      // Same "9% up from the video's own bottom edge" the CSS default gives
-      // desktop for free, just measured against the letterboxed rect instead
-      // of the full screen.
+      // "9% up from the clip's own bottom edge", measured against the
+      // letterboxed rect rather than the full screen.
       setSubtitleBottomPercent(
-        isMobile ? ((height - (rect.top + rect.height)) + rect.height * 0.18) / height * 100 : null
+        ((height - (rect.top + rect.height)) + rect.height * 0.18) / height * 100
       );
     });
     observer.observe(sticky);
     return () => observer.disconnect();
-  }, [isMobile]);
+  }, []);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -330,17 +276,7 @@ export default function ScrollVideoHero() {
         setHasReachedDialogue(true);
       }
 
-      const phase = phaseForProgress(progress);
-      // Keep BOTH clips in sync with scroll at all times (each clamped to
-      // its own 0..1 range), not just the currently visible one. Otherwise
-      // the hidden clip sits frozen wherever it last was and has to seek —
-      // with visible lag — the moment it becomes active again, which made
-      // scrolling backward across the phase boundary look broken.
-      const entranceLocal = clamp(progress / BOUNDARY, 0, 1);
-      const collectionLocal = clamp((progress - BOUNDARY) / (1 - BOUNDARY), 0, 1);
-      scrubEntrance(entranceVideoRef.current, entranceLocal);
-      scrubCollection(collectionVideoRef.current, collectionLocal);
-      setActivePhase((prev) => (prev === phase ? prev : phase));
+      scrub(videoRef.current, progress);
 
       // Hand off to the live collection room once the clip has settled on the
       // wall; hysteresis so scroll jitter at the threshold can't strobe it.
@@ -371,23 +307,19 @@ export default function ScrollVideoHero() {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     // A clip that isn't decodable yet can't be scrubbed, and scroll events
-    // stop the moment the visitor holds still — so a clip that becomes ready
-    // after the last one would sit on frame zero until they moved again.
-    const videos = [entranceVideoRef.current, collectionVideoRef.current];
-    for (const video of videos) {
-      video?.addEventListener("loadedmetadata", onScroll);
-      video?.addEventListener("loadeddata", onScroll);
-    }
+    // stop the moment the visitor holds still — so it would sit on frame zero
+    // until they moved again if it became ready only after the last one.
+    const video = videoRef.current;
+    video?.addEventListener("loadedmetadata", onScroll);
+    video?.addEventListener("loadeddata", onScroll);
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
-      for (const video of videos) {
-        video?.removeEventListener("loadedmetadata", onScroll);
-        video?.removeEventListener("loadeddata", onScroll);
-      }
+      video?.removeEventListener("loadedmetadata", onScroll);
+      video?.removeEventListener("loadeddata", onScroll);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
-  }, [setScrollOffset, setStage, isMobile, entryMode, scrubEntrance, scrubCollection]);
+  }, [setScrollOffset, setStage, entryMode, scrub]);
 
   // While a piece is being inspected the wheel belongs to it (zoom), not to
   // the page — and scrolling away mid-inspection would yank the room out.
@@ -407,17 +339,14 @@ export default function ScrollVideoHero() {
       className="relative"
     >
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
-        {/* Everything the eye can lean into rides this layer together. It gets
-            its own transform rather than one per clip, so the two never drift
-            apart mid-crossfade. */}
+        {/* Everything the eye can lean into rides this layer. */}
         <div
           ref={lookLayerRef}
           className="pointer-events-none absolute inset-0 will-change-transform"
         >
         <video
-          key={isMobile ? "entrance-vertical" : "entrance-horizontal"}
-          ref={entranceVideoRef}
-          className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-contain"
           // This clip is scrubbed by scroll, never actually played — a tap has
           // no business reaching it. Without pointer-events: none, a click on
           // a paused, uncontrolled <video> can trigger the browser's own
@@ -425,62 +354,19 @@ export default function ScrollVideoHero() {
           // attribute once the clip has been primed), which starts it running
           // in real time and fights the scrub, looking like the scroll itself
           // just fast-forwarded to the end.
-          style={{
-            opacity: activePhase === "entrance" ? 1 : 0,
-            transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
-            pointerEvents: "none",
-          }}
-          poster={isMobile ? "/videos/poster-vertical.jpg" : "/videos/poster.jpg"}
+          style={{ pointerEvents: "none" }}
+          poster="/videos/poster.jpg"
           muted
           playsInline
           preload="auto"
           disablePictureInPicture
           disableRemotePlayback
         >
-          {isMobile ? (
-            <>
-              <source src="/videos/entrance-vertical.mp4" type="video/mp4" />
-              <source src="/videos/entrance-vertical.webm" type="video/webm" />
-            </>
-          ) : (
-            <>
-              <source src="/videos/entrance.mp4" type="video/mp4" />
-              <source src="/videos/entrance.webm" type="video/webm" />
-            </>
-          )}
-        </video>
-        <video
-          key={isMobile ? "collection-vertical" : "collection-horizontal"}
-          ref={collectionVideoRef}
-          className={`absolute inset-0 h-full w-full ${isMobile ? "object-contain" : "object-cover"}`}
-          style={{
-            opacity: activePhase === "collection" ? 1 : 0,
-            transition: `opacity ${CROSSFADE_MS}ms ease-in-out`,
-            pointerEvents: "none",
-          }}
-          poster={isMobile ? "/videos/collection-poster-vertical.jpg" : "/videos/collection-poster.jpg"}
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          disableRemotePlayback
-        >
-          {isMobile ? (
-            <>
-              <source src="/videos/collection-vertical.mp4" type="video/mp4" />
-              <source src="/videos/collection-vertical.webm" type="video/webm" />
-            </>
-          ) : (
-            <>
-              <source src="/videos/collection.mp4" type="video/mp4" />
-              <source src="/videos/collection.webm" type="video/webm" />
-            </>
-          )}
+          <source src="/videos/shop.mp4" type="video/mp4" />
+          <source src="/videos/shop.webm" type="video/webm" />
         </video>
         </div>
-        {!isMobile && (
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
-        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
 
         {/* A single tap during this phase has nothing to do — no hotspot
             exists until the room mounts — but some browsers still route it

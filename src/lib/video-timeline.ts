@@ -1,95 +1,52 @@
 /**
- * The experience is two back-to-back clips sharing one continuous scroll:
- *
- *   Phase "entrance"   (public/videos/entrance.mp4, ~6.04s)
- *     street -> approach -> through the open doors, ending just inside.
- *   Phase "collection" (public/videos/collection.mp4, ~6.04s)
- *     the same doorway view continuing to push in until it settles facing
- *     the full clothing wall — this is where visitors browse and buy.
- *
- * Global scroll progress is 0..1 across BOTH clips; BOUNDARY is where the
- * handoff between the two <video> elements happens. Each phase also has its
- * own local 0..1 progress (used to drive that phase's video.currentTime).
- *
- * collection.mp4 is trimmed 1s off its master's start: the raw footage begins
- * pulled back wider than where entrance ends, so the cut popped like the
- * camera jumped backward. Frame 24 of the master is the closest match to
- * entrance's own last frame (found by comparing candidates pixel-for-pixel),
- * so that's where the trimmed file's t=0 now sits.
+ * The experience is one continuous clip (public/videos/shop.mp4), scrubbed
+ * end to end by scroll: street -> guard -> through the open doors -> push
+ * in until the camera settles facing the full clothing wall, where visitors
+ * browse and buy.
  */
-const ENTRANCE_DURATION = 6.041667;
-const COLLECTION_DURATION = 6.041667;
+const CLIP_DURATION = 12.066667;
 
-/** Scroll length per phase, as a multiple of the viewport height — kept
- * proportional to each clip's duration so scroll speed feels consistent. */
-export const ENTRANCE_VH = 320;
-export const COLLECTION_VH = Math.round(
-  (ENTRANCE_VH * COLLECTION_DURATION) / ENTRANCE_DURATION
-);
-export const TOTAL_SCROLL_VH = ENTRANCE_VH + COLLECTION_VH;
-
-/** Global progress (0..1) at which the entrance clip hands off to the collection clip. */
-export const BOUNDARY = ENTRANCE_VH / TOTAL_SCROLL_VH;
-
-export type Phase = "entrance" | "collection";
-
-export function phaseForProgress(progress: number): Phase {
-  return progress < BOUNDARY ? "entrance" : "collection";
-}
+/** Scroll length for the whole clip, as a multiple of the viewport height. */
+export const TOTAL_SCROLL_VH = 640;
 
 /**
- * The security guard "stops" the visitor here (still outside, closed door)
- * to offer the fast-forward. Scroll is gated at this progress until the
- * visitor clicks through. Expressed as a fraction of the entrance phase,
- * then converted to a global fraction.
+ * The security guard "stops" the visitor here (door already open, guard
+ * still blocking the view) to offer the fast-forward. Scroll is gated at
+ * this progress until the visitor clicks through.
  */
-const DIALOGUE_AT_LOCAL = 0.38;
-export const DIALOGUE_AT = DIALOGUE_AT_LOCAL * BOUNDARY;
+export const DIALOGUE_AT = 2.6 / CLIP_DURATION;
 
-/** "Mode rapide" skips straight to the start of the collection reveal. */
-export const FAST_MODE_TARGET = BOUNDARY + 0.01;
+/** "Mode rapide" skips straight past the guard to where the camera has
+ * already cleared the doorway into the interior. */
+export const FAST_MODE_TARGET = 4.0 / CLIP_DURATION;
 
 /**
- * The collection clip ends settled on the clothing wall. From here the crisp
- * still takes over and every piece on it becomes live. Hysteresis (enter
- * high, leave lower) keeps the handoff from flickering when scroll jitters
- * around a single threshold.
+ * The clip ends settled on the clothing wall. From here the crisp still
+ * takes over and every piece on it becomes live. Hysteresis (enter high,
+ * leave lower) keeps the handoff from flickering when scroll jitters around
+ * a single threshold.
  */
 export const ROOM_ENTER_AT = 0.985;
 export const ROOM_LEAVE_AT = 0.955;
 
-/** A double tap/click anywhere during the scroll skips straight past both
- * clips into the live collection room, clear of ROOM_ENTER_AT's threshold. */
+/** A double tap/click anywhere during the scroll skips straight into the
+ * live collection room, clear of ROOM_ENTER_AT's threshold. */
 export const SKIP_TO_ROOM_TARGET = Math.min(1, ROOM_ENTER_AT + 0.01);
 
 /**
- * The letterboxed canvas the *-vertical.mp4/webm files are encoded at, and
- * where the actual shop footage sits within it. The encode pads a 4:3 frame
- * into this taller canvas with equal bars top and bottom (see the ffmpeg
- * recipe: `pad=720:900:0:(900-ih)/2`, content scaled to 540 tall) — the
- * fractions below describe that split. CollectionRoom uses these to line its
- * still photo up with exactly where the video's own picture was, not the
- * padded frame around it; ScrollVideoHero uses the outer size for hotspot
- * placement, which is expressed against the full padded canvas.
+ * shop.mp4's own pixel size. The clip is portrait and shown in full
+ * (object-fit: contain) on every breakpoint — nothing is cropped — so
+ * anything anchored to a point in the picture (the look-around pan, the
+ * subtitle's anchor) is projected through mediaRect's contain math against
+ * this size rather than read as a plain container %.
  */
-export const VERTICAL_VIDEO_SIZE = { w: 720, h: 900 };
-
-/**
- * entrance.mp4's own pixel size — object-fit: cover crops a different slice
- * depending on the viewport's own aspect (a landscape phone crops far more
- * off the top and bottom than a 16:9 desktop does), so anything anchored to a
- * point in the picture has to be projected through mediaRect's cover math
- * against this size rather than read as a plain container %.
- */
-export const ENTRANCE_INTRINSIC_SIZE = { w: 2048, h: 1536 };
-export const VERTICAL_VIDEO_CONTENT = { topFraction: 0.2, heightFraction: 0.6 };
+export const CLIP_INTRINSIC_SIZE = { w: 1080, h: 1440 };
 
 export type SceneStageLabel = "street" | "approach" | "threshold" | "collection";
 
 export function stageForProgress(progress: number): SceneStageLabel {
-  if (progress >= BOUNDARY) return "collection";
-  const local = progress / BOUNDARY;
-  if (local < 0.08) return "street";
-  if (local < 0.3) return "approach";
-  return "threshold";
+  if (progress < 0.05) return "street";
+  if (progress < DIALOGUE_AT) return "approach";
+  if (progress < FAST_MODE_TARGET) return "threshold";
+  return "collection";
 }

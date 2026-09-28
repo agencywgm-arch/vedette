@@ -8,7 +8,6 @@ import {
   selectableItems,
 } from "@/data/collection";
 import { mediaRect, type Rect } from "@/lib/media-rect";
-import { VERTICAL_VIDEO_CONTENT, VERTICAL_VIDEO_SIZE } from "@/lib/video-timeline";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
 import ProductPanel from "./ProductPanel";
@@ -44,16 +43,15 @@ function clamp(v: number, min: number, max: number) {
 /**
  * Where the wall settles once the room has arrived: the whole collection has
  * to be on screen at once — every piece reachable without dragging the
- * picture around first. On a phone the video is already object-contain (the
- * whole photo, full width, never cropped) — its own rect already satisfies
- * that, and it's the same size a from-scratch "fit the width" box would come
- * out to, so resting anywhere else would just be an unmotivated drift. On a
- * desktop the video is object-cover (full-bleed, cropped), which does need
- * to relax into a smaller, uncropped frame — the largest 4:3 that fits
- * between the chrome.
+ * picture around first. The clip is shown object-contain everywhere now (it's
+ * portrait, so there's no landscape footage to crop into), and on a phone
+ * that rect already is the resting frame — its own size is exactly what a
+ * from-scratch "fit the screen" box would come out to, so resting anywhere
+ * else would just be an unmotivated drift. On a desktop it relaxes into a
+ * smaller frame off to the side, clear of the nav.
  */
 function restRect(size: { width: number; height: number }, compact: boolean): Rect {
-  if (compact) return handoffRect(size, compact);
+  if (compact) return handoffRect(size);
   const free = Math.max(320, size.width - DESKTOP_NAV_GUTTER);
   const fitted = mediaRect(free * 0.96, size.height * DESKTOP_WALL_HEIGHT, WALL_SIZE.w, WALL_SIZE.h, "contain");
   return {
@@ -65,26 +63,13 @@ function restRect(size: { width: number; height: number }, compact: boolean): Re
 }
 
 /**
- * Where the wall has to start: exactly the rect the collection video was
- * just showing, so the still photo taking over reads as the same picture
- * rather than a pop to a different size. On a desktop the video is
- * object-cover, full-bleed; on a phone it's a letterboxed file, and the
- * hotspot picture sits inside that letterboxing at a known fraction (see
- * VERTICAL_VIDEO_CONTENT) — not the padded frame itself.
+ * Where the wall has to start: exactly the rect the clip was just showing,
+ * so the still photo taking over reads as the same picture rather than a pop
+ * to a different size. The clip is object-contain on every breakpoint, so
+ * this is just the wall's own aspect fitted into the room.
  */
-function handoffRect(size: { width: number; height: number }, compact: boolean): Rect {
-  if (compact) {
-    const scale = Math.min(size.width / VERTICAL_VIDEO_SIZE.w, size.height / VERTICAL_VIDEO_SIZE.h);
-    const boxWidth = VERTICAL_VIDEO_SIZE.w * scale;
-    const boxHeight = VERTICAL_VIDEO_SIZE.h * scale;
-    return {
-      left: (size.width - boxWidth) / 2,
-      top: (size.height - boxHeight) / 2 + boxHeight * VERTICAL_VIDEO_CONTENT.topFraction,
-      width: boxWidth,
-      height: boxHeight * VERTICAL_VIDEO_CONTENT.heightFraction,
-    };
-  }
-  return mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "cover");
+function handoffRect(size: { width: number; height: number }): Rect {
+  return mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "contain");
 }
 
 /**
@@ -246,7 +231,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   // frame one tick later — see the `settled` effect above. Both rects are
   // pure functions of `size`, so a mid-transition resize just re-targets the
   // tween instead of snapping.
-  const wall: Rect | null = size ? (settled ? restRect(size, compact) : handoffRect(size, compact)) : null;
+  const wall: Rect | null = size ? (settled ? restRect(size, compact) : handoffRect(size)) : null;
   const displayed = displayedId ? collection.find((i) => i.id === displayedId) ?? null : null;
   const inspecting = displayed !== null && !closing;
 
