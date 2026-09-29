@@ -257,10 +257,10 @@ export default function ScrollVideoHero() {
       const rect = mediaRect(width, height, CLIP_INTRINSIC_SIZE.w, CLIP_INTRINSIC_SIZE.h, fit);
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
-      // "9% up from the clip's own bottom edge", measured against the
+      // "7% up from the clip's own bottom edge", measured against the
       // letterboxed rect rather than the full screen.
       setSubtitleBottomPercent(
-        ((height - (rect.top + rect.height)) + rect.height * 0.18) / height * 100
+        ((height - (rect.top + rect.height)) + rect.height * 0.07) / height * 100
       );
     });
     observer.observe(sticky);
