@@ -37,9 +37,12 @@ export default function ProductRail({
           <button
             key={item.id}
             type="button"
-            title={item.name}
-            aria-label={item.name}
-            className={`shop-tile ${selectedId === item.id ? "is-active" : ""}`}
+            title={item.locked ? `${item.name} — bientôt disponible` : item.name}
+            aria-label={item.locked ? `${item.name} — bientôt disponible` : item.name}
+            disabled={item.locked}
+            className={`shop-tile ${selectedId === item.id ? "is-active" : ""} ${
+              item.locked ? "is-locked" : ""
+            }`}
             onClick={() => onPick(item.id)}
           >
             <Image
@@ -49,6 +52,12 @@ export default function ProductRail({
               sizes="110px"
               className="shop-tile-img"
             />
+            {item.locked && (
+              <svg className="shop-tile-lock" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="1.5" />
+                <path d="M8 11V7a4 4 0 018 0v4" />
+              </svg>
+            )}
           </button>
         ))}
       </div>

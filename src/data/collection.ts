@@ -48,6 +48,12 @@ export interface CollectionItem {
    * of them.
    */
   lifestyle?: string[];
+  /**
+   * Pulled from the wall to make room for the piece that replaced it there.
+   * Still listed — greyed out with a padlock, not gone — but the rail and
+   * the wall itself both refuse to open it.
+   */
+  locked?: boolean;
 }
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
@@ -150,6 +156,20 @@ export const collection: CollectionItem[] = [
     front: P + "cap-flames-front.webp",
     back: null,
     model: "/models/cap-flames.glb",
+    locked: true,
+  },
+  {
+    id: "cap-bienoufoie",
+    name: "CASQUETTE BIEN OU FOIE",
+    price: 49,
+    category: "CASQUETTES",
+    description: "Collab Bien ou Foie × Vedette. Casquette orange, broderie exclusive.",
+    colors: [{ name: "Orange", hex: "#e8600f" }],
+    sizes: ["TU"],
+    spot: { x: 40.74, y: 52.78, w: 20.37, h: 6.25 },
+    front: P + "cap-bienoufoie-front.webp",
+    back: null,
+    model: "/models/cap-bienoufoie.glb",
   },
   {
     id: "cap-camo",
@@ -190,6 +210,20 @@ export const collection: CollectionItem[] = [
     front: P + "paris-longsleeve-front.webp",
     back: null,
     model: "/models/paris-longsleeve.glb",
+    locked: true,
+  },
+  {
+    id: "boxe-khoya-tank",
+    name: "DÉBARDEUR FULL BOXE KHOYA",
+    price: 79,
+    category: "T-SHIRTS",
+    description: "Collab Bien ou Foie × Vedette. Débardeur noir imprimé all-over, tirage limité.",
+    colors: [{ name: "Noir", hex: "#111111" }],
+    sizes: ["S", "M", "L", "XL"],
+    spot: { x: 18.52, y: 67.71, w: 20.37, h: 18.06 },
+    front: P + "boxe-khoya-tank-front.webp",
+    back: null,
+    model: "/models/boxe-khoya-tank.glb",
   },
   {
     id: "forreal-tee",

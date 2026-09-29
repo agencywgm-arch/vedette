@@ -1038,6 +1038,31 @@ body {
   object-fit: contain;
 }
 
+/* Bumped off the wall by the piece that replaced it — still listed, not
+   gone, but blacked out with a padlock rather than openable. */
+.shop-tile.is-locked {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.shop-tile.is-locked .shop-tile-img {
+  filter: grayscale(1) brightness(0.25);
+}
+
+.shop-tile-lock {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+
 /* --- footer --- */
 
 .shop-footer {

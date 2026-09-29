@@ -198,15 +198,19 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   }, []);
 
   const step = (direction: -1 | 1) => {
-    if (selectableItems.length === 0) return;
-    const current = selectableItems.findIndex((i) => i.id === selectedId);
+    // Locked pieces have no wall hotspot to fly in from, so cycling has to
+    // skip past them — landing on one would otherwise silently no-op and
+    // leave the arrow key stuck, since selectedId never advances.
+    const openable = selectableItems.filter((i) => !i.locked);
+    if (openable.length === 0) return;
+    const current = openable.findIndex((i) => i.id === selectedId);
     const next =
       current === -1
         ? direction === 1
           ? 0
-          : selectableItems.length - 1
-        : (current + direction + selectableItems.length) % selectableItems.length;
-    open(selectableItems[next].id);
+          : openable.length - 1
+        : (current + direction + openable.length) % openable.length;
+    open(openable[next].id);
   };
 
   useEffect(() => {
@@ -273,7 +277,10 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
 
           <div ref={hotspotLayerRef} className="shop-hotspot-layer">
             {collection.map((item) => {
-              if (item.front === null) return null;
+              // A locked piece's spot now belongs to whatever replaced it —
+              // rendering both would stack two hotspots on the same patch
+              // of wall.
+              if (item.front === null || item.locked) return null;
               return (
                 <button
                   key={item.id}
