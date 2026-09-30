@@ -1,11 +1,11 @@
 'use client';
 
-import { ChangeEvent, PointerEvent, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 type Pt = { x: number; y: number };
-type Layer = { x:number; y:number; w:number; h:number; rotation:number; opacity:number; shadow:number; brightness:number };
+type Layer = { x:number; y:number; w:number; h:number; rotation:number; opacity:number; shadow:number; brightness:number; warpX:number; warpY:number };
 
-const initial: Layer = { x: 360, y: 180, w: 300, h: 360, rotation: 0, opacity: 1, shadow: 18, brightness: 100 };
+const initial: Layer = { x: 360, y: 180, w: 300, h: 360, rotation: 0, opacity: 1, shadow: 18, brightness: 100, warpX: 0, warpY: 0 };
 
 function loadImage(src:string) {
   return new Promise<HTMLImageElement>((resolve,reject) => {
@@ -41,7 +41,7 @@ export default function ProductCompositor() {
       ctx.save();
       ctx.translate(layer.x+layer.w/2,layer.y+layer.h/2);
       ctx.rotate(layer.rotation*Math.PI/180);
-      ctx.globalAlpha=layer.opacity;
+      ctx.globalAlpha=layer.opacity;\n      ctx.transform(1,layer.warpY/500,layer.warpX/500,1,0,0);
       ctx.filter=`brightness(${layer.brightness}%) drop-shadow(0 8px ${layer.shadow}px rgba(0,0,0,.38))`;
       // Source pixels are drawn directly. No generative redraw, OCR, or text reconstruction.
       ctx.drawImage(product,-layer.w/2,-layer.h/2,layer.w,layer.h);
@@ -87,7 +87,7 @@ export default function ProductCompositor() {
           <h2 style={{fontSize:17,marginTop:26}}>2 · Placement</h2>
           <div style={{display:'flex',gap:8}}><button style={small} onClick={()=>setMode('move')}>Déplacer</button><button style={small} onClick={()=>setMode('scale')}>Redimensionner</button></div>
           <Control label="Rotation" min={-30} max={30} value={layer.rotation} onChange={rotation=>setLayer(v=>({...v,rotation}))}/>
-          <Control label="Luminosité" min={60} max={140} value={layer.brightness} onChange={brightness=>setLayer(v=>({...v,brightness}))}/>
+          <Control label="Perspective X" min={-80} max={80} value={layer.warpX} onChange={warpX=>setLayer(v=>({...v,warpX}))}/><Control label="Perspective Y" min={-80} max={80} value={layer.warpY} onChange={warpY=>setLayer(v=>({...v,warpY}))}/><Control label="Luminosité" min={60} max={140} value={layer.brightness} onChange={brightness=>setLayer(v=>({...v,brightness}))}/>
           <Control label="Ombre" min={0} max={45} value={layer.shadow} onChange={shadow=>setLayer(v=>({...v,shadow}))}/>
           <Control label="Opacité" min={20} max={100} value={Math.round(layer.opacity*100)} onChange={opacity=>setLayer(v=>({...v,opacity:opacity/100}))}/>
           <button style={{...small,width:'100%',marginTop:18}} onClick={()=>setLayer(initial)}>Réinitialiser le calque</button>
