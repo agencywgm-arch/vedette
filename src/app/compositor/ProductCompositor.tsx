@@ -41,7 +41,8 @@ export default function ProductCompositor() {
       ctx.save();
       ctx.translate(layer.x+layer.w/2,layer.y+layer.h/2);
       ctx.rotate(layer.rotation*Math.PI/180);
-      ctx.globalAlpha=layer.opacity;\n      ctx.transform(1,layer.warpY/500,layer.warpX/500,1,0,0);
+      ctx.globalAlpha=layer.opacity;
+      ctx.transform(1,layer.warpY/500,layer.warpX/500,1,0,0);
       ctx.filter=`brightness(${layer.brightness}%) drop-shadow(0 8px ${layer.shadow}px rgba(0,0,0,.38))`;
       // Source pixels are drawn directly. No generative redraw, OCR, or text reconstruction.
       ctx.drawImage(product,-layer.w/2,-layer.h/2,layer.w,layer.h);
