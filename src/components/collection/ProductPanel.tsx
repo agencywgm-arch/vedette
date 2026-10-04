@@ -130,7 +130,7 @@ export default function ProductPanel({
       {item.cabine && (
         <button
           type="button"
-          className="shop-cta shop-cta-ghost"
+          className="shop-cta shop-cta-cabine"
           onClick={() => setCabineOpen(true)}
         >
           Essayer en cabine
