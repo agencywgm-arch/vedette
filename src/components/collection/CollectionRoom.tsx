@@ -43,12 +43,9 @@ function clamp(v: number, min: number, max: number) {
 /**
  * Where the wall settles once the room has arrived: the whole collection has
  * to be on screen at once — every piece reachable without dragging the
- * picture around first. On a phone the clip was shown object-cover during
- * the walk-in (full-bleed, cropped, to use the screen instead of leaving it
- * mostly black) — the still now relaxes out of that crop into the whole,
- * uncropped photo, or the pieces nearest the cropped edges would be stuck
- * unreachable. On a desktop the clip was already shown in full, and this
- * relaxes it into a smaller frame off to the side, clear of the nav.
+ * picture around first. On a phone the still keeps the clip's own full,
+ * uncropped framing. On a desktop it relaxes into a smaller frame off to the
+ * side, clear of the nav.
  */
 function restRect(size: { width: number; height: number }, compact: boolean): Rect {
   if (compact) return mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "contain");
@@ -65,11 +62,11 @@ function restRect(size: { width: number; height: number }, compact: boolean): Re
 /**
  * Where the wall has to start: exactly the rect the clip was just showing,
  * so the still photo taking over reads as the same picture rather than a pop
- * to a different size — object-cover on a phone, object-contain on desktop,
- * matching ScrollVideoHero's own fit for each.
+ * to a different size — object-contain, matching ScrollVideoHero's own fit
+ * on every breakpoint.
  */
-function handoffRect(size: { width: number; height: number }, compact: boolean): Rect {
-  return mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, compact ? "cover" : "contain");
+function handoffRect(size: { width: number; height: number }): Rect {
+  return mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "contain");
 }
 
 /**
@@ -233,7 +230,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   // frame one tick later — see the `settled` effect above. Both rects are
   // pure functions of `size`, so a mid-transition resize just re-targets the
   // tween instead of snapping.
-  const wall: Rect | null = size ? (settled ? restRect(size, compact) : handoffRect(size, compact)) : null;
+  const wall: Rect | null = size ? (settled ? restRect(size, compact) : handoffRect(size)) : null;
   const displayed = displayedId ? collection.find((i) => i.id === displayedId) ?? null : null;
   const inspecting = displayed !== null && !closing;
 

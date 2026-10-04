@@ -23,13 +23,13 @@ import DialogueBubble from "./DialogueBubble";
 // Two clicks/taps this close together count as one double tap.
 const DOUBLE_TAP_MS = 400;
 
-// Looking around the shop: on a phone object-cover already has a crop
-// margin hidden off the sides to lean into; on desktop the clip is shown in
-// full (object-contain) instead, so there all the travel comes from this
-// zoom-in margin. However far this reaches, the amplitude math below still
-// clamps it to whatever margin the fit in use actually bought — never more
-// than that, so a bigger number here only means "use more of what's already
-// hidden," not a risk of ever pulling the clip's own edge into view.
+// Looking around the shop: the clip is shown in full (object-contain) on
+// every breakpoint, so all the travel comes from this zoom-in margin rather
+// than from any crop the fit already bought. However far this reaches, the
+// amplitude math below still clamps it to whatever margin zooming in by
+// LOOK_SCALE actually buys — never more than that, so a bigger number here
+// only means "use more of what's already hidden," not a risk of ever
+// pulling the clip's own edge into view.
 const LOOK_SCALE = 1.14;
 const LOOK_MAX_PX = 130;
 const LOOK_EASE = 0.08;
@@ -236,16 +236,13 @@ export default function ScrollVideoHero() {
     primeVideo(videoRef.current);
   }, []);
 
-  // Desktop shows the clip in full (object-contain) — it's portrait, there's
-  // no landscape footage to crop into, and pillarboxing there just reads as a
-  // cinema frame. A phone's own screen is already close to the clip's own
-  // aspect, though, so contain there left thick black bars top and bottom for
-  // no reason; object-cover fills the screen instead, cropping a little off
-  // the sides — cheap during the walk-in (nothing to click yet) and undone by
-  // the settle into CollectionRoom's full, uncropped rest frame once there's
-  // something on it to reach. Whichever fit is live, anything anchored to a
-  // point in the picture has to be projected through mediaRect's matching
-  // math against the clip's own size rather than read as a plain container %.
+  // The clip is landscape (1350x1080) on every breakpoint, so it's shown in
+  // full (object-contain) everywhere rather than split by device: a phone
+  // screen is portrait, and cropping a landscape clip to cover one would zoom
+  // in on a narrow vertical sliver of it — there's no "cheap crop" available
+  // here the way there was for the old portrait clip. Anything anchored to a
+  // point in the picture is still projected through mediaRect's contain math
+  // against the clip's own size rather than read as a plain container %.
   useEffect(() => {
     const sticky = stickyRef.current;
     if (!sticky) return;
@@ -253,8 +250,7 @@ export default function ScrollVideoHero() {
       const entry = entries[0];
       if (!entry) return;
       const { width, height } = entry.contentRect;
-      const fit = isMobile ? "cover" : "contain";
-      const rect = mediaRect(width, height, CLIP_INTRINSIC_SIZE.w, CLIP_INTRINSIC_SIZE.h, fit);
+      const rect = mediaRect(width, height, CLIP_INTRINSIC_SIZE.w, CLIP_INTRINSIC_SIZE.h, "contain");
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
       // "7% up from the clip's own bottom edge", measured against the
@@ -265,7 +261,7 @@ export default function ScrollVideoHero() {
     });
     observer.observe(sticky);
     return () => observer.disconnect();
-  }, [isMobile]);
+  }, []);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -355,7 +351,7 @@ export default function ScrollVideoHero() {
         >
         <video
           ref={videoRef}
-          className={`absolute inset-0 h-full w-full ${isMobile ? "object-cover" : "object-contain"}`}
+          className="absolute inset-0 h-full w-full object-contain"
           // This clip is scrubbed by scroll, never actually played — a tap has
           // no business reaching it. Without pointer-events: none, a click on
           // a paused, uncontrolled <video> can trigger the browser's own
