@@ -22,6 +22,7 @@ export default function ProductPanel({
   const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [cabineOpen, setCabineOpen] = useState(false);
 
   return (
     <>
@@ -126,10 +127,49 @@ export default function ProductPanel({
         {added ? "Ajouté au panier" : "Ajouter au panier"}
       </button>
 
-      <button type="button" className="shop-cta shop-cta-ghost">
-        Voir les détails
-      </button>
+      {item.cabine && (
+        <button
+          type="button"
+          className="shop-cta shop-cta-ghost"
+          onClick={() => setCabineOpen(true)}
+        >
+          Essayer en cabine
+        </button>
+      )}
     </aside>
+
+    {cabineOpen && item.cabine && (
+      <div
+        className="shop-cabine-overlay"
+        onClick={() => setCabineOpen(false)}
+        role="button"
+        tabIndex={-1}
+        aria-label="Fermer la cabine"
+      >
+        <button
+          type="button"
+          className="shop-cabine-close"
+          onClick={(e) => {
+            e.stopPropagation();
+            setCabineOpen(false);
+          }}
+          aria-label="Fermer la cabine"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.cabine}
+          alt={`${item.name} — cabine VEDETTE`}
+          className="shop-cabine-img"
+          onClick={(e) => e.stopPropagation()}
+          draggable={false}
+        />
+        <p className="shop-cabine-caption">{item.name}</p>
+      </div>
+    )}
 
     {lightbox && (
       <div

@@ -54,6 +54,11 @@ export interface CollectionItem {
    * the wall itself both refuse to open it.
    */
   locked?: boolean;
+  /**
+   * The VEDETTE mannequin wearing this exact piece, in the cabine's studio
+   * set. One hero angle for now (V1) — a full 360° spin is a later pass.
+   */
+  cabine?: string | null;
 }
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
@@ -61,6 +66,7 @@ export const WALL_SIZE = { w: 1350, h: 1080 };
 export const WALL_IMAGE = "/collection/wall.webp";
 
 const P = "/collection/products/";
+const C = "/cabine/looks/";
 
 export const collection: CollectionItem[] = [
   {
@@ -80,6 +86,7 @@ export const collection: CollectionItem[] = [
     front: P + "jparis-tee-front.webp",
     back: null,
     model: "/models/jparis-tee.glb",
+    cabine: C + "jparis-tee.webp",
   },
   {
     id: "champions-tee",
@@ -96,6 +103,7 @@ export const collection: CollectionItem[] = [
     front: P + "champions-tee-front.webp",
     back: P + "champions-tee-back.webp",
     model: "/models/champions-tee.glb",
+    cabine: C + "champions-tee.webp",
   },
   {
     id: "paris-polo",
@@ -112,6 +120,7 @@ export const collection: CollectionItem[] = [
     front: P + "paris-polo-front.webp",
     back: P + "paris-polo-back.webp",
     model: "/models/paris-polo.glb",
+    cabine: C + "paris-polo.webp",
   },
   {
     id: "vedette-vneck",
@@ -125,6 +134,7 @@ export const collection: CollectionItem[] = [
     front: P + "vedette-vneck-front.webp",
     back: null,
     model: "/models/vedette-vneck.glb",
+    cabine: C + "vedette-vneck.webp",
   },
   {
     id: "cap-vedette",
@@ -138,6 +148,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-vedette-front.webp",
     back: P + "cap-vedette-back.webp",
     model: "/models/cap-vedette.glb",
+    cabine: C + "cap-vedette.webp",
     lifestyle: [
       "/collection/lifestyle/cap-vedette-1.webp",
       "/collection/lifestyle/cap-vedette-2.webp",
@@ -170,6 +181,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-bienoufoie-front.webp",
     back: null,
     model: "/models/cap-bienoufoie.glb",
+    cabine: C + "cap-bienoufoie.webp",
   },
   {
     id: "cap-camo",
@@ -184,6 +196,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-camo-front.webp",
     back: null,
     model: "/models/cap-camo.glb",
+    cabine: C + "cap-camo.webp",
   },
   {
     id: "cap-heart",
@@ -197,6 +210,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-heart-front.webp",
     back: null,
     model: "/models/cap-heart.glb",
+    cabine: C + "cap-heart.webp",
   },
   {
     id: "paris-longsleeve",
@@ -224,6 +238,7 @@ export const collection: CollectionItem[] = [
     front: P + "boxe-khoya-tank-front.webp",
     back: null,
     model: "/models/boxe-khoya-tank.glb",
+    cabine: C + "boxe-khoya-tank.webp",
   },
   {
     id: "forreal-tee",
@@ -237,6 +252,7 @@ export const collection: CollectionItem[] = [
     front: P + "forreal-tee-front.webp",
     back: null,
     model: "/models/forreal-tee.glb",
+    cabine: C + "forreal-tee.webp",
   },
   {
     id: "rainbow-jersey",
@@ -249,6 +265,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 51.85, y: 73.8, w: 13.33, h: 25.46 },
     front: P + "rainbow-jersey-front.webp",
     back: P + "rainbow-jersey-back.webp",
+    cabine: C + "rainbow-jersey.webp",
     lifestyle: [
       "/collection/lifestyle/rainbow-jersey-1.webp",
       "/collection/lifestyle/rainbow-jersey-2.webp",
@@ -266,6 +283,7 @@ export const collection: CollectionItem[] = [
     front: P + "jparis-sweat-front.webp",
     back: null,
     model: "/models/jparis-sweat.glb",
+    cabine: C + "jparis-sweat.webp",
   },
   {
     id: "black-jacket",
@@ -280,6 +298,7 @@ export const collection: CollectionItem[] = [
     back: P + "black-jacket-back.webp",
     model: "/models/black-jacket.glb",
     accessory: { name: "Cagoule Vedette", model: "/models/balaclava.glb" },
+    cabine: C + "black-jacket.webp",
   },
 ];
 
