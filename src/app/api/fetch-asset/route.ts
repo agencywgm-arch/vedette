@@ -19,12 +19,19 @@ export async function GET(req: NextRequest) {
     return new Response("host not allowed", { status: 403 });
   }
 
-  const res = await fetch(parsed.toString());
-  if (!res.ok) return new Response("upstream error", { status: 502 });
+  const range = req.nextUrl.searchParams.get("range");
+  const headers: HeadersInit = range ? { Range: `bytes=${range}` } : {};
+
+  const res = await fetch(parsed.toString(), { headers });
+  if (!res.ok && res.status !== 206) {
+    return new Response("upstream error", { status: 502 });
+  }
 
   const buf = Buffer.from(await res.arrayBuffer());
   return Response.json({
     contentType: res.headers.get("content-type") ?? "application/octet-stream",
+    contentRange: res.headers.get("content-range"),
+    totalLength: res.headers.get("content-range")?.split("/")[1] ?? res.headers.get("content-length"),
     base64: buf.toString("base64"),
   });
 }
