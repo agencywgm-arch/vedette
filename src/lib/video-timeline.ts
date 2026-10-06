@@ -4,7 +4,7 @@
  * push in until the camera settles facing the full clothing wall, where
  * visitors browse and buy.
  */
-const CLIP_DURATION = 12;
+const CLIP_DURATION = 241 / 24;
 
 /** Scroll length for the whole clip, as a multiple of the viewport height. */
 export const TOTAL_SCROLL_VH = 640;
@@ -18,7 +18,7 @@ export const DIALOGUE_AT = 3.0 / CLIP_DURATION;
 
 /** "Mode rapide" skips straight past the guard to where the camera has
  * already pushed through the door into the interior. */
-export const FAST_MODE_TARGET = 4.5 / CLIP_DURATION;
+export const FAST_MODE_TARGET = 4.1 / CLIP_DURATION;
 
 /**
  * The clip ends settled on the clothing wall. From here the crisp still
@@ -26,8 +26,8 @@ export const FAST_MODE_TARGET = 4.5 / CLIP_DURATION;
  * leave lower) keeps the handoff from flickering when scroll jitters around
  * a single threshold.
  */
-export const ROOM_ENTER_AT = 0.985;
-export const ROOM_LEAVE_AT = 0.955;
+export const ROOM_ENTER_AT = 8.6 / CLIP_DURATION;
+export const ROOM_LEAVE_AT = 8.3 / CLIP_DURATION;
 
 /** A double tap/click anywhere during the scroll skips straight into the
  * live collection room, clear of ROOM_ENTER_AT's threshold. */
@@ -40,7 +40,7 @@ export const SKIP_TO_ROOM_TARGET = Math.min(1, ROOM_ENTER_AT + 0.01);
  * subtitle's anchor) is projected through mediaRect's contain math against
  * this size rather than read as a plain container %.
  */
-export const CLIP_INTRINSIC_SIZE = { w: 1350, h: 1080 };
+export const CLIP_INTRINSIC_SIZE = { w: 1920, h: 1080 };
 
 export type SceneStageLabel = "street" | "approach" | "threshold" | "collection";
 
