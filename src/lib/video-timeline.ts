@@ -1,6 +1,6 @@
 /**
- * The experience is one continuous clip (public/videos/shop.mp4), scrubbed
- * end to end by scroll: street -> guard at the closed door -> through it ->
+ * The experience is one continuous 24fps walk-in (public/frames/, one still
+ * per frame), scrubbed end to end by scroll: street -> guard at the closed door -> through it ->
  * push in until the camera settles facing the full clothing wall, where
  * visitors browse and buy.
  */
@@ -34,7 +34,7 @@ export const ROOM_LEAVE_AT = 8.3 / CLIP_DURATION;
 export const SKIP_TO_ROOM_TARGET = Math.min(1, ROOM_ENTER_AT + 0.01);
 
 /**
- * shop.mp4's own pixel size. The clip is landscape and shown in full
+ * The source clip's pixel size (every frame set keeps its 16:9). Shown in full
  * (object-fit: contain) on every breakpoint — nothing is cropped — so
  * anything anchored to a point in the picture (the look-around pan, the
  * subtitle's anchor) is projected through mediaRect's contain math against

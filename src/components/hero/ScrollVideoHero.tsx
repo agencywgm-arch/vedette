@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useSceneStore } from "@/store/useSceneStore";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/lib/video-timeline";
 import { type ContainRect } from "@/lib/overlay-position";
 import { mediaRect } from "@/lib/media-rect";
-import { createVideoScrubber } from "@/lib/video-scrubber";
+import { createFrameSequence } from "@/lib/frame-sequence";
 import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
@@ -40,12 +40,19 @@ const LOOK_DRAG_PX = 8;
 const LOOK_DRAG_SPAN = 0.45;
 
 const MOBILE_QUERY = "(max-width: 767px)";
-// Touch devices up to tablet size get a 960x540, every-frame-a-keyframe copy
-// of the clip. Scrubbing seeks to arbitrary frames, so decode cost per seek
-// is what an Android phone feels as stutter: 1080p with a keyframe every 6
-// frames makes the decoder chew through several full-HD frames per step, to
-// paint a picture that's ~400 CSS pixels wide anyway. All-intra frames
-// decode on their own, in either scroll direction.
+// The walk-in is drawn from stills (see frame-sequence.ts), one per frame of
+// the 24fps source. Touch devices up to tablet size get the smaller set: the
+// picture is ~400 CSS px wide on a phone, and every still saved is decode
+// time and memory the scroll doesn't have to wait on.
+const FRAME_COUNT = 241;
+const FRAME_SETS = {
+  desk: { dir: "/frames/desk/", w: 1280, h: 720 },
+  lite: { dir: "/frames/lite/", w: 768, h: 432 },
+};
+// How much of the remaining distance the drawn frame closes per 60Hz tick.
+// A wheel notch or a fling jumps scroll by a lot at once; easing toward it
+// turns that into a glide instead of a cut.
+const FRAME_EASE = 0.22;
 const LITE_QUERY = "(max-width: 1024px) and (pointer: coarse)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
 // phones was blowing through several seconds of video at once. Stretching
@@ -82,25 +89,15 @@ function getLiteSnapshot() {
 
 const noopSubscribe = () => () => {};
 
-/**
- * iOS won't paint a frame — or honour a currentTime write — on a media
- * element that has never run, so the clip has to be played once before it
- * can be scrubbed. Muted playback needs no gesture, but doing it inside one
- * is the case Safari never argues with, so this gets called both on mount and
- * on the press that starts the walk-in.
- */
-function primeVideo(video: HTMLVideoElement | null) {
-  if (!video) return;
-  const primed = video.play();
-  if (primed && typeof primed.then === "function") {
-    primed.then(() => video.pause()).catch(() => {});
-  }
-}
-
 export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Where scroll says the walk should be, in frames, and where the canvas is
+  // actually showing — the second eases toward the first.
+  const targetFrame = useRef(0);
+  const shownFrame = useRef(0);
+  const wakeDraw = useRef<() => void>(() => {});
   const rafRef = useRef<number | null>(null);
   // On mobile the letterboxed video only fills a middle band of the screen —
   // the guard's line has to stay near his own black bar, not the screen's, or
@@ -111,9 +108,6 @@ export default function ScrollVideoHero() {
   const [roomOpen, setRoomOpen] = useState(false);
   const roomOpenRef = useRef(false);
   const selectedId = useShopStore((s) => s.selectedId);
-  // The queue converges on the newest scroll position instead of dropping
-  // updates that land while the decoder is busy.
-  const scrub = useMemo(() => createVideoScrubber(), []);
   const isMobile = useSyncExternalStore(
     subscribeMobileQuery,
     getMobileSnapshot,
@@ -121,10 +115,8 @@ export default function ScrollVideoHero() {
   );
 
   const lite = useSyncExternalStore(subscribeLiteQuery, getLiteSnapshot, getMobileServerSnapshot);
-  // The server can't know which copy of the clip to ask for, and a <source>
-  // in the HTML starts downloading before hydration — the phone would pull
-  // the 1080p file and then throw it away. Sources only exist once the
-  // client has picked.
+  // The server can't know which set of stills to ask for; loading only
+  // starts once the client has picked, so a phone never pulls the big set.
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   const setScrollOffset = useSceneStore((s) => s.setScrollOffset);
@@ -281,11 +273,65 @@ export default function ScrollVideoHero() {
   };
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !hydrated) return;
-    // Sources added or swapped after mount aren't picked up until load().
-    video.load();
-    primeVideo(video);
+    const canvas = canvasRef.current;
+    if (!canvas || !hydrated) return;
+    const set = lite ? FRAME_SETS.lite : FRAME_SETS.desk;
+    canvas.width = set.w;
+    canvas.height = set.h;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+
+    let raf = 0;
+    let last = 0;
+    let drawn = -1;
+
+    const seq = createFrameSequence({
+      count: FRAME_COUNT,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp`,
+      width: set.w,
+      height: set.h,
+      // A frame that just arrived only matters if it's closer to what's on
+      // screen than what's being shown in its place.
+      onFrame: () => {
+        if (seq.nearest(shownFrame.current) !== drawn) wake();
+      },
+    });
+
+    const frame = (now: number) => {
+      raf = 0;
+      const dt = last ? Math.min(64, now - last) : 16.7;
+      last = now;
+      const target = targetFrame.current;
+      let shown = shownFrame.current;
+      const k = 1 - Math.pow(1 - FRAME_EASE, dt / 16.7);
+      shown += (target - shown) * k;
+      if (Math.abs(target - shown) < 0.02) shown = target;
+      shownFrame.current = shown;
+
+      const index = Math.round(shown);
+      if (seq.nearest(index) !== drawn) {
+        drawn = seq.draw(ctx, index);
+        // An opaque canvas is black until its first frame; the poster under
+        // it shows through until then.
+        if (drawn >= 0) canvas.style.opacity = "1";
+      }
+      if (shown !== target) {
+        raf = requestAnimationFrame(frame);
+      } else {
+        last = 0;
+      }
+    };
+    const wake = () => {
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    wakeDraw.current = wake;
+    wake();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      wakeDraw.current = () => {};
+      seq.destroy();
+    };
   }, [hydrated, lite]);
 
   // The clip is landscape (1350x1080) on every breakpoint, so it's shown in
@@ -334,7 +380,8 @@ export default function ScrollVideoHero() {
         setHasReachedDialogue(true);
       }
 
-      scrub(videoRef.current, progress);
+      targetFrame.current = progress * (FRAME_COUNT - 1);
+      wakeDraw.current();
 
       // Hand off to the live collection room once the clip has settled on the
       // wall; hysteresis so scroll jitter at the threshold can't strobe it.
@@ -365,20 +412,12 @@ export default function ScrollVideoHero() {
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
-    // A clip that isn't decodable yet can't be scrubbed, and scroll events
-    // stop the moment the visitor holds still — so it would sit on frame zero
-    // until they moved again if it became ready only after the last one.
-    const video = videoRef.current;
-    video?.addEventListener("loadedmetadata", onScroll);
-    video?.addEventListener("loadeddata", onScroll);
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
-      video?.removeEventListener("loadedmetadata", onScroll);
-      video?.removeEventListener("loadeddata", onScroll);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
-  }, [setScrollOffset, setStage, entryMode, scrub]);
+  }, [setScrollOffset, setStage, entryMode]);
 
   // While a piece is being inspected the wheel belongs to it (zoom), not to
   // the page — and scrolling away mid-inspection would yank the room out.
@@ -403,44 +442,25 @@ export default function ScrollVideoHero() {
           ref={lookLayerRef}
           className="pointer-events-none absolute inset-0 will-change-transform"
         >
-        <video
-          ref={videoRef}
+        {/* The poster holds the first frame until the canvas has one. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/videos/poster.jpg"
+          alt=""
           className="absolute inset-0 h-full w-full object-contain"
-          // This clip is scrubbed by scroll, never actually played — a tap has
-          // no business reaching it. Without pointer-events: none, a click on
-          // a paused, uncontrolled <video> can trigger the browser's own
-          // native play affordance (Safari shows one even with no `controls`
-          // attribute once the clip has been primed), which starts it running
-          // in real time and fights the scrub, looking like the scroll itself
-          // just fast-forwarded to the end.
-          style={{ pointerEvents: "none" }}
-          poster="/videos/poster.jpg"
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          disableRemotePlayback
-        >
-          {hydrated && (
-            <>
-              <source src={lite ? "/videos/shop-lite.mp4" : "/videos/shop.mp4"} type="video/mp4" />
-              <source src={lite ? "/videos/shop-lite.webm" : "/videos/shop.webm"} type="video/webm" />
-            </>
-          )}
-        </video>
+          draggable={false}
+        />
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ opacity: 0 }}
+        />
         </div>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
 
-        {/* A single tap during this phase has nothing to do — no hotspot
-            exists until the room mounts — but some browsers still route it
-            to the <video> underneath as a native play gesture regardless of
-            the video's own pointer-events: none (a known WebKit/
-            Chrome-on-Android quirk with media elements), which starts it
-            running in real time and looks like the scroll itself raced
-            ahead to the end. A plain div, with no such special-casing,
-            reliably absorbs the tap instead — and doubles as the double
-            tap/click shortcut straight into the collection room, since the
-            video is otherwise the slowest part of arriving there. */}
+        {/* Catches the finger for looking around and the double tap/click
+            that skips straight into the collection room — the walk-in is
+            otherwise the slowest part of arriving there. */}
         {!roomOpen && (
           <div
             className="absolute inset-0 z-10"
