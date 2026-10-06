@@ -14,6 +14,7 @@ import { useShopStore } from "@/store/useShopStore";
 // three.js is a big download and most of the wall is still flat packshots, so
 // it only arrives once a piece that actually has a model is opened.
 const ModelStage = dynamic(() => import("./ModelStage"), { ssr: false });
+const TurntableStage = dynamic(() => import("./TurntableStage"), { ssr: false });
 
 const FLY_IN_MS = 1000;
 const FLY_BACK_MS = 800;
@@ -79,17 +80,20 @@ export default function FloatingProduct({
   // GLB itself have both loaded — flying an empty, invisible box to the middle
   // of the room in the meantime read as the wall breaking rather than as
   // something opening, so the spinner marks the wait as expected instead.
+  // A real turntable clip beats a GLB scan when both exist — actual footage
+  // over a synthetic mesh — and either beats the flat packshots.
+  const richMedia = item.turntable ? "turntable" : item.model ? "model" : null;
   const [modelReady, setModelReady] = useState(false);
   const onModelReady = useCallback(() => setModelReady(true), []);
-  // Wiring can't guarantee any given connection loads a model in under 5s, so
-  // this is the hard backstop: past that point the packshot stands in for it,
-  // then the real mesh swaps in the moment it does arrive.
+  // Wiring can't guarantee any given connection loads the rich media in under
+  // 5s, so this is the hard backstop: past that point the packshot stands in
+  // for it, then the real thing swaps in the moment it does arrive.
   const [fallbackDue, setFallbackDue] = useState(false);
   useEffect(() => {
-    if (!item.model || modelReady) return;
+    if (!richMedia || modelReady) return;
     const t = setTimeout(() => setFallbackDue(true), 5000);
     return () => clearTimeout(t);
-  }, [item.model, modelReady]);
+  }, [richMedia, modelReady]);
   const boxRef = useRef<HTMLDivElement>(null);
   const spinRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLImageElement>(null);
@@ -117,7 +121,7 @@ export default function FloatingProduct({
   const closingRef = useRef(closing);
   const onReturnedRef = useRef(onReturned);
   const itemBackRef = useRef(item.back);
-  const has3dRef = useRef(Boolean(item.model));
+  const has3dRef = useRef(Boolean(richMedia));
 
   useEffect(() => {
     originRef.current = origin;
@@ -126,7 +130,7 @@ export default function FloatingProduct({
     closingRef.current = closing;
     onReturnedRef.current = onReturned;
     itemBackRef.current = item.back;
-    has3dRef.current = Boolean(item.model);
+    has3dRef.current = Boolean(richMedia);
   });
 
   useEffect(() => {
@@ -295,8 +299,33 @@ export default function FloatingProduct({
       onPointerCancel={endPointer}
       onWheel={onWheel}
     >
-      {!item.model && <div ref={groundRef} className="fp-ground" />}
-      {item.model ? (
+      {!richMedia && <div ref={groundRef} className="fp-ground" />}
+      {richMedia === "turntable" && item.turntable ? (
+        <>
+          <TurntableStage
+            src={item.turntable.mp4}
+            webmSrc={item.turntable.webm}
+            angleRef={angle}
+            zoomRef={zoomRef}
+            bobRef={bobRef}
+            onReady={onModelReady}
+          />
+          {!modelReady && fallbackDue && item.front ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="fp-model-fallback"
+              src={item.front}
+              alt={item.name}
+              draggable={false}
+            />
+          ) : (
+            <div className="fp-model-loading" style={{ opacity: modelReady ? 0 : 1 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-white.png" alt="" draggable={false} />
+            </div>
+          )}
+        </>
+      ) : richMedia === "model" && item.model ? (
         <>
           <ModelStage
             url={item.model}

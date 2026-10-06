@@ -265,6 +265,32 @@ body {
   height: 100% !important;
 }
 
+/* Real turntable footage in place of the 3D canvas — same box, same
+   drag-to-spin gesture, a <video> scrubbed by angle instead of a mesh
+   rotated by it. The wrap carries the bob/zoom transform so the frame's own
+   seek (driven straight off the angle ref, every rAF tick) never fights it. */
+.fp-video-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.fp-video-wrap {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.fp-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 20px 26px rgba(0, 0, 0, 0.45));
+}
+
 /* Le temps que le chunk three.js et le glb arrivent, la boîte serait sinon
    vide et invisible en plein vol — ça se lisait comme une panne plutôt que
    comme un chargement. Le logo tourne sur lui-même à la place du modèle,

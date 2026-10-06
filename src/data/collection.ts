@@ -59,6 +59,12 @@ export interface CollectionItem {
    * set. One hero angle for now (V1) — a full 360° spin is a later pass.
    */
   cabine?: string | null;
+  /**
+   * A real photographed 360° turntable of the actual piece. When one exists
+   * it takes over the floating inspector from both the GLB scan and the flat
+   * packshots — same drag-to-spin gesture, real footage instead of a mesh.
+   */
+  turntable?: { mp4: string; webm: string } | null;
 }
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
@@ -67,6 +73,7 @@ export const WALL_IMAGE = "/collection/wall.webp";
 
 const P = "/collection/products/";
 const C = "/cabine/looks/";
+const T = "/collection/turntable/";
 
 export const collection: CollectionItem[] = [
   {
@@ -149,6 +156,7 @@ export const collection: CollectionItem[] = [
     back: P + "cap-vedette-back.webp",
     model: "/models/cap-vedette.glb",
     cabine: C + "cap-vedette.webp",
+    turntable: { mp4: T + "cap-vedette.mp4", webm: T + "cap-vedette.webm" },
     lifestyle: [
       "/collection/lifestyle/cap-vedette-1.webp",
       "/collection/lifestyle/cap-vedette-2.webp",
