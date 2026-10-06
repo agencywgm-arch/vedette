@@ -1369,3 +1369,28 @@ body {
     bottom: auto;
   }
 }
+
+/* Touch screens (Android above all): every effect below re-rasterises behind
+   something that moves — the scrubbed clip, the spinning piece — so it gets
+   paid for again each frame. Backdrop blurs are swapped for a denser plain
+   fill, and the shadows/blur that only sharpened the look on desktop go. */
+@media (pointer: coarse) {
+  .shop-hud {
+    backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.82);
+  }
+
+  .shop-panel {
+    backdrop-filter: none;
+    background: rgba(8, 8, 9, 0.94);
+  }
+
+  .fp-video,
+  .fp-model-fallback {
+    filter: none;
+  }
+
+  .shop-wall.is-dimmed {
+    filter: brightness(0.42) saturate(0.85);
+  }
+}

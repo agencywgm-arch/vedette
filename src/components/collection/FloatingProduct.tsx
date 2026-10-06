@@ -122,6 +122,7 @@ export default function FloatingProduct({
   const onReturnedRef = useRef(onReturned);
   const itemBackRef = useRef(item.back);
   const has3dRef = useRef(Boolean(richMedia));
+  const coarsePointer = useRef(false);
 
   useEffect(() => {
     originRef.current = origin;
@@ -132,6 +133,10 @@ export default function FloatingProduct({
     itemBackRef.current = item.back;
     has3dRef.current = Boolean(richMedia);
   });
+
+  useEffect(() => {
+    coarsePointer.current = window.matchMedia("(pointer: coarse)").matches;
+  }, []);
 
   useEffect(() => {
     const box = boxRef.current;
@@ -218,7 +223,11 @@ export default function FloatingProduct({
       // the garment's cut-out alpha intact — no dark rectangle around it.
       const rad = (angle.current * Math.PI) / 180;
       const lit = 1 - Math.abs(Math.sin(rad)) * 0.42;
-      const shadow = `drop-shadow(0 ${26 + bob}px 30px rgba(0,0,0,0.55))`;
+      // A drop-shadow whose offset changes every frame re-rasterises its blur
+      // every frame; on a touch screen the brightness shading alone stays.
+      const shadow = coarsePointer.current
+        ? ""
+        : `drop-shadow(0 ${26 + bob}px 30px rgba(0,0,0,0.55))`;
       if (frontRef.current) frontRef.current.style.filter = `brightness(${lit}) ${shadow}`;
       if (backRef.current) {
         backRef.current.style.filter = itemBackRef.current

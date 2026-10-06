@@ -40,6 +40,13 @@ const LOOK_DRAG_PX = 8;
 const LOOK_DRAG_SPAN = 0.45;
 
 const MOBILE_QUERY = "(max-width: 767px)";
+// Touch devices up to tablet size get a 960x540, every-frame-a-keyframe copy
+// of the clip. Scrubbing seeks to arbitrary frames, so decode cost per seek
+// is what an Android phone feels as stutter: 1080p with a keyframe every 6
+// frames makes the decoder chew through several full-HD frames per step, to
+// paint a picture that's ~400 CSS pixels wide anyway. All-intra frames
+// decode on their own, in either scroll direction.
+const LITE_QUERY = "(max-width: 1024px) and (pointer: coarse)";
 // Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
 // phones was blowing through several seconds of video at once. Stretching
 // the scrollable distance requires more scroll per second of playback.
@@ -62,6 +69,18 @@ function getMobileSnapshot() {
 function getMobileServerSnapshot() {
   return false;
 }
+
+function subscribeLiteQuery(callback: () => void) {
+  const mql = window.matchMedia(LITE_QUERY);
+  mql.addEventListener("change", callback);
+  return () => mql.removeEventListener("change", callback);
+}
+
+function getLiteSnapshot() {
+  return window.matchMedia(LITE_QUERY).matches;
+}
+
+const noopSubscribe = () => () => {};
 
 /**
  * iOS won't paint a frame — or honour a currentTime write — on a media
@@ -100,6 +119,13 @@ export default function ScrollVideoHero() {
     getMobileSnapshot,
     getMobileServerSnapshot
   );
+
+  const lite = useSyncExternalStore(subscribeLiteQuery, getLiteSnapshot, getMobileServerSnapshot);
+  // The server can't know which copy of the clip to ask for, and a <source>
+  // in the HTML starts downloading before hydration — the phone would pull
+  // the 1080p file and then throw it away. Sources only exist once the
+  // client has picked.
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   const setScrollOffset = useSceneStore((s) => s.setScrollOffset);
   const setStage = useSceneStore((s) => s.setStage);
@@ -163,10 +189,20 @@ export default function ScrollVideoHero() {
   const containRectRef = useRef<ContainRect | null>(null);
   const containerSizeRef = useRef({ width: 0, height: 0 });
 
+  // The loop only runs while the view is actually travelling toward its
+  // target. A phone that never leans (no pointer to aim with) used to pay for
+  // a 60Hz transform write on a full-screen video layer forever; now it's one
+  // write, then nothing until something moves it again.
+  const wakeLook = useRef<() => void>(() => {});
+
   useEffect(() => {
     let raf = 0;
+    const wake = () => {
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    wakeLook.current = wake;
     const frame = () => {
-      raf = requestAnimationFrame(frame);
+      raf = 0;
 
       // Under the live room the clip is covered anyway, and a drifting
       // picture beneath it would only fight the wall for attention.
@@ -174,6 +210,14 @@ export default function ScrollVideoHero() {
       const current = lookCurrent.current;
       current.x += (target.x - current.x) * LOOK_EASE;
       current.y += (target.y - current.y) * LOOK_EASE;
+      const settled =
+        Math.abs(target.x - current.x) < 0.0005 && Math.abs(target.y - current.y) < 0.0005;
+      if (settled) {
+        current.x = target.x;
+        current.y = target.y;
+      } else {
+        raf = requestAnimationFrame(frame);
+      }
 
       const layer = lookLayerRef.current;
       if (!layer) return;
@@ -192,12 +236,16 @@ export default function ScrollVideoHero() {
       ).toFixed(2)}px, 0) scale(${LOOK_SCALE})`;
       layer.style.transform = transform;
     };
-    raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    wake();
+    return () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    };
   }, []);
 
   const aimLook = (x: number, y: number) => {
     lookTarget.current = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) };
+    wakeLook.current();
   };
 
   const onLookPointerDown = (e: ReactPointerEvent) => {
@@ -233,8 +281,12 @@ export default function ScrollVideoHero() {
   };
 
   useEffect(() => {
-    primeVideo(videoRef.current);
-  }, []);
+    const video = videoRef.current;
+    if (!video || !hydrated) return;
+    // Sources added or swapped after mount aren't picked up until load().
+    video.load();
+    primeVideo(video);
+  }, [hydrated, lite]);
 
   // The clip is landscape (1350x1080) on every breakpoint, so it's shown in
   // full (object-contain) everywhere rather than split by device: a phone
@@ -253,6 +305,7 @@ export default function ScrollVideoHero() {
       const rect = mediaRect(width, height, CLIP_INTRINSIC_SIZE.w, CLIP_INTRINSIC_SIZE.h, "contain");
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
+      wakeLook.current();
       // "7% up from the clip's own bottom edge", measured against the
       // letterboxed rect rather than the full screen.
       setSubtitleBottomPercent(
@@ -291,6 +344,7 @@ export default function ScrollVideoHero() {
       if (wantRoom !== roomOpenRef.current) {
         roomOpenRef.current = wantRoom;
         setRoomOpen(wantRoom);
+        wakeLook.current();
         // Scrolling back out of the room must also drop whatever was being
         // inspected, or its scroll lock would strand the page.
         if (!wantRoom) useShopStore.getState().select(null);
@@ -367,8 +421,12 @@ export default function ScrollVideoHero() {
           disablePictureInPicture
           disableRemotePlayback
         >
-          <source src="/videos/shop.mp4" type="video/mp4" />
-          <source src="/videos/shop.webm" type="video/webm" />
+          {hydrated && (
+            <>
+              <source src={lite ? "/videos/shop-lite.mp4" : "/videos/shop.mp4"} type="video/mp4" />
+              <source src={lite ? "/videos/shop-lite.webm" : "/videos/shop.webm"} type="video/webm" />
+            </>
+          )}
         </video>
         </div>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
