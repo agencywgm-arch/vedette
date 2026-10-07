@@ -276,6 +276,7 @@ export const collection: CollectionItem[] = [
     front: P + "rainbow-jersey-front.webp",
     back: P + "rainbow-jersey-back.webp",
     cabine: C + "rainbow-jersey.webp",
+    turntable: { mp4: T + "rainbow-jersey.mp4", webm: T + "rainbow-jersey.webm" },
     lifestyle: [
       "/collection/lifestyle/rainbow-jersey-1.webp",
       "/collection/lifestyle/rainbow-jersey-2.webp",
