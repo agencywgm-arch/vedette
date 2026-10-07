@@ -128,6 +128,7 @@ export const collection: CollectionItem[] = [
     back: P + "paris-polo-back.webp",
     model: "/models/paris-polo.glb",
     cabine: C + "paris-polo.webp",
+    turntable: { mp4: T + "paris-polo.mp4", webm: T + "paris-polo.webm" },
   },
   {
     id: "vedette-vneck",
@@ -311,6 +312,7 @@ export const collection: CollectionItem[] = [
     model: "/models/black-jacket.glb",
     accessory: { name: "Cagoule Vedette", model: "/models/balaclava.glb" },
     cabine: C + "black-jacket.webp",
+    turntable: { mp4: T + "black-jacket.mp4", webm: T + "black-jacket.webm" },
   },
   {
     id: "sac-vedette",
