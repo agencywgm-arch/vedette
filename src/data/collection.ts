@@ -142,6 +142,7 @@ export const collection: CollectionItem[] = [
     back: P + "vedette-vneck-back.webp",
     model: "/models/vedette-vneck.glb",
     cabine: C + "vedette-vneck.webp",
+    turntable: { mp4: T + "vedette-vneck.mp4", webm: T + "vedette-vneck.webm" },
   },
   {
     id: "cap-vedette",
@@ -190,6 +191,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-bienoufoie.glb",
     cabine: C + "cap-bienoufoie.webp",
+    turntable: { mp4: T + "cap-bienoufoie.mp4", webm: T + "cap-bienoufoie.webm" },
   },
   {
     id: "cap-camo",
