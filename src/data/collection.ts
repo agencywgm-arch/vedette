@@ -249,6 +249,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/boxe-khoya-tank.glb",
     cabine: C + "boxe-khoya-tank.webp",
+    turntable: { mp4: T + "boxe-khoya-tank.mp4", webm: T + "boxe-khoya-tank.webm" },
   },
   {
     id: "forreal-tee",
