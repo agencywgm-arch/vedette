@@ -308,6 +308,20 @@ export const collection: CollectionItem[] = [
     accessory: { name: "Cagoule Vedette", model: "/models/balaclava.glb" },
     cabine: C + "black-jacket.webp",
   },
+  {
+    id: "sac-vedette",
+    name: "SAC VEDETTE",
+    price: 150,
+    category: "ACCESSOIRES",
+    description:
+      "Sac en cuir grainé bleu ciel, fermoir tourniquet métal, logo vedette. Anneaux au dos pour le porter en sac à dos.",
+    colors: [{ name: "Bleu ciel", hex: "#5a9fb8" }],
+    sizes: ["TU"],
+    spot: { x: 5.85, y: 48.9, w: 10.5, h: 12.5 },
+    front: P + "sac-vedette-front.webp",
+    back: null,
+    turntable: { mp4: T + "sac-vedette.mp4", webm: T + "sac-vedette.webm" },
+  },
 ];
 
 export const categories: (Category | "TOUS")[] = [
