@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export const CABINE_FRAMES = 8;
+export const CABINE_FRAMES = 16;
 const STEP = 360 / CABINE_FRAMES;
 /** Degrees turned per pixel dragged: one viewport width is half a turn. */
 const DEG_PER_PX = 0.45;
@@ -11,7 +11,7 @@ const FRICTION = 0.92;
 const wrap = (deg: number) => ((deg % 360) + 360) % 360;
 
 /**
- * The mannequin wearing the piece, shot every 45° around. Dragging (or the
+ * The mannequin wearing the piece, shot every 22.5° around. Dragging (or the
  * arrows / keyboard) spins it; on release it glides to the nearest shot so a
  * resting view is always a real photograph. Between shots the two nearest
  * photos cross-fade, which reads as rotation while the finger is moving.

@@ -56,7 +56,7 @@ export interface CollectionItem {
   locked?: boolean;
   /**
    * Folder of the VEDETTE mannequin wearing this exact piece in the cabine's
-   * studio set: 8 shots every 45° (0.webp = front), spun by CabineViewer.
+   * studio set: 16 shots every 22.5° (0.webp = front), spun by CabineViewer.
    */
   cabine?: string | null;
   /**
