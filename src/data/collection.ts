@@ -94,6 +94,7 @@ export const collection: CollectionItem[] = [
     back: P + "jparis-tee-back.webp",
     model: "/models/jparis-tee.glb",
     cabine: C + "jparis-tee.webp",
+    turntable: { mp4: T + "jparis-tee.mp4", webm: T + "jparis-tee.webm" },
   },
   {
     id: "champions-tee",
@@ -208,6 +209,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-camo.glb",
     cabine: C + "cap-camo.webp",
+    turntable: { mp4: T + "cap-camo.mp4", webm: T + "cap-camo.webm" },
   },
   {
     id: "cap-heart",
@@ -222,6 +224,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-heart.glb",
     cabine: C + "cap-heart.webp",
+    turntable: { mp4: T + "cap-heart.mp4", webm: T + "cap-heart.webm" },
   },
   {
     id: "paris-longsleeve",
@@ -297,6 +300,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/jparis-sweat.glb",
     cabine: C + "jparis-sweat.webp",
+    turntable: { mp4: T + "jparis-sweat.mp4", webm: T + "jparis-sweat.webm" },
   },
   {
     id: "black-jacket",
