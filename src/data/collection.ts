@@ -112,6 +112,7 @@ export const collection: CollectionItem[] = [
     back: P + "champions-tee-back.webp",
     model: "/models/champions-tee.glb",
     cabine: C + "champions-tee.webp",
+    turntable: { mp4: T + "champions-tee.mp4", webm: T + "champions-tee.webm" },
   },
   {
     id: "paris-polo",
@@ -268,6 +269,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/forreal-tee.glb",
     cabine: C + "forreal-tee.webp",
+    turntable: { mp4: T + "forreal-tee.mp4", webm: T + "forreal-tee.webm" },
   },
   {
     id: "rainbow-jersey",
