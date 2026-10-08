@@ -55,8 +55,8 @@ export interface CollectionItem {
    */
   locked?: boolean;
   /**
-   * The VEDETTE mannequin wearing this exact piece, in the cabine's studio
-   * set. One hero angle for now (V1) — a full 360° spin is a later pass.
+   * Folder of the VEDETTE mannequin wearing this exact piece in the cabine's
+   * studio set: 8 shots every 45° (0.webp = front), spun by CabineViewer.
    */
   cabine?: string | null;
   /**
@@ -93,7 +93,7 @@ export const collection: CollectionItem[] = [
     front: P + "jparis-tee-front.webp",
     back: P + "jparis-tee-back.webp",
     model: "/models/jparis-tee.glb",
-    cabine: C + "jparis-tee.webp",
+    cabine: C + "jparis-tee",
     turntable: { mp4: T + "jparis-tee.mp4", webm: T + "jparis-tee.webm" },
   },
   {
@@ -111,7 +111,7 @@ export const collection: CollectionItem[] = [
     front: P + "champions-tee-front.webp",
     back: P + "champions-tee-back.webp",
     model: "/models/champions-tee.glb",
-    cabine: C + "champions-tee.webp",
+    cabine: C + "champions-tee",
     turntable: { mp4: T + "champions-tee.mp4", webm: T + "champions-tee.webm" },
   },
   {
@@ -129,7 +129,7 @@ export const collection: CollectionItem[] = [
     front: P + "paris-polo-front.webp",
     back: P + "paris-polo-back.webp",
     model: "/models/paris-polo.glb",
-    cabine: C + "paris-polo.webp",
+    cabine: C + "paris-polo",
     turntable: { mp4: T + "paris-polo.mp4", webm: T + "paris-polo.webm" },
   },
   {
@@ -144,7 +144,7 @@ export const collection: CollectionItem[] = [
     front: P + "vedette-vneck-front.webp",
     back: P + "vedette-vneck-back.webp",
     model: "/models/vedette-vneck.glb",
-    cabine: C + "vedette-vneck.webp",
+    cabine: C + "vedette-vneck",
     turntable: { mp4: T + "vedette-vneck.mp4", webm: T + "vedette-vneck.webm" },
   },
   {
@@ -159,7 +159,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-vedette-front.webp",
     back: P + "cap-vedette-back.webp",
     model: "/models/cap-vedette.glb",
-    cabine: C + "cap-vedette.webp",
+    cabine: C + "cap-vedette",
     turntable: { mp4: T + "cap-vedette.mp4", webm: T + "cap-vedette.webm" },
     lifestyle: [
       "/collection/lifestyle/cap-vedette-1.webp",
@@ -193,7 +193,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-bienoufoie-front.webp",
     back: null,
     model: "/models/cap-bienoufoie.glb",
-    cabine: C + "cap-bienoufoie.webp",
+    cabine: C + "cap-bienoufoie",
     turntable: { mp4: T + "cap-bienoufoie.mp4", webm: T + "cap-bienoufoie.webm" },
   },
   {
@@ -209,7 +209,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-camo-front.webp",
     back: null,
     model: "/models/cap-camo.glb",
-    cabine: C + "cap-camo.webp",
+    cabine: C + "cap-camo",
     turntable: { mp4: T + "cap-camo.mp4", webm: T + "cap-camo.webm" },
   },
   {
@@ -224,7 +224,7 @@ export const collection: CollectionItem[] = [
     front: P + "cap-heart-front.webp",
     back: null,
     model: "/models/cap-heart.glb",
-    cabine: C + "cap-heart.webp",
+    cabine: C + "cap-heart",
     turntable: { mp4: T + "cap-heart.mp4", webm: T + "cap-heart.webm" },
   },
   {
@@ -253,7 +253,7 @@ export const collection: CollectionItem[] = [
     front: P + "boxe-khoya-tank-front.webp",
     back: null,
     model: "/models/boxe-khoya-tank.glb",
-    cabine: C + "boxe-khoya-tank.webp",
+    cabine: C + "boxe-khoya-tank",
     turntable: { mp4: T + "boxe-khoya-tank.mp4", webm: T + "boxe-khoya-tank.webm" },
   },
   {
@@ -268,7 +268,7 @@ export const collection: CollectionItem[] = [
     front: P + "forreal-tee-front.webp",
     back: null,
     model: "/models/forreal-tee.glb",
-    cabine: C + "forreal-tee.webp",
+    cabine: C + "forreal-tee",
     turntable: { mp4: T + "forreal-tee.mp4", webm: T + "forreal-tee.webm" },
   },
   {
@@ -282,7 +282,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 51.85, y: 73.8, w: 13.33, h: 25.46 },
     front: P + "rainbow-jersey-front.webp",
     back: P + "rainbow-jersey-back.webp",
-    cabine: C + "rainbow-jersey.webp",
+    cabine: C + "rainbow-jersey",
     turntable: { mp4: T + "rainbow-jersey.mp4", webm: T + "rainbow-jersey.webm" },
     lifestyle: [
       "/collection/lifestyle/rainbow-jersey-1.webp",
@@ -301,7 +301,7 @@ export const collection: CollectionItem[] = [
     front: P + "jparis-sweat-front.webp",
     back: null,
     model: "/models/jparis-sweat.glb",
-    cabine: C + "jparis-sweat.webp",
+    cabine: C + "jparis-sweat",
     turntable: { mp4: T + "jparis-sweat.mp4", webm: T + "jparis-sweat.webm" },
   },
   {
@@ -317,7 +317,7 @@ export const collection: CollectionItem[] = [
     back: P + "black-jacket-back.webp",
     model: "/models/black-jacket.glb",
     accessory: { name: "Cagoule Vedette", model: "/models/balaclava.glb" },
-    cabine: C + "black-jacket.webp",
+    cabine: C + "black-jacket",
     turntable: { mp4: T + "black-jacket.mp4", webm: T + "black-jacket.webm" },
   },
   {

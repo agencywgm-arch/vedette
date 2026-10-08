@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CollectionItem } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
+import CabineViewer from "./CabineViewer";
 
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
@@ -159,14 +160,7 @@ export default function ProductPanel({
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={item.cabine}
-          alt={`${item.name} — cabine VEDETTE`}
-          className="shop-cabine-img"
-          onClick={(e) => e.stopPropagation()}
-          draggable={false}
-        />
+        <CabineViewer base={item.cabine} label={item.name} />
         <p className="shop-cabine-caption">{item.name}</p>
       </div>
     )}
