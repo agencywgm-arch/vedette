@@ -128,12 +128,12 @@ body {
 .comic-bubble {
   position: relative;
   width: max-content;
-  max-width: min(78vw, 340px);
+  max-width: min(60vw, 220px);
   background: #fdfcf7;
-  border: 3px solid #0a0a0a;
-  border-radius: 20px;
-  padding: 12px;
-  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.85);
+  border: 2px solid #0a0a0a;
+  border-radius: 14px;
+  padding: 7px;
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.85);
   transform: scale(0.4);
   opacity: 0;
 }
@@ -149,14 +149,14 @@ body {
   gap: 2px;
   width: 100%;
   border: 2px solid #0a0a0a;
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--vedette-yellow);
   color: #0a0a0a;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 10px 22px;
+  padding: 7px 16px;
   cursor: pointer;
   transition: transform 0.12s ease, background 0.12s ease;
 }
@@ -164,7 +164,7 @@ body {
 .comic-bubble-btn span {
   font-weight: 500;
   text-transform: none;
-  font-size: 11px;
+  font-size: 9.5px;
   letter-spacing: normal;
   color: #4a3900;
 }

@@ -132,6 +132,23 @@ export default function ScrollVideoHero() {
   // backward wobble — it only goes away once they actually answer.
   const showDialogue = entryMode === null && hasReachedDialogue;
 
+  // The site always opens on the approach from outside. Without this the
+  // browser puts a reload (or a back/forward return) wherever the visitor had
+  // scrolled to — mid-clip, with the guard's bubble already up.
+  useEffect(() => {
+    const prev = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.scrollTo(0, 0);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      window.removeEventListener("pageshow", onShow);
+      window.history.scrollRestoration = prev;
+    };
+  }, []);
+
   // Both jumps land on a bare scrollTo: the seek is fast enough not to show.
   const jumpToProgress = useCallback((target: number) => {
     setEntryMode("fast");
