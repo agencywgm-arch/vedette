@@ -30,10 +30,19 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
-      ...["/videos", "/collection", "/cabine", "/models"].map((dir) => ({
+      ...["/videos", "/collection", "/models"].map((dir) => ({
         source: `${dir}/:path*`,
         headers: mediaCache,
       })),
+      // Fitting-room shots get re-shot often and keep the same file names, so
+      // they revalidate on every visit (a cheap 304 when unchanged) instead of
+      // serving a stale frame for a day.
+      {
+        source: "/cabine/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+        ],
+      },
     ];
   },
 };
