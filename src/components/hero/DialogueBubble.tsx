@@ -3,8 +3,8 @@
 /**
  * Two beats: the guard's line reads low in frame near him as a subtitle (plain
  * text with a text-shadow/outline stack, no box), while the choice it leads to
- * sits mid-screen inside a comic speech bubble — white balloon, thick outline,
- * hard shadow and a tail aimed down-left toward the guard.
+ * sits mid-screen inside a comic speech bubble — white balloon, thick outline
+ * and hard shadow, no tail.
  */
 export default function DialogueBubble({
   visible,
@@ -46,7 +46,6 @@ export default function DialogueBubble({
             Mode rapide
             <span>voir la collection</span>
           </button>
-          <div className="comic-bubble-tail" />
         </div>
       </div>
     </>
