@@ -21,6 +21,8 @@ interface ShopState {
   setCategory: (c: Category | "TOUS") => void;
   addToCart: (line: CartLine) => void;
   setBundleAccessory: (v: boolean) => void;
+  removeFromCart: (index: number) => void;
+  clearCart: () => void;
 }
 
 export const useShopStore = create<ShopState>((set) => ({
@@ -34,4 +36,7 @@ export const useShopStore = create<ShopState>((set) => ({
   setCategory: (c) => set({ category: c }),
   addToCart: (line) => set((s) => ({ cart: [...s.cart, line] })),
   setBundleAccessory: (v) => set({ bundleAccessory: v }),
+  removeFromCart: (index) =>
+    set((s) => ({ cart: s.cart.filter((_, i) => i !== index) })),
+  clearCart: () => set({ cart: [] }),
 }));
