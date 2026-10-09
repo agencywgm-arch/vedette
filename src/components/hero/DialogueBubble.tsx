@@ -1,12 +1,10 @@
 "use client";
 
 /**
- * Two separate beats, not one paragraph: the guard's line reads low in frame
- * near him, like a game's character subtitle, while the choice it's building
- * to sits on its own in the middle of the screen, like a game's prompt —
- * distinct enough that no one mistakes the second for a continuation of the
- * first. Both are plain text with a text-shadow/outline stack for
- * readability, not a speech-bubble box.
+ * Two beats: the guard's line reads low in frame near him as a subtitle (plain
+ * text with a text-shadow/outline stack, no box), while the choice it leads to
+ * sits mid-screen inside a comic speech bubble — white balloon, thick outline,
+ * hard shadow and a tail aimed down-left toward the guard.
  */
 export default function DialogueBubble({
   visible,
@@ -38,10 +36,19 @@ export default function DialogueBubble({
         <p className="entry-subtitle-speaker">Le vigile</p>
         <p className="entry-subtitle-line">Prêt à découvrir la collection ?</p>
       </div>
-      <button type="button" onClick={onChoose} className="entry-subtitle-cta" style={style}>
-        Mode rapide
-        <span>voir la collection</span>
-      </button>
+      <div className="entry-bubble" style={style}>
+        <div className={`comic-bubble ${visible ? "comic-bubble-in" : ""}`}>
+          <button
+            type="button"
+            onClick={onChoose}
+            className="entry-subtitle-cta comic-bubble-btn comic-bubble-btn-accent"
+          >
+            Mode rapide
+            <span>voir la collection</span>
+          </button>
+          <div className="comic-bubble-tail" />
+        </div>
+      </div>
     </>
   );
 }

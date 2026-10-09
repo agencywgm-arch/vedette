@@ -60,7 +60,7 @@ body {
    from the text-shadow stack, same trick GTA/film subtitles use, not from a
    background plate. Screen-locked like a HUD element rather than pinned to
    the guard, so it doesn't drift when the visitor looks around. Kept apart
-   from the choice below it (.entry-subtitle-cta, a sibling, not a child): a
+   from the choice below it (.entry-bubble, a sibling, not a child): a
    character's line and a game's own prompt read as two different registers,
    and stacking them in one column blurred that into a single paragraph. */
 .entry-line {
@@ -99,52 +99,93 @@ body {
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 0 16px rgba(0, 0, 0, 0.65);
 }
 
-/* The answer to that question — the one actionable line here — gets the
-   middle of the screen to itself, like a game's own prompt rather than a
-   continuation of the line above it: on any device, mid-screen is where an
-   eye moving down from dialogue naturally lands next, and it holds regardless
-   of how tall the video's own letterbox bars are. */
-.entry-subtitle-cta {
+/* The answer to that question — the one actionable thing here — gets the
+   middle of the screen to itself, in a comic speech bubble whose tail points
+   down-left at the guard. Mid-screen holds regardless of how tall the video's
+   own letterbox bars are. */
+.entry-bubble {
   position: absolute;
-  inset: auto;
   top: 50%;
   left: 0;
   right: 0;
-  transform: translateY(-50%);
   z-index: 30;
+  display: flex;
+  justify-content: center;
+  transform: translateY(-50%);
+  transition: opacity 0.3s ease;
+}
+
+@keyframes comic-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.comic-bubble {
+  position: relative;
+  width: max-content;
+  max-width: min(78vw, 340px);
+  background: #fdfcf7;
+  border: 3px solid #0a0a0a;
+  border-radius: 20px;
+  padding: 12px;
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.85);
+  transform: scale(0.4);
+  opacity: 0;
+}
+
+.comic-bubble-in {
+  animation: comic-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.comic-bubble-tail {
+  position: absolute;
+  left: 22px;
+  bottom: -13px;
+  width: 22px;
+  height: 22px;
+  background: #fdfcf7;
+  border-right: 3px solid #0a0a0a;
+  border-bottom: 3px solid #0a0a0a;
+  border-bottom-right-radius: 4px;
+  transform: rotate(45deg);
+}
+
+.comic-bubble-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  margin: 0;
-  background: none;
-  border: none;
-  padding: 4px 0;
-  cursor: pointer;
-  font-size: 26px;
+  gap: 2px;
+  width: 100%;
+  border: 2px solid #0a0a0a;
+  border-radius: 10px;
+  background: var(--vedette-yellow);
+  color: #0a0a0a;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  font-size: 18px;
   text-transform: uppercase;
-  color: var(--vedette-yellow);
-  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.95);
-  paint-order: stroke fill;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 0, 0, 0.7);
-  transition: opacity 0.3s ease, transform 0.12s ease;
+  letter-spacing: 0.04em;
+  padding: 10px 22px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
 }
 
-.entry-subtitle-cta:hover {
-  transform: translateY(calc(-50% - 1px));
-}
-
-.entry-subtitle-cta span {
-  font-size: 12px;
+.comic-bubble-btn span {
   font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
-  -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.85);
-  paint-order: stroke fill;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  text-transform: none;
+  font-size: 11px;
+  letter-spacing: normal;
+  color: #4a3900;
+}
+
+.comic-bubble-btn:hover {
+  transform: translateY(-2px);
+  background: #ffd633;
 }
 
 /* ============================================================
