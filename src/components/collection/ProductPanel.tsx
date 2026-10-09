@@ -1,15 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  FIT_FRAMES,
-  MORPH_LABELS,
-  fitFolder,
-  type CollectionItem,
-  type Morph,
-} from "@/data/collection";
+import type { CollectionItem } from "@/data/collection";
+import { FIT_ASSETS, fitKind } from "@/data/fit";
 import { useShopStore } from "@/store/useShopStore";
-import CabineViewer from "./CabineViewer";
+import FitCabine from "./FitCabine";
 
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
@@ -29,12 +24,7 @@ export default function ProductPanel({
   const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
   const [cabineOpen, setCabineOpen] = useState(false);
-  const [morph, setMorph] = useState<Morph | "medium">("medium");
-  const morphs: (Morph | "medium")[] = item.fit?.length
-    ? ["mince", "medium", "large"].filter(
-        (m) => m === "medium" || item.fit?.includes(m as Morph),
-      ) as (Morph | "medium")[]
-    : [];
+  const canFit = Boolean(FIT_ASSETS[item.id] && fitKind(item.category));
 
   return (
     <>
@@ -119,7 +109,7 @@ export default function ProductPanel({
         {added ? "Ajouté au panier" : "Ajouter au panier"}
       </button>
 
-      {item.cabine && (
+      {canFit && (
         <button
           type="button"
           className="shop-cta shop-cta-cabine"
@@ -130,7 +120,7 @@ export default function ProductPanel({
       )}
     </aside>
 
-    {cabineOpen && item.cabine && (
+    {cabineOpen && canFit && (
       <div
         className="shop-cabine-overlay"
         onClick={() => setCabineOpen(false)}
@@ -151,33 +141,7 @@ export default function ProductPanel({
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <CabineViewer
-          key={morph}
-          base={morph === "medium" ? item.cabine : fitFolder(item.id, morph)}
-          frames={morph === "medium" ? undefined : FIT_FRAMES}
-          label={`${item.name} — ${MORPH_LABELS[morph]}`}
-        />
-        {morphs.length > 1 && (
-          <div
-            className="shop-cabine-morphs"
-            onClick={(e) => e.stopPropagation()}
-            role="group"
-            aria-label="Morphologie du mannequin"
-          >
-            {morphs.map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={morph === m}
-                className={morph === m ? "is-active" : undefined}
-                onClick={() => setMorph(m)}
-              >
-                {MORPH_LABELS[m]}
-              </button>
-            ))}
-          </div>
-        )}
-        <p className="shop-cabine-caption">{item.name}</p>
+        <FitCabine item={item} />
       </div>
     )}
 
