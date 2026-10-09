@@ -334,6 +334,7 @@ export const collection: CollectionItem[] = [
     spot: { x: 5.85, y: 48.9, w: 10.5, h: 12.5 },
     front: P + "sac-vedette-front.webp",
     back: null,
+    cabine: C + "sac-vedette",
     turntable: { mp4: T + "sac-vedette.mp4", webm: T + "sac-vedette.webm" },
   },
 ];
