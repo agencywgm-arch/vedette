@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const CABINE_FRAMES = 16;
-const STEP = 360 / CABINE_FRAMES;
 /** Degrees turned per pixel dragged: one viewport width is half a turn. */
 const DEG_PER_PX = 0.45;
 const FRICTION = 0.92;
@@ -11,18 +10,24 @@ const FRICTION = 0.92;
 const wrap = (deg: number) => ((deg % 360) + 360) % 360;
 
 /**
- * The mannequin wearing the piece, shot every 22.5° around. Dragging (or the
- * arrows / keyboard) spins it; on release it glides to the nearest shot so a
- * resting view is always a real photograph. Between shots the two nearest
- * photos cross-fade, which reads as rotation while the finger is moving.
+ * The mannequin wearing the piece, shot at even angles around (16 shots →
+ * every 22.5°). Dragging (or the arrows / keyboard) spins it; on release it
+ * glides to the nearest shot so a resting view is always a real photograph.
+ * Between shots the two nearest photos cross-fade, which reads as rotation
+ * while the finger is moving. With only a few shots (the fit views, 4 → every
+ * 90°) a cross-fade would just ghost, so the view snaps instead.
  */
 export default function CabineViewer({
   base,
   label,
+  frames = CABINE_FRAMES,
 }: {
   base: string;
   label: string;
+  frames?: number;
 }) {
+  const STEP = 360 / frames;
+  const crossfade = frames >= 8;
   const imgs = useRef<(HTMLImageElement | null)[]>([]);
   const angle = useRef(0);
   const velocity = useRef(0);
@@ -35,19 +40,22 @@ export default function CabineViewer({
 
   const paint = useCallback(() => {
     const a = wrap(angle.current) / STEP;
-    const lo = Math.floor(a) % CABINE_FRAMES;
-    const hi = (lo + 1) % CABINE_FRAMES;
+    const lo = Math.floor(a) % frames;
+    const hi = (lo + 1) % frames;
     const t = a - Math.floor(a);
-    for (let i = 0; i < CABINE_FRAMES; i++) {
+    const near = Math.round(a) % frames;
+    for (let i = 0; i < frames; i++) {
       const el = imgs.current[i];
       if (!el) continue;
-      el.style.opacity = i === lo ? String(1 - t) : i === hi ? String(t) : "0";
+      if (crossfade) {
+        el.style.opacity =
+          i === lo ? String(1 - t) : i === hi ? String(t) : "0";
+      } else {
+        el.style.opacity = i === near ? "1" : "0";
+      }
     }
-    setFrame((prev) => {
-      const next = Math.round(a) % CABINE_FRAMES;
-      return prev === next ? prev : next;
-    });
-  }, []);
+    setFrame((prev) => (prev === near ? prev : near));
+  }, [frames, STEP, crossfade]);
 
   const wake = useCallback(() => {
     if (raf.current) return;
@@ -72,7 +80,7 @@ export default function CabineViewer({
       raf.current = requestAnimationFrame(tick);
     };
     raf.current = requestAnimationFrame(tick);
-  }, [paint]);
+  }, [paint, STEP]);
 
   useEffect(() => {
     paint();
@@ -100,7 +108,7 @@ export default function CabineViewer({
       setTouched(true);
       requestAnimationFrame(step);
     },
-    [paint],
+    [paint, STEP],
   );
 
   useEffect(() => {
@@ -144,7 +152,7 @@ export default function CabineViewer({
       role="img"
       aria-label={`${label} — vue à 360°, glisser pour tourner`}
     >
-      {Array.from({ length: CABINE_FRAMES }, (_, i) => (
+      {Array.from({ length: frames }, (_, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={i}
@@ -184,7 +192,7 @@ export default function CabineViewer({
       </button>
 
       <div className="shop-cabine-dots" aria-hidden="true">
-        {Array.from({ length: CABINE_FRAMES }, (_, i) => (
+        {Array.from({ length: frames }, (_, i) => (
           <span key={i} className={i === frame ? "is-on" : undefined} />
         ))}
       </div>

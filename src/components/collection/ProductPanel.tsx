@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { CollectionItem } from "@/data/collection";
+import {
+  FIT_FRAMES,
+  MORPH_LABELS,
+  fitFolder,
+  type CollectionItem,
+  type Morph,
+} from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
 
@@ -23,6 +29,12 @@ export default function ProductPanel({
   const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
   const [cabineOpen, setCabineOpen] = useState(false);
+  const [morph, setMorph] = useState<Morph | "medium">("medium");
+  const morphs: (Morph | "medium")[] = item.fit?.length
+    ? ["mince", "medium", "large"].filter(
+        (m) => m === "medium" || item.fit?.includes(m as Morph),
+      ) as (Morph | "medium")[]
+    : [];
 
   return (
     <>
@@ -139,7 +151,32 @@ export default function ProductPanel({
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <CabineViewer base={item.cabine} label={item.name} />
+        <CabineViewer
+          key={morph}
+          base={morph === "medium" ? item.cabine : fitFolder(item.id, morph)}
+          frames={morph === "medium" ? undefined : FIT_FRAMES}
+          label={`${item.name} — ${MORPH_LABELS[morph]}`}
+        />
+        {morphs.length > 1 && (
+          <div
+            className="shop-cabine-morphs"
+            onClick={(e) => e.stopPropagation()}
+            role="group"
+            aria-label="Morphologie du mannequin"
+          >
+            {morphs.map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={morph === m}
+                className={morph === m ? "is-active" : undefined}
+                onClick={() => setMorph(m)}
+              >
+                {MORPH_LABELS[m]}
+              </button>
+            ))}
+          </div>
+        )}
         <p className="shop-cabine-caption">{item.name}</p>
       </div>
     )}

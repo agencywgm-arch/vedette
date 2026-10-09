@@ -60,12 +60,31 @@ export interface CollectionItem {
    */
   cabine?: string | null;
   /**
+   * Other body types the piece has been shot on, for showing how the size
+   * falls. List one only once its folder exists at
+   * public/cabine/fit/<id>-<morph>/ with FIT_FRAMES shots (0.webp = front,
+   * then every 90°). The cabine then offers a Mince / Médium / Large switch;
+   * Médium is always the 16-shot spin above.
+   */
+  fit?: Morph[];
+  /**
    * A real photographed 360° turntable of the actual piece. When one exists
    * it takes over the floating inspector from both the GLB scan and the flat
    * packshots — same drag-to-spin gesture, real footage instead of a mesh.
    */
   turntable?: { mp4: string; webm: string } | null;
 }
+
+export type Morph = "mince" | "large";
+/** Shots per fit view: front, right side, back, left side. */
+export const FIT_FRAMES = 4;
+export const MORPH_LABELS: Record<Morph | "medium", string> = {
+  mince: "Mince",
+  medium: "Médium",
+  large: "Large",
+};
+export const fitFolder = (id: string, morph: Morph) =>
+  `/cabine/fit/${id}-${morph}`;
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
 export const WALL_SIZE = { w: 1350, h: 1080 };
