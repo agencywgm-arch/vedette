@@ -1064,6 +1064,69 @@ body {
   right: 12px;
 }
 
+.shop-cabine-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at 50% 38%,
+    #fff 0%,
+    rgba(255, 255, 255, 0.92) 40%,
+    rgba(255, 255, 255, 0.55) 100%
+  );
+}
+
+/* A strobe, not a fade: it fires at full power on the cut, then dies off
+   fast with a short afterglow — the way a camera flash reads on screen. */
+.shop-cabine-flash.is-flashing {
+  animation: cabine-flash 0.34s cubic-bezier(0.1, 0.7, 0.3, 1) both;
+}
+
+@keyframes cabine-flash {
+  0% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-cabine-flash.is-flashing {
+    animation-duration: 0.2s;
+    opacity: 0;
+    animation-name: cabine-flash-soft;
+  }
+  @keyframes cabine-flash-soft {
+    0% {
+      opacity: 0.25;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
+.shop-cabine-shot {
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  z-index: 3;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+}
+
 .shop-cabine-dots {
   position: absolute;
   left: 0;

@@ -27,8 +27,12 @@ export default function CabineViewer({
   frames?: number;
 }) {
   const STEP = 360 / frames;
-  const crossfade = frames >= 8;
+  // Photo-shoot look: each angle is a hard cut to the next shot, announced by a
+  // camera flash, rather than a blend between two photos.
+  const crossfade = false;
   const imgs = useRef<(HTMLImageElement | null)[]>([]);
+  const flashRef = useRef<HTMLDivElement>(null);
+  const shown = useRef<number | null>(null);
   const angle = useRef(0);
   const velocity = useRef(0);
   const dragging = useRef(false);
@@ -53,6 +57,17 @@ export default function CabineViewer({
       } else {
         el.style.opacity = i === near ? "1" : "0";
       }
+    }
+    if (shown.current !== near) {
+      if (shown.current !== null) {
+        const f = flashRef.current;
+        if (f) {
+          f.classList.remove("is-flashing");
+          void f.offsetWidth; // restart the animation on every shot
+          f.classList.add("is-flashing");
+        }
+      }
+      shown.current = near;
     }
     setFrame((prev) => (prev === near ? prev : near));
   }, [frames, STEP, crossfade]);
@@ -190,6 +205,11 @@ export default function CabineViewer({
           <path d="M9 5l7 7-7 7" />
         </svg>
       </button>
+
+      <div ref={flashRef} className="shop-cabine-flash" aria-hidden="true" />
+      <div className="shop-cabine-shot" aria-hidden="true">
+        {String(frame + 1).padStart(2, "0")} / {String(frames).padStart(2, "0")}
+      </div>
 
       <div className="shop-cabine-dots" aria-hidden="true">
         {Array.from({ length: frames }, (_, i) => (
