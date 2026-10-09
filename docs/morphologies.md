@@ -10,9 +10,9 @@ dans `src/data/collection.ts`. Médium = la rotation 16 angles existante.
 | Fichier | Angle |
 |---|---|
 | 0.webp | face |
-| 1.webp | profil droit (90°) |
+| 1.webp | 90° |
 | 2.webp | dos (180°) |
-| 3.webp | profil gauche (270°) |
+| 3.webp | 270° |
 
 Puis, dans la pièce : `fit: ["mince", "large"]`.
 
