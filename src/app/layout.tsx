@@ -13,6 +13,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : "http://localhost:3000"),
+  ),
+  openGraph: {
+    type: "website",
+    siteName: "Vedette",
+    locale: "fr_FR",
+    title: "Vedette — Vêtement Snob Villain Arrogant",
+    description:
+      "Une boutique 3D immersive : scrollez de la rue jusqu'à l'intérieur de la boutique Vedette.",
+  },
+  twitter: { card: "summary_large_image" },
   title: "Vedette — Vêtement Snob Villain Arrogant",
   description:
     "Entrez dans la boutique Vedette. Une expérience 3D immersive, scrollez depuis la rue jusqu'à l'intérieur de la boutique.",

@@ -43,12 +43,6 @@ export interface CollectionItem {
    */
   accessory?: { name: string; model: string } | null;
   /**
-   * Real photos of the actual piece worn, cropped from community/press
-   * shots — shown alongside the studio scan or packshots, never in place
-   * of them.
-   */
-  lifestyle?: string[];
-  /**
    * Pulled from the wall to make room for the piece that replaced it there.
    * Still listed — greyed out with a padlock, not gone — but the rail and
    * the wall itself both refuse to open it.
@@ -169,11 +163,6 @@ export const collection: CollectionItem[] = [
     model: "/models/cap-vedette.glb",
     cabine: C + "cap-vedette",
     turntable: { mp4: T + "cap-vedette.mp4", webm: T + "cap-vedette.webm" },
-    lifestyle: [
-      "/collection/lifestyle/cap-vedette-1.webp",
-      "/collection/lifestyle/cap-vedette-2.webp",
-      "/collection/lifestyle/cap-vedette-3.webp",
-    ],
   },
   {
     id: "cap-flames",
@@ -292,10 +281,6 @@ export const collection: CollectionItem[] = [
     back: P + "rainbow-jersey-back.webp",
     cabine: C + "rainbow-jersey",
     turntable: { mp4: T + "rainbow-jersey.mp4", webm: T + "rainbow-jersey.webm" },
-    lifestyle: [
-      "/collection/lifestyle/rainbow-jersey-1.webp",
-      "/collection/lifestyle/rainbow-jersey-2.webp",
-    ],
   },
   {
     id: "jparis-sweat",

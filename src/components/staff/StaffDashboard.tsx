@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Db, Order, ReturnRequest, Ticket } from "@/lib/staff/store";
 
-type Data = Db & { demo: boolean };
+type Data = Db & { demo: boolean; weak: boolean };
 type Tab = "orders" | "returns" | "tickets";
 
 const ORDER_LABEL: Record<string, string> = {
@@ -122,6 +122,12 @@ export default function StaffDashboard() {
         </div>
       </header>
 
+      {data?.weak && (
+        <p className="staff-demo" role="alert">
+          Sécurité : STAFF_PASSWORD et/ou STAFF_SESSION_SECRET ne sont pas définis, le mot de passe
+          par défaut est actif. Configure-les dans Vercel → Settings → Environment Variables.
+        </p>
+      )}
       {data?.demo && (
         <p className="staff-demo">
           Données de démonstration : aucune base n&apos;est connectée, les changements ne sont pas

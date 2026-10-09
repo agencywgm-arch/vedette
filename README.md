@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vedette
 
-## Getting Started
+Site immersif (Next.js 16, React 19, Tailwind 4, three / R3F) : scroll depuis la rue jusqu'à la boutique, collection 3D, cabine d'essayage 8 angles, dashboard staff.
 
-First, run the development server:
+## Développement
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables d'environnement (Vercel → Settings → Environment Variables)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Rôle |
+| --- | --- |
+| `STAFF_PASSWORD` | Mot de passe du dashboard `/staff` (défaut `admin`, **à changer**) |
+| `STAFF_SESSION_SECRET` | Longue chaîne aléatoire qui signe le cookie de session staff |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Base Upstash / Vercel KV pour stocker commandes, retours, assistance (sinon : données de démo en mémoire) |
+| `NEXT_PUBLIC_SITE_URL` | URL publique (SEO, sitemap) ; sinon l'URL de production Vercel |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Dashboard staff
 
-## Learn More
+`/staff` (protégé par `src/proxy.ts`) : commandes, retours, assistance. Les formulaires publics écrivent via `POST /api/orders`, `/api/returns`, `/api/support` (prix recalculés côté serveur, rate limit).
 
-To learn more about Next.js, take a look at the following resources:
+## Médias
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`public/cabine/looks/<id>/0..7.webp` : 8 photos par pièce, tous les 45° (0 = face). `public/collection/turntable` : vidéos 3D.

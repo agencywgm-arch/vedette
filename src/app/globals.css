@@ -897,38 +897,10 @@ body {
   background: rgba(255, 255, 255, 0.07);
 }
 
-.shop-lifestyle-row {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
 
-.shop-lifestyle-row::-webkit-scrollbar {
-  display: none;
-}
 
-.shop-lifestyle-thumb {
-  flex: 0 0 auto;
-  width: 52px;
-  height: 52px;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  transition: border-color 0.18s ease, transform 0.18s ease;
-}
 
-.shop-lifestyle-thumb:hover {
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-}
 
-.shop-lifestyle-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
 
 .shop-lightbox {
   position: fixed;
@@ -1531,11 +1503,7 @@ body {
     flex: 0 0 auto;
   }
 
-  .shop-lifestyle-thumb {
-    width: 42px;
-    height: 42px;
-  }
-
+  
   .shop-cta {
     margin-top: 11px;
     padding: 11px;

@@ -100,3 +100,8 @@ export const sessionCookieOptions = {
   path: "/",
   maxAge: SESSION_TTL_S,
 };
+
+/** True while the built-in default password or signing secret is in use. */
+export function weakConfig(): boolean {
+  return !process.env.STAFF_PASSWORD || !process.env.STAFF_SESSION_SECRET;
+}
