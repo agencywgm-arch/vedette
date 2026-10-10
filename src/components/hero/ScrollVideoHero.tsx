@@ -47,7 +47,7 @@ const MOBILE_QUERY = "(max-width: 767px)";
 const FRAME_COUNT = 241;
 const FRAME_SETS = {
   desk: { dir: "/frames/desk/", w: 1280, h: 720 },
-  lite: { dir: "/frames/lite/", w: 768, h: 432 },
+  lite: { dir: "/frames/lite/", w: 1024, h: 576 },
 };
 // How much of the remaining distance the drawn frame closes per 60Hz tick.
 // A wheel notch or a fling jumps scroll by a lot at once; easing toward it
