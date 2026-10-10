@@ -979,6 +979,11 @@ body {
   cursor: default;
 }
 
+.shop-cabine-gender {
+  top: auto;
+  bottom: 56px;
+}
+
 .shop-cabine-morphs button {
   padding: 8px 16px;
   border: 0;
