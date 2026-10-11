@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   FIT_FRAMES,
   MORPH_LABELS,
+  femmeFitFolder,
   femmeFolder,
   fitFolder,
   type CollectionItem,
@@ -155,12 +156,14 @@ export default function ProductPanel({
           </svg>
         </button>
         <CabineViewer
-          key={isFemme ? "femme" : morph}
+          key={`${isFemme ? "femme" : "homme"}-${morph}`}
           base={
-            isFemme
-              ? femmeFolder(item.id)
-              : morph === "medium"
-                ? item.cabine
+            morph === "medium"
+              ? isFemme
+                ? femmeFolder(item.id)
+                : item.cabine
+              : isFemme
+                ? femmeFitFolder(item.id, morph)
                 : fitFolder(item.id, morph)
           }
           frames={isFemme || morph !== "medium" ? FIT_FRAMES : undefined}
@@ -186,7 +189,7 @@ export default function ProductPanel({
             ))}
           </div>
         )}
-        {!isFemme && morphs.length > 1 && (
+        {morphs.length > 1 && (
           <div
             className="shop-cabine-morphs"
             onClick={(e) => e.stopPropagation()}

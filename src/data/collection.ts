@@ -80,6 +80,8 @@ export const MORPH_LABELS: Record<Morph | "medium", string> = {
   large: "Large",
 };
 export const femmeFolder = (id: string) => `/cabine/femme/${id}`;
+export const femmeFitFolder = (id: string, morph: Morph) =>
+  `/cabine/femme-${morph}/${id}`;
 export const fitFolder = (id: string, morph: Morph) =>
   `/cabine/fit/${id}-${morph}`;
 
