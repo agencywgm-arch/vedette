@@ -2101,17 +2101,4 @@ body {
   .scroll-prompt-sub { font-size: 8.5px; letter-spacing: 0.14em; white-space: nowrap; }
 }
 
-/* La photo prend la couleur d'ambiance sur ses bords (décor), le vêtement au centre reste intact. */
-.shop-cabine-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  mix-blend-mode: soft-light;
-  opacity: 0.9;
-  background:
-    radial-gradient(ellipse 42% 62% at 50% 52%, transparent 55%, var(--amb, transparent) 100%),
-    linear-gradient(to bottom, var(--amb, transparent), transparent 35%);
-}
 .shop-cabine-overlay { transition: background 0.5s ease; }
