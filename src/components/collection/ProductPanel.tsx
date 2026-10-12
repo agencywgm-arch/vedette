@@ -145,8 +145,14 @@ export default function ProductPanel({
         aria-label="Fermer la cabine"
       >
         {/* The fitting-room curtain: closed on arrival, then drawn aside. */}
-        <div className="cabine-curtain cabine-curtain-l" aria-hidden="true" />
-        <div className="cabine-curtain cabine-curtain-r" aria-hidden="true" />
+        <div className="cabine-curtain cabine-curtain-l" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
+        </div>
+        <div className="cabine-curtain cabine-curtain-r" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
+        </div>
         <div className="cabine-curtain-rod" aria-hidden="true" />
         <button
           type="button"

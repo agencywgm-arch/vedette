@@ -1953,13 +1953,13 @@ body {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 51%;
+  width: 50.3%;
   z-index: 8;
   pointer-events: none;
+  overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 18%, rgba(0, 0, 0, 0) 82%, rgba(0, 0, 0, 0.55)),
-    repeating-linear-gradient(90deg, #6d0b17 0 38px, #8d1423 52px, #a31a2b 60px, #8d1423 68px, #6d0b17 90px);
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+    linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0) 16%, rgba(0, 0, 0, 0) 84%, rgba(0, 0, 0, 0.6)),
+    repeating-linear-gradient(90deg, #060607 0 36px, #121214 50px, #1d1d20 58px, #121214 66px, #060607 88px);
   will-change: transform;
 }
 .cabine-curtain-l {
@@ -2102,3 +2102,17 @@ body {
 }
 
 .shop-cabine-overlay { transition: background 0.5s ease; }
+
+/* Le logo se lit à cheval sur les deux pans, et se sépare quand le rideau s'ouvre. */
+.cabine-curtain { --logo-w: min(74vw, 620px); }
+.cabine-curtain-logo {
+  position: absolute;
+  top: 50%;
+  width: var(--logo-w);
+  height: auto;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.9));
+  user-select: none;
+}
+.cabine-curtain-l .cabine-curtain-logo { right: calc(var(--logo-w) / -2 + 0.15vw); }
+.cabine-curtain-r .cabine-curtain-logo { left: calc(var(--logo-w) / -2 + 0.15vw); }
