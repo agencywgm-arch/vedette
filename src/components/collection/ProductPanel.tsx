@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  CABINE_AMBIENT,
   FIT_FRAMES,
   MORPH_LABELS,
   femmeFitFolder,
@@ -137,6 +138,7 @@ export default function ProductPanel({
     {cabineOpen && item.cabine && (
       <div
         className="shop-cabine-overlay"
+        style={{ "--amb": CABINE_AMBIENT[item.id] ?? "#2a2f4a" } as React.CSSProperties}
         onClick={() => setCabineOpen(false)}
         role="button"
         tabIndex={-1}

@@ -79,6 +79,28 @@ export const MORPH_LABELS: Record<Morph | "medium", string> = {
   medium: "Médium",
   large: "Large",
 };
+/**
+ * The cabine's mood colour per piece, picked off the colour wheel: the
+ * complement (or a split complement) of what the piece is mostly made of, so
+ * the garment pops against its backdrop — white and cream pieces get a deep
+ * saturated field, dark ones a warm, bright one.
+ */
+export const CABINE_AMBIENT: Record<string, string> = {
+  "jparis-tee": "#0f6a78",
+  "champions-tee": "#a3206a",
+  "paris-polo": "#d8801c",
+  "vedette-vneck": "#2f35b8",
+  "cap-vedette": "#c8a21c",
+  "cap-bienoufoie": "#1c4fc8",
+  "cap-camo": "#b8541c",
+  "cap-heart": "#c81c4a",
+  "boxe-khoya-tank": "#7aa016",
+  "forreal-tee": "#0f8f86",
+  "rainbow-jersey": "#5a2fb0",
+  "jparis-sweat": "#d0503f",
+  "black-jacket": "#c8641c",
+  "sac-vedette": "#c01c7a",
+};
 export const femmeFolder = (id: string) => `/cabine/femme/${id}`;
 export const femmeFitFolder = (id: string, morph: Morph) =>
   `/cabine/femme-${morph}/${id}`;
