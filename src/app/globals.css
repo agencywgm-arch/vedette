@@ -402,7 +402,7 @@ body {
 .shop-hotspot {
   position: absolute;
   z-index: 5;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
   border-radius: 10px;
   cursor: pointer;
   background: transparent;
@@ -941,7 +941,7 @@ body {
   inset: 0;
   overflow: hidden;
   cursor: grab;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -1388,7 +1388,7 @@ body {
   /* le mur tient entier dans la largeur : rien à balayer, le doigt ne sert
      qu'à faire défiler la page */
   .shop-room {
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
 
   .shop-header {
@@ -1908,6 +1908,8 @@ body {
   cursor: pointer;
   border-radius: 4px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  touch-action: none;
+  will-change: transform;
 }
 
 .shop-poster-close {
@@ -2265,3 +2267,20 @@ body {
 .staff-ship-actions a { margin-left: auto; color: #6bd4ff; font-size: .85rem; }
 .staff-ship-history { list-style: none; margin: 4px 0 0; padding: 0; font-size: .8rem; opacity: .8; display: grid; gap: 3px; }
 @media (max-width: 560px) { .staff-ship-row { grid-template-columns: 1fr; } }
+
+.shop-cabine-zoom { position: absolute; inset: 0; transform-origin: center; will-change: transform; }
+.shop-cabine-zoombar { position: absolute; right: 16px; bottom: 120px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: rgba(10,10,12,.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.2); cursor: default; }
+.shop-cabine-zoombar button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.shop-cabine-zoombar button:disabled { opacity: .35; cursor: default; }
+.shop-cabine-zoombar span { font-size: 10px; letter-spacing: .08em; color: rgba(255,255,255,.85); }
+@media (min-width: 900px) { .shop-cabine-zoombar { right: calc(50% - min(50vw, 40vh) + 12px); } }
+
+.shop-poster-zoombar { position: absolute; z-index: 40; right: 24px; bottom: 90px; display: flex; gap: 8px; transition: opacity .4s ease; }
+.shop-poster-zoombar button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.55); color: #fff; font-size: 20px; cursor: pointer; }
+.shop-poster-zoombar button:disabled { opacity: .35; cursor: default; }
+
+.shop-wall-layer { transform-origin: center; will-change: transform; }
+.shop-wall-zoombar { position: absolute; right: 16px; bottom: 150px; z-index: 31; display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 999px; background: rgba(10,10,12,.6); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.2); }
+.shop-wall-zoombar button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.shop-wall-zoombar button:disabled { opacity: .35; cursor: default; }
+@media (min-width: 768px) { .shop-wall-zoombar { bottom: 120px; right: 24px; } }

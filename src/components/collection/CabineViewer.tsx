@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useZoom } from "@/lib/use-zoom";
 
 export const CABINE_FRAMES = 8;
 /** Bump when the fitting-room photos change: busts copies cached by phones. */
@@ -29,6 +30,7 @@ export default function CabineViewer({
   frames?: number;
 }) {
   const STEP = 360 / frames;
+  const zoom = useZoom({ min: 1, max: 4 });
   // Photo-shoot look: each angle is a hard cut to the next shot, announced by a
   // camera flash, rather than a blend between two photos.
   const crossfade = false;
@@ -188,13 +190,20 @@ export default function CabineViewer({
   }, [spinTo]);
 
   const onDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // Pinch, double-tap, or a drag while zoomed in belong to zoom, not to spinning.
+    if (zoom.down(e)) {
+      dragging.current = false;
+      setTouched(true);
+      return;
+    }
     dragging.current = true;
     lastX.current = e.clientX;
     velocity.current = 0;
     setTouched(true);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onMove = (e: React.PointerEvent) => {
+    if (zoom.move(e)) return;
     if (!dragging.current) return;
     const dx = e.clientX - lastX.current;
     lastX.current = e.clientX;
@@ -202,7 +211,8 @@ export default function CabineViewer({
     velocity.current = -dx * DEG_PER_PX;
     paint();
   };
-  const onUp = () => {
+  const onUp = (e: React.PointerEvent) => {
+    zoom.up(e);
     if (!dragging.current) return;
     dragging.current = false;
     wake();
@@ -215,10 +225,12 @@ export default function CabineViewer({
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
+      onWheel={zoom.onWheel}
       onClick={(e) => e.stopPropagation()}
       role="img"
       aria-label={`${label} — vue à 360°, glisser pour tourner`}
     >
+      <div ref={zoom.ref} className="shop-cabine-zoom">
       {Array.from({ length: frames }, (_, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -239,6 +251,16 @@ export default function CabineViewer({
           }}
         />
       ))}
+      </div>
+
+      <div className="shop-cabine-zoombar" onPointerDown={(e) => e.stopPropagation()}>
+        <button type="button" onClick={() => zoom.zoomBy(1 / 1.5)} aria-label="Dézoomer" disabled={!zoom.zoomed}>−</button>
+        <span aria-live="polite">{Math.round(zoom.scale * 100)}%</span>
+        <button type="button" onClick={() => zoom.zoomBy(1.5)} aria-label="Zoomer" disabled={zoom.scale >= 4}>+</button>
+        {zoom.zoomed && (
+          <button type="button" onClick={zoom.reset} aria-label="Réinitialiser le zoom">⟲</button>
+        )}
+      </div>
 
       <button
         type="button"
@@ -274,8 +296,8 @@ export default function CabineViewer({
         ))}
       </div>
       {(switching || loaded < 1) && <div className="shop-cabine-loading" aria-hidden="true" />}
-      {!touched && loaded >= 1 && (
-        <p className="shop-cabine-hint">Glissez pour tourner à 360°</p>
+      {!touched && !zoom.zoomed && loaded >= 1 && (
+        <p className="shop-cabine-hint">Glissez pour tourner · pincez pour zoomer</p>
       )}
     </div>
   );

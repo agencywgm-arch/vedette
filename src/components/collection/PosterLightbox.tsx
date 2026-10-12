@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { WallPoster } from "@/data/collection";
+import { useZoom } from "@/lib/use-zoom";
 import type { Rect } from "@/lib/media-rect";
 
 const FLY_MS = 650;
@@ -43,6 +44,7 @@ export default function PosterLightbox({
 }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const zoom = useZoom({ min: 1, max: 5 });
 
   useEffect(() => {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
@@ -78,8 +80,20 @@ export default function PosterLightbox({
         src={poster.src}
         alt={poster.name}
         draggable={false}
+        ref={zoom.ref}
         className="shop-poster"
-        onClick={close}
+        onWheel={zoom.onWheel}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          zoom.down(e);
+        }}
+        onPointerMove={(e) => zoom.move(e)}
+        onPointerUp={zoom.up}
+        onPointerCancel={zoom.up}
+        onClick={() => {
+          // a tap on the photo closes it only at rest; zoomed, it is being explored
+          if (!zoom.zoomed) close();
+        }}
         style={{
           left: r.left,
           top: r.top,
@@ -99,6 +113,10 @@ export default function PosterLightbox({
           <path d="M6 6l12 12M18 6L6 18" />
         </svg>
       </button>
+      <div className="shop-poster-zoombar" style={{ opacity: open ? 1 : 0 }}>
+        <button type="button" onClick={() => zoom.zoomBy(1 / 1.5)} aria-label="Dézoomer" disabled={!zoom.zoomed}>−</button>
+        <button type="button" onClick={() => zoom.zoomBy(1.5)} aria-label="Zoomer">+</button>
+      </div>
       <p className="shop-poster-caption" style={{ opacity: open && !compact ? 1 : 0 }}>
         {poster.name}
       </p>

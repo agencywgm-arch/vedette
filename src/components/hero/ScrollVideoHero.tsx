@@ -494,7 +494,7 @@ export default function ScrollVideoHero() {
             // looking around, a finger dragging down is still scrolling the
             // page, and the browser keeps owning the second one. It also
             // keeps double-tap zoom off the shortcut.
-            style={{ touchAction: "pan-y" }}
+            style={{ touchAction: "pan-y pinch-zoom" }}
             onClick={handleScrollTap}
             onPointerDown={onLookPointerDown}
             onPointerMove={onLookPointerMove}

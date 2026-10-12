@@ -9,6 +9,7 @@ import {
   wallPosters,
 } from "@/data/collection";
 import { mediaRect, type Rect } from "@/lib/media-rect";
+import { useZoom } from "@/lib/use-zoom";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
 import PosterLightbox from "./PosterLightbox";
@@ -142,6 +143,8 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const setHovered = useShopStore((s) => s.setHovered);
 
   const wallImgRef = useRef<HTMLImageElement>(null);
+  const wallZoom = useZoom({ min: 1, max: 3.5 });
+  const dragged = useRef(false);
   const hotspotLayerRef = useRef<HTMLDivElement>(null);
 
   // Keep the piece on screen while it flies home, then drop it. `origin` is
@@ -249,7 +252,25 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     <div ref={rootRef} className="shop-room">
       {wall && (
         <div
+          ref={wallZoom.ref}
           className={`shop-wall-layer ${compact ? "is-compact" : ""}`}
+          onPointerDown={(e) => {
+            dragged.current = false;
+            wallZoom.down(e);
+          }}
+          onPointerMove={(e) => {
+            if (wallZoom.move(e)) dragged.current = true;
+          }}
+          onPointerUp={wallZoom.up}
+          onPointerCancel={wallZoom.up}
+          onClickCapture={(e) => {
+            // a pan across the wall must not open the piece the finger ended on
+            if (dragged.current) {
+              e.stopPropagation();
+              e.preventDefault();
+              dragged.current = false;
+            }
+          }}
           style={{
             left: wall.left,
             top: wall.top,
@@ -258,7 +279,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
             transition: settled
               ? `left ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), top ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), width ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), height ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`
               : "none",
-            touchAction: "pan-y",
+            touchAction: "pan-y pinch-zoom",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -378,6 +399,16 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
           compact={compact}
           onClose={() => setPoster(null)}
         />
+      )}
+
+      {!inspecting && !poster && (
+        <div className="shop-wall-zoombar" role="group" aria-label="Zoom sur le mur">
+          <button type="button" onClick={() => wallZoom.zoomBy(1 / 1.5)} aria-label="Dézoomer" disabled={!wallZoom.zoomed}>−</button>
+          <button type="button" onClick={() => wallZoom.zoomBy(1.5)} aria-label="Zoomer" disabled={wallZoom.scale >= 3.5}>+</button>
+          {wallZoom.zoomed && (
+            <button type="button" onClick={wallZoom.reset} aria-label="Réinitialiser le zoom">⟲</button>
+          )}
+        </div>
       )}
 
       <ShopHeader onPick={open} />
