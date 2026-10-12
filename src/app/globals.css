@@ -2204,7 +2204,7 @@ body {
 .shop-info-text p { line-height: 1.6; opacity: .88; margin: 0 0 14px; }
 .shop-info-photos { display: grid; gap: 14px; }
 .shop-info-photos button { background: none; border: 0; padding: 0; color: #fff; text-align: left; cursor: pointer; }
-.shop-info-photos img { width: 100%; max-height: 340px; object-fit: cover; display: block; border-radius: 3px; }
+.shop-info-photos img { width: 100%; height: auto; display: block; border-radius: 3px; background: #15151a; }
 .shop-info-photos span { display: block; margin-top: 6px; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
 .shop-info-zoom { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(0,0,0,.9); cursor: zoom-out; padding: 20px; }
 .shop-info-zoom img { max-width: 100%; max-height: 100%; object-fit: contain; }
