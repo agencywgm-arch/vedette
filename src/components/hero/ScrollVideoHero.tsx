@@ -300,7 +300,7 @@ export default function ScrollVideoHero() {
     const bigScreen = window.screen.width * (window.devicePixelRatio || 1) >= 1800;
     const set = lite
       ? FRAME_SETS.lite
-      : bigScreen && (nav.deviceMemory ?? 8) >= 8
+      : bigScreen && (nav.deviceMemory ?? 8) >= 4
         ? FRAME_SETS.hd
         : FRAME_SETS.desk;
     canvas.width = set.w;
@@ -314,7 +314,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261012b`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261012c`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on

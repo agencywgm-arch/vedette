@@ -90,7 +90,7 @@ export function createFrameSequence({
 
   // Blend in eighths: finer steps would redraw without anyone seeing a
   // difference, and the key lets the caller skip those redraws.
-  const STEPS = 8;
+  const STEPS = 1; // no in-between blends: a mix of two moving frames ghosts and reads as blur
   const plan = (index: number) => {
     const pos = Math.min(count - 1, Math.max(0, index));
     const lo = Math.floor(pos);

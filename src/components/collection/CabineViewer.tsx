@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export const CABINE_FRAMES = 8;
 /** Bump when the fitting-room photos change: busts copies cached by phones. */
-const CABINE_VERSION = "20261012i";
+const CABINE_VERSION = "20261012j";
 /** Degrees turned per pixel dragged: one viewport width is half a turn. */
 const DEG_PER_PX = 0.45;
 const FRICTION = 0.92;
