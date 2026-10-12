@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export const CABINE_FRAMES = 8;
 /** Bump when the fitting-room photos change: busts copies cached by phones. */
-const CABINE_VERSION = "20261012f";
+const CABINE_VERSION = "20261012h";
 /** Degrees turned per pixel dragged: one viewport width is half a turn. */
 const DEG_PER_PX = 0.45;
 const FRICTION = 0.92;
@@ -42,6 +42,12 @@ export default function CabineViewer({
   const raf = useRef(0);
   const [frame, setFrame] = useState(0);
   const [touched, setTouched] = useState(false);
+  // The set on screen. A new `base` (another morphology, or Homme/Femme) is
+  // fetched and decoded off-screen first, then swapped in whole — so changing
+  // set never shows a black or half-loaded stage.
+  const [active, setActive] = useState(base);
+  const [switching, setSwitching] = useState(false);
+  const ready = useRef<boolean[]>([]);
   const [loaded, setLoaded] = useState(0);
 
   const paint = useCallback(() => {
@@ -49,7 +55,17 @@ export default function CabineViewer({
     const lo = Math.floor(a) % frames;
     const hi = (lo + 1) % frames;
     const t = a - Math.floor(a);
-    const near = Math.round(a) % frames;
+    const want = Math.round(a) % frames;
+    // Never cut to a shot that has not arrived yet: hold the closest one that has.
+    let near = want;
+    if (!ready.current[want]) {
+      for (let d = 1; d < frames; d++) {
+        const l = (want - d + frames) % frames;
+        const r = (want + d) % frames;
+        if (ready.current[l]) { near = l; break; }
+        if (ready.current[r]) { near = r; break; }
+      }
+    }
     for (let i = 0; i < frames; i++) {
       const el = imgs.current[i];
       if (!el) continue;
@@ -73,6 +89,30 @@ export default function CabineViewer({
     }
     setFrame((prev) => (prev === near ? prev : near));
   }, [frames, STEP, crossfade]);
+
+  // Fetch + decode every shot of the incoming set, then swap.
+  useEffect(() => {
+    if (base === active) return;
+    let cancelled = false;
+    setSwitching(true);
+    const jobs = Array.from({ length: frames }, (_, i) => {
+      const im = new Image();
+      im.decoding = "async";
+      im.src = `${base}/${i}.webp?v=${CABINE_VERSION}`;
+      return im.decode().catch(() => {});
+    });
+    Promise.all(jobs).then(() => {
+      if (cancelled) return;
+      ready.current = [];
+      setLoaded(0);
+      setActive(base);
+      setSwitching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base]);
 
   const wake = useCallback(() => {
     if (raf.current) return;
@@ -107,6 +147,8 @@ export default function CabineViewer({
   const spinTo = useCallback(
     (dir: 1 | -1) => {
       const cur = Math.round(angle.current / STEP) * STEP;
+      cancelAnimationFrame(raf.current);
+      raf.current = 0;
       angle.current = cur;
       velocity.current = 0;
       // glide one shot over
@@ -120,21 +162,29 @@ export default function CabineViewer({
         }
         angle.current += d * 0.2;
         paint();
-        requestAnimationFrame(step);
+        raf.current = requestAnimationFrame(step);
       };
       setTouched(true);
-      requestAnimationFrame(step);
+      raf.current = requestAnimationFrame(step);
     },
     [paint, STEP],
   );
 
   useEffect(() => {
+    // Capture phase + stopPropagation: the room listens for these same keys to
+    // step to the next piece, which would swap the product behind the cabine.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") spinTo(-1);
-      else if (e.key === "ArrowRight") spinTo(1);
+      const k = e.key.toLowerCase();
+      if (e.key === "ArrowLeft" || k === "a") {
+        e.stopImmediatePropagation();
+        spinTo(-1);
+      } else if (e.key === "ArrowRight" || k === "d") {
+        e.stopImmediatePropagation();
+        spinTo(1);
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [spinTo]);
 
   const onDown = (e: React.PointerEvent) => {
@@ -176,12 +226,17 @@ export default function CabineViewer({
           ref={(el) => {
             imgs.current[i] = el;
           }}
-          src={`${base}/${i}.webp?v=${CABINE_VERSION}`}
+          src={`${active}/${i}.webp?v=${CABINE_VERSION}`}
           alt=""
           className="shop-cabine-img"
           style={{ opacity: i === 0 ? 1 : 0 }}
           draggable={false}
-          onLoad={() => setLoaded((n) => n + 1)}
+          decoding="async"
+          onLoad={() => {
+            ready.current[i] = true;
+            setLoaded((n) => n + 1);
+            paint();
+          }}
         />
       ))}
 
@@ -218,6 +273,7 @@ export default function CabineViewer({
           <span key={i} className={i === frame ? "is-on" : undefined} />
         ))}
       </div>
+      {(switching || loaded < 1) && <div className="shop-cabine-loading" aria-hidden="true" />}
       {!touched && loaded >= 1 && (
         <p className="shop-cabine-hint">Glissez pour tourner à 360°</p>
       )}

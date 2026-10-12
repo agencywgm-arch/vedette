@@ -31,7 +31,13 @@ export default function ProductPanel({
   const [color, setColor] = useState(item.colors[0]?.name ?? "");
   const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
-  const [cabineOpen, setCabineOpen] = useState(false);
+  const [cabineOpen, setCabineOpenRaw] = useState(false);
+  const [curtainDone, setCurtainDone] = useState(false);
+  // Every entry into the cabine replays the curtain.
+  const setCabineOpen = (v: boolean) => {
+    if (v) setCurtainDone(false);
+    setCabineOpenRaw(v);
+  };
   const [morph, setMorph] = useState<Morph | "medium">("medium");
   const [gender, setGender] = useState<"homme" | "femme">("homme");
   const isFemme = gender === "femme" && !!item.femme;
@@ -145,15 +151,19 @@ export default function ProductPanel({
         aria-label="Fermer la cabine"
       >
         {/* The fitting-room curtain: closed on arrival, then drawn aside. */}
-        <div className="cabine-curtain cabine-curtain-l" aria-hidden="true">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
-        </div>
-        <div className="cabine-curtain cabine-curtain-r" aria-hidden="true">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
-        </div>
-        <div className="cabine-curtain-rod" aria-hidden="true" />
+        {!curtainDone && (
+          <div className="cabine-curtains" aria-hidden="true" onAnimationEnd={(e) => { if ((e.target as HTMLElement).classList.contains("cabine-curtain-rod")) setCurtainDone(true); }}>
+            <div className="cabine-curtain cabine-curtain-l">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
+            </div>
+            <div className="cabine-curtain cabine-curtain-r">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
+            </div>
+            <div className="cabine-curtain-rod" />
+          </div>
+        )}
         <button
           type="button"
           className="shop-cabine-close"
@@ -168,7 +178,6 @@ export default function ProductPanel({
           </svg>
         </button>
         <CabineViewer
-          key={`${isFemme ? "femme" : "homme"}-${morph}`}
           base={
             morph === "medium"
               ? isFemme
