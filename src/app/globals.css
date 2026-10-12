@@ -930,7 +930,8 @@ body {
   position: fixed;
   inset: 0;
   z-index: 70;
-  background: #0a0a0c;
+  /* One flat colour, the same one the photos are painted with: no bands. */
+  background: var(--amb, #2a2f4a);
   cursor: pointer;
   animation: fade-in 0.25s ease forwards;
 }
@@ -2276,3 +2277,11 @@ body {
 .shop-wall-zoombar button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
 .shop-wall-zoombar button:disabled { opacity: .35; cursor: default; }
 @media (min-width: 768px) { .shop-wall-zoombar { bottom: 120px; right: 24px; } }
+
+/* La colonne photo se fond dans le fond uni : plus aucune bande visible sur les côtés. */
+@media (min-width: 900px) {
+  .shop-cabine-stage {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+  }
+}
