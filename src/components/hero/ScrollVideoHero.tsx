@@ -16,6 +16,7 @@ import {
 import { type ContainRect } from "@/lib/overlay-position";
 import { mediaRect } from "@/lib/media-rect";
 import { createFrameSequence } from "@/lib/frame-sequence";
+import { useZoom } from "@/lib/use-zoom";
 import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
@@ -171,6 +172,7 @@ export default function ScrollVideoHero() {
 
   // A double tap/click anywhere on the scroll phase skips straight into the
   // live collection room.
+  const zoom = useZoom({ min: 1, max: 3, doubleTap: false });
   const lastTapRef = useRef(0);
   const handleScrollTap = () => {
     // A drag that ended up looking around still ends in a click. It isn't one.
@@ -260,10 +262,19 @@ export default function ScrollVideoHero() {
   };
 
   const onLookPointerDown = (e: ReactPointerEvent) => {
+    // a pinch, or a drag while zoomed in, is zoom navigation, not leaning
+    if (zoom.down(e)) {
+      lookDrag.current = { x: e.clientX, y: e.clientY, moved: true };
+      return;
+    }
     lookDrag.current = { x: e.clientX, y: e.clientY, moved: false };
   };
 
   const onLookPointerMove = (e: ReactPointerEvent) => {
+    if (zoom.move(e)) {
+      if (lookDrag.current) lookDrag.current.moved = true;
+      return;
+    }
     const bounds = e.currentTarget.getBoundingClientRect();
     const drag = lookDrag.current;
 
@@ -287,7 +298,8 @@ export default function ScrollVideoHero() {
   // Letting go re-centres the view, so the framing the guard's bubble is
   // anchored against is always the one it was measured against. The drag
   // itself is left in place for the click that follows to read.
-  const onLookRelease = () => {
+  const onLookRelease = (e?: ReactPointerEvent) => {
+    if (e) zoom.up(e);
     aimLook(0, 0);
   };
 
@@ -464,6 +476,7 @@ export default function ScrollVideoHero() {
     >
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
         {/* Everything the eye can lean into rides this layer. */}
+        <div ref={zoom.ref} className="pointer-events-none absolute inset-0 will-change-transform" style={{ transformOrigin: "center" }}>
         <div
           ref={lookLayerRef}
           className="pointer-events-none absolute inset-0 will-change-transform"
@@ -481,6 +494,7 @@ export default function ScrollVideoHero() {
           className="absolute inset-0 h-full w-full object-contain"
           style={{ opacity: 0 }}
         />
+        </div>
         </div>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
 
@@ -502,6 +516,16 @@ export default function ScrollVideoHero() {
             onPointerCancel={onLookRelease}
             onPointerLeave={onLookRelease}
           />
+        )}
+
+        {!roomOpen && (
+          <div className="hero-zoombar" role="group" aria-label="Zoom sur la vidéo">
+            <button type="button" onClick={() => zoom.zoomBy(1 / 1.5)} aria-label="Dézoomer" disabled={!zoom.zoomed}>−</button>
+            <button type="button" onClick={() => zoom.zoomBy(1.5)} aria-label="Zoomer" disabled={zoom.scale >= 3}>+</button>
+            {zoom.zoomed && (
+              <button type="button" onClick={zoom.reset} aria-label="Réinitialiser le zoom">⟲</button>
+            )}
+          </div>
         )}
 
         {/* Mounted only once the clip has settled, so the reveal plays from

@@ -9,7 +9,11 @@ import type { PointerEvent as RPointerEvent, WheelEvent as RWheelEvent } from "r
  * whether the gesture belongs to zoom (pinch, or a drag while zoomed in) so it
  * can keep its own one-finger behaviour (e.g. spinning) at rest.
  */
-export function useZoom({ min = 1, max = 4 }: { min?: number; max?: number } = {}) {
+export function useZoom({
+  min = 1,
+  max = 4,
+  doubleTap = true,
+}: { min?: number; max?: number; doubleTap?: boolean } = {}) {
   const el = useRef<HTMLElement | null>(null);
   const s = useRef(1);
   const tx = useRef(0);
@@ -72,7 +76,7 @@ export function useZoom({ min = 1, max = 4 }: { min?: number; max?: number } = {
       return true;
     }
     const now = performance.now();
-    if (now - lastTap.current < 320) {
+    if (doubleTap && now - lastTap.current < 320) {
       lastTap.current = 0;
       const c = centre(e);
       setTo(s.current > min + 0.05 ? min : Math.min(max, 2.4), c.x, c.y);
