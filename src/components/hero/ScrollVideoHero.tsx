@@ -19,6 +19,7 @@ import { createFrameSequence } from "@/lib/frame-sequence";
 import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
+import ScrollPrompt from "./ScrollPrompt";
 
 // Two clicks/taps this close together count as one double tap.
 const DOUBLE_TAP_MS = 400;
@@ -122,6 +123,8 @@ export default function ScrollVideoHero() {
   const setScrollOffset = useSceneStore((s) => s.setScrollOffset);
   const setStage = useSceneStore((s) => s.setStage);
   const entryMode = useSceneStore((s) => s.entryMode);
+  const scrollProgress = useSceneStore((s) => s.scrollOffset);
+  const started = useSceneStore((s) => s.started);
   const setEntryMode = useSceneStore((s) => s.setEntryMode);
   const lastStageRef = useRef("street");
 
@@ -503,6 +506,8 @@ export default function ScrollVideoHero() {
             <CollectionRoom compact={isMobile} />
           </div>
         )}
+
+        <ScrollPrompt visible={started && !roomOpen && entryMode === null && scrollProgress < 0.025} touch={isMobile} />
 
         {/* Screen-locked like a HUD element rather than pinned to the guard —
             it doesn't pan with the look-around. */}

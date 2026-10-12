@@ -1945,3 +1945,157 @@ body {
   pointer-events: none;
   transition: opacity 0.4s ease;
 }
+
+/* --- rideau de la cabine : se ferme sur l'arrivée, puis s'ouvre --- */
+
+.cabine-curtain {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 51%;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 18%, rgba(0, 0, 0, 0) 82%, rgba(0, 0, 0, 0.55)),
+    repeating-linear-gradient(90deg, #6d0b17 0 38px, #8d1423 52px, #a31a2b 60px, #8d1423 68px, #6d0b17 90px);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+  will-change: transform;
+}
+.cabine-curtain-l {
+  left: 0;
+  transform-origin: left center;
+  animation: cabine-draw-l 1.7s cubic-bezier(0.65, 0, 0.25, 1) 0.45s forwards;
+}
+.cabine-curtain-r {
+  right: 0;
+  transform-origin: right center;
+  animation: cabine-draw-r 1.7s cubic-bezier(0.65, 0, 0.25, 1) 0.45s forwards;
+}
+@keyframes cabine-draw-l {
+  0% { transform: translateX(0) scaleX(1); }
+  100% { transform: translateX(-102%) scaleX(0.7); }
+}
+@keyframes cabine-draw-r {
+  0% { transform: translateX(0) scaleX(1); }
+  100% { transform: translateX(102%) scaleX(0.7); }
+}
+.cabine-curtain-rod {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 14px;
+  z-index: 9;
+  pointer-events: none;
+  background: linear-gradient(#caa24a, #7a5a1c);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  animation: cabine-rod-out 0.6s ease 1.9s forwards;
+}
+@keyframes cabine-rod-out {
+  to { opacity: 0; transform: translateY(-100%); }
+}
+
+/* --- invite de défilement, façon jeu vidéo --- */
+
+.scroll-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: max(36px, env(safe-area-inset-bottom, 0px) + 28px);
+  transform: translate(-50%, 20px);
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  text-align: center;
+}
+.scroll-prompt.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.scroll-prompt-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 26px;
+  background: rgba(8, 8, 10, 0.72);
+  backdrop-filter: blur(6px);
+  border: 2px solid #f0c000;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), 0 0 28px rgba(240, 192, 0, 0.45), inset 0 0 22px rgba(240, 192, 0, 0.12);
+  animation: sp-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sp-pulse {
+  50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), 0 0 46px rgba(240, 192, 0, 0.8), inset 0 0 30px rgba(240, 192, 0, 0.22); }
+}
+.scroll-prompt-corner { position: absolute; width: 12px; height: 12px; border: 3px solid #fff; }
+.scroll-prompt-corner.tl { top: -6px; left: -6px; border-right: 0; border-bottom: 0; }
+.scroll-prompt-corner.tr { top: -6px; right: -6px; border-left: 0; border-bottom: 0; }
+.scroll-prompt-corner.bl { bottom: -6px; left: -6px; border-right: 0; border-top: 0; }
+.scroll-prompt-corner.br { bottom: -6px; right: -6px; border-left: 0; border-top: 0; }
+.scroll-prompt-icon { width: 34px; height: 54px; flex: none; }
+.scroll-prompt-mouse { width: 100%; height: 100%; fill: none; stroke: #fff; stroke-width: 3; }
+.scroll-prompt-wheel { fill: #f0c000; stroke: none; animation: sp-wheel 1.3s ease-in-out infinite; }
+@keyframes sp-wheel {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.scroll-prompt-thumb { width: 100%; height: 100%; fill: #fff; animation: sp-swipe 1.5s ease-in-out infinite; }
+@keyframes sp-swipe {
+  0% { transform: translateY(18px); opacity: 0; }
+  25% { opacity: 1; }
+  80% { transform: translateY(-14px); opacity: 1; }
+  100% { transform: translateY(-18px); opacity: 0; }
+}
+.scroll-prompt-text { text-align: left; }
+.scroll-prompt-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f0c000;
+  text-shadow: 0 2px 0 #000;
+  animation: sp-blink 1.6s steps(2, jump-none) infinite;
+}
+@keyframes sp-blink { 60% { opacity: 0.65; } }
+.scroll-prompt-sub {
+  margin: 3px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+.scroll-prompt-chevrons { display: grid; gap: 0; width: 22px; flex: none; }
+.scroll-prompt-chevrons i {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: -3px auto;
+  border-right: 3px solid #f0c000;
+  border-bottom: 3px solid #f0c000;
+  transform: rotate(45deg);
+  opacity: 0;
+  animation: sp-chev 1.2s ease-in-out infinite;
+}
+.scroll-prompt-chevrons i:nth-child(2) { animation-delay: 0.18s; }
+.scroll-prompt-chevrons i:nth-child(3) { animation-delay: 0.36s; }
+@keyframes sp-chev { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
+.scroll-prompt-skip {
+  margin: 12px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 1px 2px #000;
+}
+@media (max-width: 480px) {
+  .scroll-prompt-frame { gap: 12px; padding: 12px 16px; }
+  .scroll-prompt-title { font-size: 14px; }
+  .scroll-prompt-sub { font-size: 9px; }
+  .scroll-prompt-chevrons { display: none; }
+}
+@media (max-width: 480px) {
+  .scroll-prompt-title { font-size: 13px; letter-spacing: 0.1em; white-space: nowrap; }
+  .scroll-prompt-sub { font-size: 8.5px; letter-spacing: 0.14em; white-space: nowrap; }
+}

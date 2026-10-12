@@ -142,6 +142,10 @@ export default function ProductPanel({
         tabIndex={-1}
         aria-label="Fermer la cabine"
       >
+        {/* The fitting-room curtain: closed on arrival, then drawn aside. */}
+        <div className="cabine-curtain cabine-curtain-l" aria-hidden="true" />
+        <div className="cabine-curtain cabine-curtain-r" aria-hidden="true" />
+        <div className="cabine-curtain-rod" aria-hidden="true" />
         <button
           type="button"
           className="shop-cabine-close"
