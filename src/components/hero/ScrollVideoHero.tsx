@@ -304,7 +304,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261012`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
