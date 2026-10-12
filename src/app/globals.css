@@ -1882,3 +1882,66 @@ body {
 .shop-drawer-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
 .shop-drawer-tabs button { flex: 1; padding: 8px; background: none; color: #fff; border: 1px solid rgba(255,255,255,.2); cursor: pointer; }
 .shop-drawer-tabs button[aria-pressed="true"] { background: #fff; color: #000; }
+
+/* --- photos encadrées du mur : s'ouvrent en grand --- */
+
+.shop-hotspot-poster:hover,
+.shop-hotspot-poster:focus-visible {
+  background: radial-gradient(ellipse at center, rgba(255, 214, 130, 0.18), rgba(255, 214, 130, 0) 75%);
+  transform: scale(1.04);
+}
+
+.shop-poster-backdrop {
+  z-index: 24;
+  animation: none;
+  transition: opacity 0.5s ease;
+}
+
+.shop-poster {
+  position: absolute;
+  z-index: 25;
+  object-fit: contain;
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.shop-poster-close {
+  position: absolute;
+  z-index: 26;
+  top: 76px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transition: opacity 0.4s ease;
+}
+
+.shop-poster-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.shop-poster-caption {
+  position: absolute;
+  z-index: 26;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}

@@ -6,10 +6,12 @@ import {
   WALL_SIZE,
   collection,
   selectableItems,
+  wallPosters,
 } from "@/data/collection";
 import { mediaRect, type Rect } from "@/lib/media-rect";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
+import PosterLightbox from "./PosterLightbox";
 import ProductPanel from "./ProductPanel";
 import ProductRail from "./ProductRail";
 import CategoryRail from "./CategoryRail";
@@ -148,6 +150,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const [displayedId, setDisplayedId] = useState<string | null>(null);
   const [origin, setOrigin] = useState<Rect | null>(null);
   const [closing, setClosing] = useState(false);
+  const [poster, setPoster] = useState<{ id: string; origin: Rect } | null>(null);
 
   const measure = (id: string): Rect | null => {
     const el = hotspotEls.current.get(id);
@@ -156,6 +159,14 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     const a = el.getBoundingClientRect();
     const b = root.getBoundingClientRect();
     return { left: a.left - b.left, top: a.top - b.top, width: a.width, height: a.height };
+  };
+
+  const openPoster = (id: string, el: HTMLElement) => {
+    const root = rootRef.current;
+    if (!root || displayedId !== null) return;
+    const a = el.getBoundingClientRect();
+    const b = root.getBoundingClientRect();
+    setPoster({ id, origin: { left: a.left - b.left, top: a.top - b.top, width: a.width, height: a.height } });
   };
 
   const open = (id: string) => {
@@ -286,7 +297,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                     hotspotEls.current.set(item.id, el);
                   }}
                   className={`shop-hotspot ${hoveredId === item.id ? "is-hovered" : ""} ${
-                    displayed !== null ? "is-locked" : ""
+                    displayed !== null || poster !== null ? "is-locked" : ""
                   }`}
                   style={{
                     left: `${item.spot.x - item.spot.w / 2}%`,
@@ -306,6 +317,24 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                 />
               );
             })}
+            {wallPosters.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`shop-hotspot shop-hotspot-poster ${
+                  displayed !== null || poster !== null ? "is-locked" : ""
+                }`}
+                style={{
+                  left: `${p.spot.x - p.spot.w / 2}%`,
+                  top: `${p.spot.y - p.spot.h / 2}%`,
+                  width: `${p.spot.w}%`,
+                  height: `${p.spot.h}%`,
+                  visibility: poster?.id === p.id ? "hidden" : "visible",
+                }}
+                onClick={(e) => openPoster(p.id, e.currentTarget)}
+                aria-label={p.name}
+              />
+            ))}
           </div>
 
         </div>
@@ -338,6 +367,17 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
           </span>
           <span>→</span>
         </div>
+      )}
+
+      {poster && size && (
+        <PosterLightbox
+          key={poster.id}
+          poster={wallPosters.find((p) => p.id === poster.id)!}
+          origin={poster.origin}
+          container={size}
+          compact={compact}
+          onClose={() => setPoster(null)}
+        />
       )}
 
       <ShopHeader />

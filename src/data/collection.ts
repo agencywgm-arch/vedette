@@ -87,6 +87,21 @@ export const fitFolder = (id: string, morph: Morph) =>
 
 /** Intrinsic size of public/collection/wall.webp — hotspots are % of this. */
 export const WALL_SIZE = { w: 1454, h: 1082 };
+export interface WallPoster {
+  id: string;
+  name: string;
+  src: string;
+  /** Intrinsic size, so the enlarged view keeps the photo's proportions. */
+  w: number;
+  h: number;
+  spot: Spot;
+}
+/** Framed photos on the wall: tap one to bring it forward, like a piece. */
+export const wallPosters: WallPoster[] = [
+  { id: "peintre", name: "Peinture live — atelier Vedette", src: "/collection/posters/peintre.webp", w: 979, h: 1600, spot: { x: 94.29, y: 16.91, w: 9.08, h: 21.26 } },
+  { id: "artiste-rouge", name: "Sur scène — Vedette", src: "/collection/posters/artiste-rouge.webp", w: 1132, h: 1600, spot: { x: 94.39, y: 37.11, w: 9.28, h: 18.21 } },
+  { id: "cabine-photo", name: "Photomaton — casquettes Vedette", src: "/collection/posters/cabine-photo.webp", w: 1163, h: 1479, spot: { x: 94.22, y: 57.39, w: 9.63, h: 21.44 } },
+];
 export const WALL_IMAGE = "/collection/wall.webp?v=3";
 
 const P = "/collection/products/";
@@ -102,7 +117,7 @@ export const collection: CollectionItem[] = [
     description: "T-shirt en coton premium. Coupe oversize. Sérigraphie haute qualité.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 18.02, y: 22.18, w: 16.51, h: 25.88 },
+    spot: { x: 26.27, y: 35.12, w: 16.51, h: 25.88 },
     front: P + "jparis-tee-front.webp",
     back: P + "jparis-tee-back.webp",
     model: "/models/jparis-tee.glb",
@@ -119,7 +134,7 @@ export const collection: CollectionItem[] = [
     description: "T-shirt noir imprimé all-over. Édition Champions 2025, tirage limité.",
     colors: [{ name: "Noir", hex: "#111111" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 34.04, y: 22.18, w: 13.55, h: 25.88 },
+    spot: { x: 40.81, y: 35.12, w: 13.55, h: 25.88 },
     front: P + "champions-tee-front.webp",
     back: P + "champions-tee-back.webp",
     model: "/models/champions-tee.glb",
@@ -136,7 +151,7 @@ export const collection: CollectionItem[] = [
     description: "Sweat col polo bleu marine, col blanc contrasté. Broderie dos signature.",
     colors: [{ name: "Marine", hex: "#1b2545" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 51.93, y: 22.18, w: 17.68, h: 25.88 },
+    spot: { x: 60.77, y: 35.12, w: 17.68, h: 25.88 },
     front: P + "paris-polo-front.webp",
     back: P + "paris-polo-back.webp",
     model: "/models/paris-polo.glb",
@@ -153,7 +168,7 @@ export const collection: CollectionItem[] = [
     description: "Sweat col V crème, liseré bleu. Inspiration maillot rétro.",
     colors: [{ name: "Crème", hex: "#efe7d4" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 69.46, y: 22.18, w: 17.74, h: 25.88 },
+    spot: { x: 78.33, y: 35.12, w: 17.74, h: 25.88 },
     front: P + "vedette-vneck-front.webp",
     back: P + "vedette-vneck-back.webp",
     model: "/models/vedette-vneck.glb",
@@ -170,7 +185,7 @@ export const collection: CollectionItem[] = [
     description: "Casquette noire brodée multi-patchs. Ambiance paddock.",
     colors: [{ name: "Noir", hex: "#111111" }],
     sizes: ["TU"],
-    spot: { x: 23.38, y: 49.91, w: 9.97, h: 11.09 },
+    spot: { x: 28.36, y: 55.45, w: 9.97, h: 11.09 },
     front: P + "cap-vedette-front.webp",
     back: P + "cap-vedette-back.webp",
     model: "/models/cap-vedette.glb",
@@ -185,7 +200,7 @@ export const collection: CollectionItem[] = [
     description: "Casquette blanche visière flammes, broderie circuit Paris.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
     sizes: ["TU"],
-    spot: { x: 38.51, y: 49.91, w: 10.18, h: 11.09 },
+    spot: { x: 43.60, y: 55.45, w: 10.18, h: 11.09 },
     front: P + "cap-flames-front.webp",
     back: null,
     model: "/models/cap-flames.glb",
@@ -199,7 +214,7 @@ export const collection: CollectionItem[] = [
     description: "Collab Bien ou Foie × Vedette. Casquette orange, broderie exclusive.",
     colors: [{ name: "Orange", hex: "#e8600f" }],
     sizes: ["TU"],
-    spot: { x: 38.51, y: 49.91, w: 10.18, h: 11.09 },
+    spot: { x: 43.60, y: 55.45, w: 10.18, h: 11.09 },
     front: P + "cap-bienoufoie-front.webp",
     back: null,
     model: "/models/cap-bienoufoie.glb",
@@ -215,7 +230,7 @@ export const collection: CollectionItem[] = [
       "Camo digital noir, liseré jaune fluo sous la visière, sangle réglable à boucle D.",
     colors: [{ name: "Camo", hex: "#23231f" }],
     sizes: ["TU"],
-    spot: { x: 55.16, y: 49.91, w: 10.32, h: 11.09 },
+    spot: { x: 60.32, y: 55.45, w: 10.32, h: 11.09 },
     front: P + "cap-camo-front.webp",
     back: null,
     model: "/models/cap-camo.glb",
@@ -230,7 +245,7 @@ export const collection: CollectionItem[] = [
     description: "Casquette marine logo cœur brodé, sangle boucle vedette.",
     colors: [{ name: "Marine", hex: "#1b2545" }],
     sizes: ["TU"],
-    spot: { x: 72.35, y: 49.91, w: 10.52, h: 11.09 },
+    spot: { x: 77.61, y: 55.45, w: 10.52, h: 11.09 },
     front: P + "cap-heart-front.webp",
     back: null,
     model: "/models/cap-heart.glb",
@@ -245,7 +260,7 @@ export const collection: CollectionItem[] = [
     description: "Manches longues blanc, print rose PARIS VEDETTE.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 19.12, y: 63.77, w: 13.55, h: 26.99 },
+    spot: { x: 25.90, y: 77.27, w: 13.55, h: 26.99 },
     front: P + "paris-longsleeve-front.webp",
     back: null,
     model: "/models/paris-longsleeve.glb",
@@ -259,7 +274,7 @@ export const collection: CollectionItem[] = [
     description: "Collab Bien ou Foie × Vedette. Débardeur noir imprimé all-over, tirage limité.",
     colors: [{ name: "Noir", hex: "#111111" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 19.12, y: 63.77, w: 13.55, h: 26.99 },
+    spot: { x: 25.90, y: 77.27, w: 13.55, h: 26.99 },
     front: P + "boxe-khoya-tank-front.webp",
     back: null,
     model: "/models/boxe-khoya-tank.glb",
@@ -276,7 +291,7 @@ export const collection: CollectionItem[] = [
     description: "T-shirt noir, illustration FORREAL grand format.",
     colors: [{ name: "Noir", hex: "#111111" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 31.36, y: 63.77, w: 15.54, h: 26.99 },
+    spot: { x: 39.13, y: 77.27, w: 15.54, h: 26.99 },
     front: P + "forreal-tee-front.webp",
     back: null,
     model: "/models/forreal-tee.glb",
@@ -293,7 +308,7 @@ export const collection: CollectionItem[] = [
     description: "Maillot mesh sans manches, bandes arc-en-ciel, numéro 92 floqué au dos.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 46.35, y: 63.77, w: 11.97, h: 26.99 },
+    spot: { x: 52.34, y: 77.27, w: 11.97, h: 26.99 },
     front: P + "rainbow-jersey-front.webp",
     back: P + "rainbow-jersey-back.webp",
     cabine: C + "rainbow-jersey",
@@ -309,7 +324,7 @@ export const collection: CollectionItem[] = [
     description: "Sweat gris chiné, print J'♥ PARIS poitrine. Le basique de la collection.",
     colors: [{ name: "Gris", hex: "#9a9a9a" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 57.5, y: 63.77, w: 17.06, h: 26.99 },
+    spot: { x: 66.03, y: 77.27, w: 17.06, h: 26.99 },
     front: P + "jparis-sweat-front.webp",
     back: null,
     model: "/models/jparis-sweat.glb",
@@ -326,7 +341,7 @@ export const collection: CollectionItem[] = [
     description: "Veste en cuir noir, zips et pressions métal. Dos sérigraphié VOLEUR.",
     colors: [{ name: "Noir", hex: "#111111" }],
     sizes: ["S", "M", "L", "XL"],
-    spot: { x: 72.9, y: 63.77, w: 14.58, h: 26.99 },
+    spot: { x: 80.19, y: 77.27, w: 14.58, h: 26.99 },
     front: P + "black-jacket-front.webp",
     back: P + "black-jacket-back.webp",
     model: "/models/black-jacket.glb",
@@ -345,7 +360,7 @@ export const collection: CollectionItem[] = [
       "Sac en cuir grainé bleu ciel, fermoir tourniquet métal, logo vedette. Anneaux au dos pour le porter en sac à dos.",
     colors: [{ name: "Bleu ciel", hex: "#5a9fb8" }],
     sizes: ["TU"],
-    spot: { x: 4.13, y: 42.7, w: 9.28, h: 11.83 },
+    spot: { x: 8.77, y: 48.62, w: 9.28, h: 11.83 },
     front: P + "sac-vedette-front.webp",
     back: null,
     cabine: C + "sac-vedette",
