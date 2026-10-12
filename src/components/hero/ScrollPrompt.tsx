@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSceneStore } from "@/store/useSceneStore";
 
 /**
  * The opening instruction, drawn like a game's "press to continue" prompt:
@@ -8,7 +9,11 @@ import { useEffect, useState } from "react";
  * gesture, and chevrons pulling the eye down. It leaves as soon as the walk
  * has begun.
  */
-export default function ScrollPrompt({ visible, touch }: { visible: boolean; touch: boolean }) {
+export default function ScrollPrompt({ active, touch }: { active: boolean; touch: boolean }) {
+  // Booleans, so the prompt re-renders when it flips — not on every scroll tick.
+  const started = useSceneStore((s) => s.started);
+  const atStart = useSceneStore((s) => s.scrollOffset < 0.025);
+  const visible = active && started && atStart;
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const id = window.setTimeout(() => setMounted(true), 700);

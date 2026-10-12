@@ -47,6 +47,7 @@ const MOBILE_QUERY = "(max-width: 767px)";
 // time and memory the scroll doesn't have to wait on.
 const FRAME_COUNT = 241;
 const FRAME_SETS = {
+  hd: { dir: "/frames/hd/", w: 1600, h: 900 },
   desk: { dir: "/frames/desk/", w: 1280, h: 720 },
   lite: { dir: "/frames/lite/", w: 1024, h: 576 },
 };
@@ -123,8 +124,6 @@ export default function ScrollVideoHero() {
   const setScrollOffset = useSceneStore((s) => s.setScrollOffset);
   const setStage = useSceneStore((s) => s.setStage);
   const entryMode = useSceneStore((s) => s.entryMode);
-  const scrollProgress = useSceneStore((s) => s.scrollOffset);
-  const started = useSceneStore((s) => s.started);
   const setEntryMode = useSceneStore((s) => s.setEntryMode);
   const lastStageRef = useRef("street");
 
@@ -295,7 +294,15 @@ export default function ScrollVideoHero() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !hydrated) return;
-    const set = lite ? FRAME_SETS.lite : FRAME_SETS.desk;
+    // Big, high-density screens with the memory to hold the larger stills get
+    // the sharper set; everything else keeps the lighter ones.
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    const bigScreen = window.screen.width * (window.devicePixelRatio || 1) >= 1800;
+    const set = lite
+      ? FRAME_SETS.lite
+      : bigScreen && (nav.deviceMemory ?? 8) >= 8
+        ? FRAME_SETS.hd
+        : FRAME_SETS.desk;
     canvas.width = set.w;
     canvas.height = set.h;
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -307,13 +314,13 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261012`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261012b`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
       // screen than what's being shown in its place.
       onFrame: () => {
-        if (seq.nearest(shownFrame.current) !== drawn) wake();
+        if (seq.key(shownFrame.current) !== drawn) wake();
       },
     });
 
@@ -328,9 +335,8 @@ export default function ScrollVideoHero() {
       if (Math.abs(target - shown) < 0.02) shown = target;
       shownFrame.current = shown;
 
-      const index = Math.round(shown);
-      if (seq.nearest(index) !== drawn) {
-        drawn = seq.draw(ctx, index);
+      if (seq.key(shown) !== drawn) {
+        drawn = seq.draw(ctx, shown);
         // An opaque canvas is black until its first frame; the poster under
         // it shows through until then.
         if (drawn >= 0) canvas.style.opacity = "1";
@@ -507,7 +513,7 @@ export default function ScrollVideoHero() {
           </div>
         )}
 
-        <ScrollPrompt visible={started && !roomOpen && entryMode === null && scrollProgress < 0.025} touch={isMobile} />
+        <ScrollPrompt active={!roomOpen && entryMode === null} touch={isMobile} />
 
         {/* Screen-locked like a HUD element rather than pinned to the guard —
             it doesn't pan with the look-around. */}

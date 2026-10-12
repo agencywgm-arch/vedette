@@ -15,8 +15,14 @@
  * phone than the draws it was meant to save.)
  */
 export interface FrameSequence {
-  /** Draws the nearest available frame to `index`; returns the frame drawn. */
+  /**
+   * Draws the picture at `index` — fractional positions blend the two frames
+   * either side, so scrubbing glides between stills instead of stepping.
+   * Returns a key that changes only when the picture on the canvas would.
+   */
   draw: (ctx: CanvasRenderingContext2D, index: number) => number;
+  /** The same key `draw` would return, without drawing. */
+  key: (index: number) => number;
   /** Nearest frame to `index` that is ready to draw, or -1. */
   nearest: (index: number) => number;
   destroy: () => void;
@@ -82,12 +88,38 @@ export function createFrameSequence({
     return -1;
   };
 
+  // Blend in eighths: finer steps would redraw without anyone seeing a
+  // difference, and the key lets the caller skip those redraws.
+  const STEPS = 8;
+  const plan = (index: number) => {
+    const pos = Math.min(count - 1, Math.max(0, index));
+    const lo = Math.floor(pos);
+    const hi = Math.min(count - 1, lo + 1);
+    const step = Math.round((pos - lo) * STEPS);
+    if (step === 0 || lo === hi) return { a: nearest(lo), b: -1, step: 0 };
+    if (step === STEPS) return { a: nearest(hi), b: -1, step: 0 };
+    if (imgs[lo] && imgs[hi]) return { a: lo, b: hi, step };
+    return { a: nearest(Math.round(pos)), b: -1, step: 0 };
+  };
+  const keyOf = (p: { a: number; b: number; step: number }) =>
+    p.a < 0 ? -1 : p.a * 1000 + (p.b >= 0 ? p.step * 100 + 1 : 0);
+
+  const key = (index: number) => keyOf(plan(index));
+
   const draw = (ctx: CanvasRenderingContext2D, index: number) => {
-    const i = nearest(index);
-    if (i < 0) return -1;
-    const img = imgs[i];
-    if (img) ctx.drawImage(img, 0, 0, width, height);
-    return i;
+    const p = plan(index);
+    if (p.a < 0) return -1;
+    const first = imgs[p.a];
+    if (first) ctx.drawImage(first, 0, 0, width, height);
+    if (p.b >= 0) {
+      const second = imgs[p.b];
+      if (second) {
+        ctx.globalAlpha = p.step / STEPS;
+        ctx.drawImage(second, 0, 0, width, height);
+        ctx.globalAlpha = 1;
+      }
+    }
+    return keyOf(p);
   };
 
   const destroy = () => {
@@ -96,5 +128,5 @@ export function createFrameSequence({
     imgs.fill(null);
   };
 
-  return { draw, nearest, destroy };
+  return { draw, key, nearest, destroy };
 }
