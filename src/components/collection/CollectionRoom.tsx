@@ -380,7 +380,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
         />
       )}
 
-      <ShopHeader />
+      <ShopHeader onPick={open} />
       {!compact && <NavHud compact={false} />}
       {!compact && <CategoryRail />}
       {displayed && <ProductPanel item={displayed} onClose={() => select(null)} />}

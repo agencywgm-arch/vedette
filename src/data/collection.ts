@@ -6,8 +6,7 @@ export type Category =
   | "VESTES"
   | "MAILLOTS"
   | "CASQUETTES"
-  | "ACCESSOIRES"
-  | "PANTALONS";
+  | "ACCESSOIRES";
 
 export interface Colorway {
   name: string;
@@ -398,7 +397,6 @@ export const categories: (Category | "TOUS")[] = [
   "MAILLOTS",
   "CASQUETTES",
   "ACCESSOIRES",
-  "PANTALONS",
 ];
 
 /** Only pieces whose packshot has landed can be lifted off the wall. */

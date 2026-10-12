@@ -5,11 +5,15 @@ import { useState } from "react";
 import { useShopStore } from "@/store/useShopStore";
 import CartDrawer from "./CartDrawer";
 import HelpDrawer from "./HelpDrawer";
+import InfoDrawer, { type InfoMode } from "./InfoDrawer";
 
-export default function ShopHeader() {
+export default function ShopHeader({ onPick }: { onPick: (id: string) => void }) {
   const cartCount = useShopStore((s) => s.cart.length);
   const [cartOpen, setCartOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [info, setInfo] = useState<InfoMode | null>(null);
+  const setCategory = useShopStore((s) => s.setCategory);
+  const select = useShopStore((s) => s.select);
 
   return (
     <header className="shop-header">
@@ -23,18 +27,44 @@ export default function ShopHeader() {
       />
 
       <nav className="shop-header-nav">
-        <span className="is-active">Boutique</span>
-        <span>Collections</span>
-        <span>À propos</span>
-        <span>Journal</span>
+        <button
+          type="button"
+          className="is-active"
+          onClick={() => {
+            setCategory("TOUS");
+            select(null);
+          }}
+        >
+          Boutique
+        </button>
+        <button type="button" onClick={() => setInfo("collections")}>Collections</button>
+        <button type="button" onClick={() => setInfo("about")}>À propos</button>
+        <button type="button" onClick={() => setInfo("journal")}>Journal</button>
       </nav>
 
       <div className="shop-header-right">
         <span className="shop-header-icons">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-4-4" />
-          </svg>
+          <button
+            type="button"
+            className="shop-header-btn shop-header-menu"
+            aria-label="Menu"
+            onClick={() => setInfo("menu")}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="shop-header-btn"
+            aria-label="Rechercher une pièce"
+            onClick={() => setInfo("search")}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-4-4" />
+            </svg>
+          </button>
           <button
             type="button"
             className="shop-header-btn"
@@ -61,6 +91,17 @@ export default function ShopHeader() {
         </span>
       </div>
       {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
+      {info && (
+        <InfoDrawer
+          mode={info}
+          onClose={() => setInfo(null)}
+          onPick={(id) => {
+            setInfo(null);
+            onPick(id);
+          }}
+          onHelp={() => setHelpOpen(true)}
+        />
+      )}
       {helpOpen && <HelpDrawer onClose={() => setHelpOpen(false)} />}
     </header>
   );
