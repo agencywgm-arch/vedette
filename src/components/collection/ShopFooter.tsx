@@ -5,7 +5,7 @@ import { useState } from "react";
 import HelpDrawer from "./HelpDrawer";
 
 export default function ShopFooter() {
-  const [help, setHelp] = useState(false);
+  const [help, setHelp] = useState<null | "support" | "tracking">(null);
   return (
     <footer className="shop-footer">
       <Image
@@ -15,11 +15,16 @@ export default function ShopFooter() {
         height={342}
         className="shop-footer-logo"
       />
-      <button type="button" className="shop-footer-link" onClick={() => setHelp(true)}>
-        Aide · Retours · Contact
-      </button>
+      <span className="shop-footer-links">
+        <button type="button" className="shop-footer-link" onClick={() => setHelp("tracking")}>
+          Suivre ma commande
+        </button>
+        <button type="button" className="shop-footer-link" onClick={() => setHelp("support")}>
+          Aide · Retours · Contact
+        </button>
+      </span>
       <span className="shop-footer-legal">© 2026 Vedette. Tous droits réservés.</span>
-      {help && <HelpDrawer onClose={() => setHelp(false)} />}
+      {help && <HelpDrawer initial={help} onClose={() => setHelp(null)} />}
     </footer>
   );
 }

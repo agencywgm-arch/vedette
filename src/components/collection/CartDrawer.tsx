@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { collection } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
+import { rememberOrder } from "./OrderTracker";
 
 const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
 
@@ -36,6 +38,7 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur");
+      rememberOrder(data.id, form.email.trim());
       setDone(data.id);
       clearCart();
     } catch (err) {
@@ -45,7 +48,8 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return (
+  // Rendered on <body>: inside the room it sat beneath the wall hotspots.
+  return createPortal(
     <div className="shop-drawer-backdrop" onClick={onClose}>
       <aside
         className="shop-drawer"
@@ -60,7 +64,8 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
         {done ? (
           <p className="shop-drawer-ok">
             Commande <strong>{done}</strong> enregistrée. Notre équipe te contacte par e-mail pour
-            le paiement et l&apos;expédition.
+            le paiement et l&apos;expédition. Tu peux suivre son statut à tout moment depuis{" "}
+            <em>Aide → Suivi</em>, avec ton numéro de commande et ton e-mail.
           </p>
         ) : lines.length === 0 ? (
           <p className="shop-drawer-empty">Ton panier est vide.</p>
@@ -98,6 +103,7 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
           </form>
         )}
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -11,6 +11,7 @@ export default function ShopHeader({ onPick }: { onPick: (id: string) => void })
   const cartCount = useShopStore((s) => s.cart.length);
   const [cartOpen, setCartOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [helpTab, setHelpTab] = useState<"tracking" | "support">("support");
   const [info, setInfo] = useState<InfoMode | null>(null);
   const setCategory = useShopStore((s) => s.setCategory);
   const select = useShopStore((s) => s.select);
@@ -99,10 +100,13 @@ export default function ShopHeader({ onPick }: { onPick: (id: string) => void })
             setInfo(null);
             onPick(id);
           }}
-          onHelp={() => setHelpOpen(true)}
+          onHelp={(tab) => {
+            setHelpTab(tab ?? "support");
+            setHelpOpen(true);
+          }}
         />
       )}
-      {helpOpen && <HelpDrawer onClose={() => setHelpOpen(false)} />}
+      {helpOpen && <HelpDrawer initial={helpTab} onClose={() => setHelpOpen(false)} />}
     </header>
   );
 }

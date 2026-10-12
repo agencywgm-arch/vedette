@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     total: lines.reduce((t, l) => t + l.price * l.qty, 0),
     status: "nouvelle",
     note: "",
+    history: [{ status: "nouvelle", at: new Date().toISOString() }],
   };
   const db = await loadDb();
   db.orders.unshift(order);

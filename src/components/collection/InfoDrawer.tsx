@@ -27,7 +27,7 @@ export default function InfoDrawer({
   onClose: () => void;
   /** Opens a piece on the wall (closes this drawer first). */
   onPick: (id: string) => void;
-  onHelp: () => void;
+  onHelp: (tab?: "tracking" | "support") => void;
 }) {
   const [mode, setMode] = useState<InfoMode>(initialMode);
   const [q, setQ] = useState("");
@@ -65,6 +65,20 @@ export default function InfoDrawer({
                 </button>
               </li>
             ))}
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onHelp("tracking");
+                }}
+              >
+                <span>
+                  <strong>Suivre ma commande</strong>
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </li>
             <li>
               <button
                 type="button"

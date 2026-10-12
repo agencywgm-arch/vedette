@@ -2224,3 +2224,44 @@ body {
     mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
   }
 }
+
+/* --- suivi de commande (client) --- */
+.shop-footer-links { display: inline-flex; gap: 22px; }
+.track form { display: flex; flex-direction: column; gap: 10px; }
+.track-card { margin-top: 20px; padding: 16px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); }
+.track-id { display: flex; justify-content: space-between; margin: 0 0 8px; font-size: .8rem; opacity: .8; }
+.track-now { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.track-now.is-expediee { color: #6bd4ff; }
+.track-now.is-livree { color: #7ee08a; }
+.track-now.is-annulee { color: #ff7a7a; }
+.track-help { margin: 6px 0 16px; line-height: 1.5; opacity: .85; font-size: .9rem; }
+.track-steps { list-style: none; margin: 0 0 16px; padding: 0; }
+.track-steps li { position: relative; display: flex; gap: 12px; padding: 0 0 16px; opacity: .45; }
+.track-steps li:last-child { padding-bottom: 0; }
+.track-steps li::before { content: ""; position: absolute; left: 6px; top: 14px; bottom: 0; width: 2px; background: rgba(255,255,255,.2); }
+.track-steps li:last-child::before { display: none; }
+.track-steps i { flex: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); margin-top: 2px; background: #0c0c10; position: relative; z-index: 1; }
+.track-steps .is-done, .track-steps .is-now { opacity: 1; }
+.track-steps .is-done i { background: #7ee08a; border-color: #7ee08a; }
+.track-steps .is-done::before { background: #7ee08a; }
+.track-steps .is-now i { background: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.2); }
+.track-steps span { display: block; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
+.track-steps small { display: block; opacity: .6; text-transform: none; letter-spacing: 0; margin-top: 2px; }
+.track-parcel { margin: 0 0 14px; padding: 10px 12px; background: rgba(255,255,255,.07); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.track-parcel a { color: #6bd4ff; margin-left: auto; }
+.track-lines { list-style: none; margin: 0; padding: 12px 0 0; border-top: 1px solid rgba(255,255,255,.12); font-size: .85rem; }
+.track-lines li { padding: 3px 0; }
+.track-lines small { opacity: .55; margin-left: 6px; }
+
+/* --- expédition (staff) --- */
+.staff-ship { margin: 14px 0; padding: 12px; border: 1px solid rgba(255,255,255,.14); display: flex; flex-direction: column; gap: 8px; }
+.staff-ship > label { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
+.staff-ship-row { display: grid; grid-template-columns: 170px 1fr; gap: 8px; }
+.staff-ship select, .staff-ship input { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18); color: inherit; padding: 8px 10px; font: inherit; border-radius: 2px; width: 100%; }
+.staff-ship-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.staff-ship-actions button { padding: 8px 12px; background: none; border: 1px solid rgba(255,255,255,.3); color: inherit; cursor: pointer; font: inherit; }
+.staff-ship-actions button.is-primary { background: #fff; color: #000; }
+.staff-ship-actions button:disabled { opacity: .4; cursor: not-allowed; }
+.staff-ship-actions a { margin-left: auto; color: #6bd4ff; font-size: .85rem; }
+.staff-ship-history { list-style: none; margin: 4px 0 0; padding: 0; font-size: .8rem; opacity: .8; display: grid; gap: 3px; }
+@media (max-width: 560px) { .staff-ship-row { grid-template-columns: 1fr; } }

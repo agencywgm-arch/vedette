@@ -2,18 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CARRIERS, SHIP_LABEL, carrierName, trackingUrl } from "@/lib/shipping";
 import type { Db, Order, ReturnRequest, Ticket } from "@/lib/staff/store";
 
 type Data = Db & { demo: boolean; weak: boolean };
 type Tab = "orders" | "returns" | "tickets";
 
-const ORDER_LABEL: Record<string, string> = {
-  nouvelle: "Nouvelle",
-  preparation: "En préparation",
-  expediee: "Expédiée",
-  livree: "Livrée",
-  annulee: "Annulée",
-};
+const ORDER_LABEL: Record<string, string> = { ...SHIP_LABEL, nouvelle: "Nouvelle" };
 const RETURN_LABEL: Record<string, string> = {
   demandee: "Demandé",
   acceptee: "Accepté",
@@ -209,6 +204,7 @@ export default function StaffDashboard() {
                   <li key={i}>{l.qty} × {l.name} — {l.color}, {l.size} — {euro(l.price * l.qty)}</li>
                 ))}
               </ul>
+              <Shipping order={o} onSave={(body) => patch("orders", o.id, body)} />
               <Note value={o.note} onSave={(note) => patch("orders", o.id, { note })} />
             </Row>
           ))}
@@ -314,6 +310,76 @@ function Row({
       </div>
       {open && <div className="staff-row-body">{children}</div>}
     </li>
+  );
+}
+
+function Shipping({ order, onSave }: { order: Order; onSave: (b: Record<string, unknown>) => void }) {
+  const [carrier, setCarrier] = useState(order.carrier ?? "colissimo");
+  const [tracking, setTracking] = useState(order.tracking ?? "");
+  const [message, setMessage] = useState(order.message ?? "");
+  const url = trackingUrl(carrier, tracking.trim());
+  const history = order.history ?? [];
+  const markShipped = order.status !== "expediee" && order.status !== "livree";
+  return (
+    <div className="staff-ship">
+      <label>Expédition</label>
+      <div className="staff-ship-row">
+        <select value={carrier} onChange={(e) => setCarrier(e.target.value)} aria-label="Transporteur">
+          {CARRIERS.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <input
+          value={tracking}
+          onChange={(e) => setTracking(e.target.value)}
+          placeholder="N° de suivi"
+          maxLength={40}
+          aria-label="Numéro de suivi"
+        />
+      </div>
+      <input
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Message affiché au client (ex. livraison en point relais)"
+        maxLength={300}
+        aria-label="Message au client"
+      />
+      <div className="staff-ship-actions">
+        <button type="button" onClick={() => onSave({ carrier, tracking, message })}>
+          Enregistrer
+        </button>
+        {markShipped && order.status !== "annulee" && (
+          <button
+            type="button"
+            className="is-primary"
+            disabled={!tracking.trim()}
+            title={tracking.trim() ? "" : "Renseigne le numéro de suivi"}
+            onClick={() => onSave({ carrier, tracking, message, status: "expediee" })}
+          >
+            Marquer expédiée
+          </button>
+        )}
+        {order.status === "expediee" && (
+          <button type="button" className="is-primary" onClick={() => onSave({ status: "livree" })}>
+            Marquer livrée
+          </button>
+        )}
+        {url && (
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            Ouvrir le suivi {carrierName(carrier)} →
+          </a>
+        )}
+      </div>
+      {history.length > 0 && (
+        <ol className="staff-ship-history">
+          {history.map((h, i) => (
+            <li key={i}>
+              <strong>{ORDER_LABEL[h.status] ?? h.status}</strong> · {when(h.at)}
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
   );
 }
 

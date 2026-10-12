@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CARRIERS } from "@/lib/shipping";
 import { staffAuthorized } from "@/lib/staff/guard";
 import {
   ORDER_STATUSES,
@@ -19,7 +20,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
   const { kind, id } = await ctx.params;
-  let body: { status?: unknown; note?: unknown; reply?: unknown };
+  let body: { status?: unknown; note?: unknown; reply?: unknown; carrier?: unknown; tracking?: unknown; message?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -35,9 +36,20 @@ export async function PATCH(
     if (status) {
       if (!(ORDER_STATUSES as string[]).includes(status))
         return NextResponse.json({ error: "Statut invalide" }, { status: 400 });
-      it.status = status as typeof it.status;
+      if (it.status !== status) {
+        it.status = status as typeof it.status;
+        (it.history ??= [{ status: "nouvelle", at: it.createdAt }]).push({ status: it.status, at: new Date().toISOString() });
+      }
     }
     if (note !== undefined) it.note = note;
+    if (body.carrier !== undefined) {
+      const c = clean(body.carrier, 20);
+      if (c && !CARRIERS.some((x) => x.id === c))
+        return NextResponse.json({ error: "Transporteur inconnu" }, { status: 400 });
+      it.carrier = c || undefined;
+    }
+    if (body.tracking !== undefined) it.tracking = clean(body.tracking, 40).replace(/\s+/g, "") || undefined;
+    if (body.message !== undefined) it.message = clean(body.message, 300) || undefined;
   } else if (kind === "returns") {
     const it = db.returns.find((x) => x.id === id);
     if (!it) return NextResponse.json({ error: "Introuvable" }, { status: 404 });

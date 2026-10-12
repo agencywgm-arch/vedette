@@ -29,6 +29,13 @@ export interface Order {
   total: number;
   status: OrderStatus;
   note: string;
+  /** Shipping: filled in by staff, shown to the customer on the tracking page. */
+  carrier?: string;
+  tracking?: string;
+  /** Free message shown to the customer (e.g. "Livraison en point relais"). */
+  message?: string;
+  /** Every status the order went through, oldest first. */
+  history?: { status: OrderStatus; at: string }[];
 }
 export interface ReturnRequest {
   id: string;
@@ -72,6 +79,7 @@ function kv() {
 
 export const isPersistent = () => kv() !== null;
 
+const ORDER_FLOW: OrderStatus[] = ["nouvelle", "preparation", "expediee", "livree"];
 const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
 
 function line(itemId: string, color: string, size: string, qty = 1): OrderLine {
@@ -84,6 +92,7 @@ const sum = (ls: OrderLine[]) => ls.reduce((t, l) => t + l.price * l.qty, 0);
 function seed(): Db {
   const o = (id: string, h: number, c: Customer, ls: OrderLine[], status: OrderStatus): Order => ({
     id, createdAt: ago(h), customer: c, lines: ls, total: sum(ls), status, note: "",
+    history: ORDER_FLOW.slice(0, Math.max(1, ORDER_FLOW.indexOf(status) + 1)).map((st, i) => ({ status: st, at: ago(Math.max(0, h - i * 6)) })),
   });
   const orders: Order[] = [
     o("CMD-48213", 1, { name: "Yanis B.", email: "yanis.b@example.com", city: "Paris" }, [line("black-jacket", "Noir", "M"), line("cap-vedette", "Noir", "TU")], "nouvelle"),
@@ -93,6 +102,12 @@ function seed(): Db {
     o("CMD-48180", 70, { name: "Moussa T.", email: "moussa.t@example.com", city: "Lille" }, [line("champions-tee", "Noir", "XL")], "livree"),
     o("CMD-48171", 96, { name: "Sarah K.", email: "sarah.k@example.com", city: "Nantes" }, [line("rainbow-jersey", "Blanc", "M")], "annulee"),
   ];
+  for (const x of orders) {
+    if (x.status === "expediee" || x.status === "livree") {
+      x.carrier = "colissimo";
+      x.tracking = "6A12345678901";
+    }
+  }
   const returns: ReturnRequest[] = [
     { id: "RET-3304", createdAt: ago(5), orderId: "CMD-48180", customer: { name: "Moussa T.", email: "moussa.t@example.com" }, itemName: "CHAMPIONS 2025 TEE", reason: "Taille trop grande, souhaite un L.", status: "demandee", note: "" },
     { id: "RET-3299", createdAt: ago(30), orderId: "CMD-48150", customer: { name: "Julie P.", email: "julie.p@example.com" }, itemName: "SWEAT J'♥ PARIS", reason: "Ne convient pas.", status: "acceptee", note: "Étiquette retour envoyée." },
