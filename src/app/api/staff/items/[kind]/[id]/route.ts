@@ -36,6 +36,10 @@ export async function PATCH(
     if (status) {
       if (!(ORDER_STATUSES as string[]).includes(status))
         return NextResponse.json({ error: "Statut invalide" }, { status: 400 });
+      // An order can't be marked shipped without a parcel number the customer can follow.
+      const incoming = body.tracking === undefined ? it.tracking : clean(body.tracking, 40);
+      if (status === "expediee" && !incoming)
+        return NextResponse.json({ error: "Numéro de colis requis pour passer en « Expédiée »" }, { status: 400 });
       if (it.status !== status) {
         it.status = status as typeof it.status;
         (it.history ??= [{ status: "nouvelle", at: it.createdAt }]).push({ status: it.status, at: new Date().toISOString() });

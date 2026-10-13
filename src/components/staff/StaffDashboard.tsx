@@ -35,6 +35,7 @@ export default function StaffDashboard() {
   const router = useRouter();
   const [data, setData] = useState<Data | null>(null);
   const [tab, setTab] = useState<Tab>("orders");
+  const [needTracking, setNeedTracking] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -71,7 +72,10 @@ export default function StaffDashboard() {
       body: JSON.stringify(body),
     });
     if (res.status === 401) return void router.replace("/staff/login");
-    if (!res.ok) setError("La modification a échoué.");
+    if (!res.ok) {
+      const d = await res.json().catch(() => null);
+      setError(d?.error ?? "La modification a échoué.");
+    } else setError("");
     await load();
   }
 
@@ -196,7 +200,16 @@ export default function StaffDashboard() {
               right={euro(o.total)}
               status={o.status}
               statuses={ORDER_LABEL}
-              onStatus={(s) => patch("orders", o.id, { status: s })}
+              onStatus={(s) => {
+                // Shipping needs a parcel number: ask for it instead of silently saving.
+                if (s === "expediee" && !o.tracking) {
+                  setOpen(o.id);
+                  setNeedTracking(o.id);
+                  return;
+                }
+                setNeedTracking(null);
+                patch("orders", o.id, { status: s });
+              }}
             >
               <p>{o.customer.email}{o.customer.city ? ` · ${o.customer.city}` : ""}</p>
               <ul className="staff-lines">
@@ -204,7 +217,14 @@ export default function StaffDashboard() {
                   <li key={i}>{l.qty} × {l.name} — {l.color}, {l.size} — {euro(l.price * l.qty)}</li>
                 ))}
               </ul>
-              <Shipping order={o} onSave={(body) => patch("orders", o.id, body)} />
+              <Shipping
+                order={o}
+                needTracking={needTracking === o.id}
+                onSave={(body) => {
+                  if (body.status === "expediee") setNeedTracking(null);
+                  patch("orders", o.id, body);
+                }}
+              />
               <Note value={o.note} onSave={(note) => patch("orders", o.id, { note })} />
             </Row>
           ))}
@@ -313,7 +333,7 @@ function Row({
   );
 }
 
-function Shipping({ order, onSave }: { order: Order; onSave: (b: Record<string, unknown>) => void }) {
+function Shipping({ order, onSave, needTracking }: { order: Order; onSave: (b: Record<string, unknown>) => void; needTracking: boolean }) {
   const [carrier, setCarrier] = useState(order.carrier ?? "colissimo");
   const [tracking, setTracking] = useState(order.tracking ?? "");
   const [message, setMessage] = useState(order.message ?? "");
@@ -321,8 +341,13 @@ function Shipping({ order, onSave }: { order: Order; onSave: (b: Record<string, 
   const history = order.history ?? [];
   const markShipped = order.status !== "expediee" && order.status !== "livree";
   return (
-    <div className="staff-ship">
+    <div className={`staff-ship ${needTracking ? "is-needed" : ""}`}>
       <label>Expédition</label>
+      {needTracking && (
+        <p className="staff-ship-alert" role="alert">
+          Saisis le numéro de colis puis clique sur « Marquer expédiée » : le client pourra suivre son colis.
+        </p>
+      )}
       <div className="staff-ship-row">
         <select value={carrier} onChange={(e) => setCarrier(e.target.value)} aria-label="Transporteur">
           {CARRIERS.map((c) => (
@@ -330,9 +355,10 @@ function Shipping({ order, onSave }: { order: Order; onSave: (b: Record<string, 
           ))}
         </select>
         <input
+          autoFocus={needTracking}
           value={tracking}
           onChange={(e) => setTracking(e.target.value)}
-          placeholder="N° de suivi"
+          placeholder="N° de colis / de suivi"
           maxLength={40}
           aria-label="Numéro de suivi"
         />
