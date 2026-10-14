@@ -314,13 +314,8 @@ export default function ScrollVideoHero() {
     // Physical pixels across the screen: the 1080p stills from 1400 up, so a
     // laptop or a phone-in-landscape never stretches a 720p picture.
     const physical = Math.max(window.screen.width, window.innerWidth) * (window.devicePixelRatio || 1);
-    // Phones show only a portrait slice of the picture, so the 1024px stills
-    // get stretched ~3x; any phone with the memory takes the 1280px set instead.
-    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
     const set = lite
-      ? (nav.deviceMemory ?? 4) >= 4 && !conn?.saveData
-        ? FRAME_SETS.desk
-        : FRAME_SETS.lite
+      ? FRAME_SETS.lite
       : physical >= 1400 && (nav.deviceMemory ?? 8) >= 4
         ? FRAME_SETS.hd
         : FRAME_SETS.desk;
@@ -336,7 +331,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261025`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261026`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -361,7 +356,7 @@ export default function ScrollVideoHero() {
       sharpFor = i;
       const next = new Image();
       next.decoding = "async";
-      next.src = `${FRAME_SETS.hd.dir}${String(i).padStart(3, "0")}.webp?v=20261025`;
+      next.src = `${FRAME_SETS.hd.dir}${String(i).padStart(3, "0")}.webp?v=20261026`;
       next
         .decode()
         .then(() => {
