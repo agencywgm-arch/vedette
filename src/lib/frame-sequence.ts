@@ -25,10 +25,12 @@ export interface FrameSequence {
   key: (index: number) => number;
   /** Nearest frame to `index` that is ready to draw, or -1. */
   nearest: (index: number) => number;
+  /** Tell the loader where the viewer is, so frames around it arrive first. */
+  focus: (index: number) => void;
   destroy: () => void;
 }
 
-const CONCURRENCY = 6;
+const CONCURRENCY = 8;
 
 export function createFrameSequence({
   count,
@@ -47,22 +49,48 @@ export function createFrameSequence({
   const imgs: (HTMLImageElement | null)[] = new Array(count).fill(null);
   let destroyed = false;
 
+  // Coarse pass first (every 8th frame) so the whole walk is scrubbable fast…
   const order: number[] = [];
-  const seen = new Uint8Array(count);
-  for (const stride of [16, 8, 4, 2, 1]) {
+  const queued = new Uint8Array(count);
+  for (const stride of [16, 8]) {
     for (let i = 0; i < count; i += stride) {
-      if (!seen[i]) {
-        seen[i] = 1;
+      if (!queued[i]) {
+        queued[i] = 1;
         order.push(i);
       }
     }
   }
-  if (!seen[count - 1]) order.splice(1, 0, count - 1);
+  if (!queued[count - 1]) {
+    queued[count - 1] = 1;
+    order.splice(1, 0, count - 1);
+  }
+  // …then always the missing frame closest to where the viewer is looking, so
+  // scrolling lands on sharp frames instead of a distant coarse neighbour.
+  let focusAt = 0;
+  const closestMissing = () => {
+    let best = -1;
+    let bestD = Infinity;
+    for (let i = 0; i < count; i++) {
+      if (queued[i]) continue;
+      const d = Math.abs(i - focusAt);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
+  };
 
   let next = 0;
   const pump = () => {
-    if (destroyed || next >= order.length) return;
-    const index = order[next++];
+    if (destroyed) return;
+    let index: number;
+    if (next < order.length) index = order[next++];
+    else {
+      index = closestMissing();
+      if (index < 0) return;
+      queued[index] = 1;
+    }
     const img = new Image();
     img.decoding = "async";
     img.src = url(index);
@@ -122,11 +150,15 @@ export function createFrameSequence({
     return keyOf(p);
   };
 
+  const focus = (index: number) => {
+    focusAt = Math.max(0, Math.min(count - 1, Math.round(index)));
+  };
+
   const destroy = () => {
     destroyed = true;
     // Unreferenced images are released; in-flight loads finish into nothing.
     imgs.fill(null);
   };
 
-  return { draw, key, nearest, destroy };
+  return { draw, key, nearest, focus, destroy };
 }

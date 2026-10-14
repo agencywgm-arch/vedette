@@ -32,8 +32,8 @@ const DOUBLE_TAP_MS = 400;
 // LOOK_SCALE actually buys — never more than that, so a bigger number here
 // only means "use more of what's already hidden," not a risk of ever
 // pulling the clip's own edge into view.
-const LOOK_SCALE = 1.14;
-const LOOK_MAX_PX = 130;
+const LOOK_SCALE = 1.06;
+const LOOK_MAX_PX = 60;
 const LOOK_EASE = 0.08;
 // How far a finger has to travel before it counts as looking around rather
 // than as the double tap that skips ahead.
@@ -101,6 +101,7 @@ export default function ScrollVideoHero() {
   const targetFrame = useRef(0);
   const shownFrame = useRef(0);
   const wakeDraw = useRef<() => void>(() => {});
+  const focusSeq = useRef<(i: number) => void>(() => {});
   const rafRef = useRef<number | null>(null);
   // On mobile the letterboxed video only fills a middle band of the screen —
   // the guard's line has to stay near his own black bar, not the screen's, or
@@ -309,16 +310,19 @@ export default function ScrollVideoHero() {
     // Big, high-density screens with the memory to hold the larger stills get
     // the sharper set; everything else keeps the lighter ones.
     const nav = navigator as Navigator & { deviceMemory?: number };
-    const bigScreen = window.screen.width * (window.devicePixelRatio || 1) >= 1800;
+    // Physical pixels across the screen: the 1080p stills from 1400 up, so a
+    // laptop or a phone-in-landscape never stretches a 720p picture.
+    const physical = Math.max(window.screen.width, window.innerWidth) * (window.devicePixelRatio || 1);
     const set = lite
       ? FRAME_SETS.lite
-      : bigScreen && (nav.deviceMemory ?? 8) >= 4
+      : physical >= 1400 && (nav.deviceMemory ?? 8) >= 4
         ? FRAME_SETS.hd
         : FRAME_SETS.desk;
     canvas.width = set.w;
     canvas.height = set.h;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
+    ctx.imageSmoothingQuality = "high";
 
     let raf = 0;
     let last = 0;
@@ -326,7 +330,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261012d`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261014`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -363,11 +367,13 @@ export default function ScrollVideoHero() {
       if (!raf) raf = requestAnimationFrame(frame);
     };
     wakeDraw.current = wake;
+    focusSeq.current = seq.focus;
     wake();
 
     return () => {
       cancelAnimationFrame(raf);
       wakeDraw.current = () => {};
+      focusSeq.current = () => {};
       seq.destroy();
     };
   }, [hydrated, lite]);
@@ -419,6 +425,7 @@ export default function ScrollVideoHero() {
       }
 
       targetFrame.current = progress * (FRAME_COUNT - 1);
+      focusSeq.current(targetFrame.current);
       wakeDraw.current();
 
       // Hand off to the live collection room once the clip has settled on the
