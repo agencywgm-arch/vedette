@@ -271,7 +271,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-heart.glb",
     cabine: C + "cap-heart",
-    turntable: { mp4: T + "cap-heart.mp4", webm: T + "cap-heart.webm" },
+    turntable: { mp4: T + "cap-heart.mp4?v=2", webm: T + "cap-heart.webm?v=2" },
   },
   {
     id: "paris-longsleeve",
