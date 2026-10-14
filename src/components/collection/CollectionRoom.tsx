@@ -401,16 +401,6 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
         />
       )}
 
-      {!inspecting && !poster && (
-        <div className="shop-wall-zoombar" role="group" aria-label="Zoom sur le mur">
-          <button type="button" onClick={() => wallZoom.zoomBy(1 / 1.5)} aria-label="Dézoomer" disabled={!wallZoom.zoomed}>−</button>
-          <button type="button" onClick={() => wallZoom.zoomBy(1.5)} aria-label="Zoomer" disabled={wallZoom.scale >= 3.5}>+</button>
-          {wallZoom.zoomed && (
-            <button type="button" onClick={wallZoom.reset} aria-label="Réinitialiser le zoom">⟲</button>
-          )}
-        </div>
-      )}
-
       <ShopHeader onPick={open} />
       {!compact && <NavHud compact={false} />}
       {!compact && <CategoryRail />}
