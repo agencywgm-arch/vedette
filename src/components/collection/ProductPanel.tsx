@@ -3,12 +3,8 @@
 import { useEffect, useState } from "react";
 import {
   FIT_FRAMES,
-  MORPH_LABELS,
-  femmeFitFolder,
   femmeFolder,
-  fitFolder,
   type CollectionItem,
-  type Morph,
 } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
@@ -44,15 +40,8 @@ export default function ProductPanel({
     const id = window.setTimeout(() => setCurtainDone(true), 4400);
     return () => window.clearTimeout(id);
   }, [cabineOpen, curtainDone]);
-  const [morph, setMorph] = useState<Morph | "medium">("medium");
   const [gender, setGender] = useState<"homme" | "femme">("homme");
   const isFemme = gender === "femme" && !!item.femme;
-  const morphs: (Morph | "medium")[] = item.fit?.length
-    ? ["mince", "medium", "large"].filter(
-        (m) => m === "medium" || item.fit?.includes(m as Morph),
-      ) as (Morph | "medium")[]
-    : [];
-
   return (
     <>
     <aside className="shop-panel">
@@ -185,17 +174,9 @@ export default function ProductPanel({
           </svg>
         </button>
         <CabineViewer
-          base={
-            morph === "medium"
-              ? isFemme
-                ? femmeFolder(item.id)
-                : item.cabine
-              : isFemme
-                ? femmeFitFolder(item.id, morph)
-                : fitFolder(item.id, morph)
-          }
-          frames={isFemme || morph !== "medium" ? FIT_FRAMES : undefined}
-          label={`${item.name} — ${isFemme ? "Femme" : MORPH_LABELS[morph]}`}
+          base={isFemme ? femmeFolder(item.id) : item.cabine}
+          frames={isFemme ? FIT_FRAMES : undefined}
+          label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
         />
         {item.femme && (
           <div
@@ -213,26 +194,6 @@ export default function ProductPanel({
                 onClick={() => setGender(g)}
               >
                 {g === "homme" ? "Homme" : "Femme"}
-              </button>
-            ))}
-          </div>
-        )}
-        {morphs.length > 1 && (
-          <div
-            className="shop-cabine-morphs"
-            onClick={(e) => e.stopPropagation()}
-            role="group"
-            aria-label="Morphologie du mannequin"
-          >
-            {morphs.map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={morph === m}
-                className={morph === m ? "is-active" : undefined}
-                onClick={() => setMorph(m)}
-              >
-                {MORPH_LABELS[m]}
               </button>
             ))}
           </div>
