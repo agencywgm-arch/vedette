@@ -123,7 +123,7 @@ export const wallPosters: WallPoster[] = [
   { id: "artiste-rouge", name: "Sur scène — Vedette", src: "/collection/posters/artiste-rouge.webp", w: 1132, h: 1600, spot: { x: 94.39, y: 37.11, w: 9.28, h: 18.21 } },
   { id: "cabine-photo", name: "Photomaton — casquettes Vedette", src: "/collection/posters/cabine-photo.webp", w: 1163, h: 1479, spot: { x: 94.22, y: 57.39, w: 9.63, h: 21.44 } },
 ];
-export const WALL_IMAGE = "/collection/wall.webp?v=3";
+export const WALL_IMAGE = "/collection/wall.webp?v=4";
 
 const P = "/collection/products/";
 const C = "/cabine/looks/";
