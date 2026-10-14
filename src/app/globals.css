@@ -930,8 +930,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 70;
-  /* One flat colour, the same one the photos are painted with: no bands. */
-  background: var(--amb, #2a2f4a);
+  background: #0a0a0c;
   cursor: pointer;
   animation: fade-in 0.25s ease forwards;
 }
@@ -1952,100 +1951,95 @@ body {
   transition: opacity 0.4s ease;
 }
 
-/* --- rideau de la cabine : noir, plissé, logo brodé — se ferme sur l'arrivée puis s'ouvre --- */
+/* --- rideau de la cabine : velours noir plissé, logo brodé cousu à cheval sur les deux pans.
+   Les pans se froncent vers l'extérieur (plis qui se resserrent) et le logo se sépare en deux
+   avec eux. Transformations 2D uniquement (translate/scale) : même rendu sur PC, Android, iPhone. --- */
 
 .cabine-curtains {
+  --edge: 50.4%; /* largeur d'un pan */
+  --logo-w: min(78vw, 680px);
   position: absolute;
   inset: 0;
   z-index: 8;
   pointer-events: none;
   overflow: hidden;
-  perspective: 1400px;
+  contain: layout paint;
 }
-/* Spot de lumière sur le rideau fermé, qui s'éteint à l'ouverture. */
-.cabine-curtains::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  background: radial-gradient(ellipse 55% 60% at 50% 46%, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 70%);
-  animation: cabine-spot 0.9s ease 0.7s forwards;
-}
-@keyframes cabine-spot { to { opacity: 0; } }
-
 .cabine-curtain {
   position: absolute;
-  top: -3%;
-  bottom: -3%;
-  width: 50.4%;
-  overflow: hidden;
+  top: 0;
+  bottom: 0;
+  width: var(--edge);
   will-change: transform;
-  --logo-w: min(76vw, 640px);
-  /* Grands plis doux + plis fins + ombre en haut (fronce) et au pied (ourlet). */
+  backface-visibility: hidden;
+  /* Fronce en haut, ourlet lesté en bas, bords ombrés, puis grands plis irréguliers + plis fins. */
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0, rgba(0, 0, 0, 0) 14%, rgba(0, 0, 0, 0) 78%, rgba(0, 0, 0, 0.7) 100%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 14%, rgba(0, 0, 0, 0) 86%, rgba(0, 0, 0, 0.55)),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 3px, rgba(255, 255, 255, 0) 3px 9px),
-    repeating-linear-gradient(90deg, #050506 0 44px, #0e0e10 62px, #19191c 74px, #0e0e10 86px, #050506 112px);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0, rgba(0, 0, 0, 0) 12%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 0.75) 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0) 90%, rgba(0, 0, 0, 0.5)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 2px, rgba(255, 255, 255, 0) 2px 7px),
+    repeating-linear-gradient(90deg, #050506 0, #121215 12px, #24242a 22px, #15151a 34px, #050506 50px, #060607 62px, #17171b 76px, #2a2a31 86px, #101013 100px, #050506 118px);
 }
-.cabine-curtain-l {
-  left: 0;
-  transform-origin: left top;
-  animation: cabine-draw-l 2.1s cubic-bezier(0.7, 0, 0.2, 1) 0.7s forwards;
-}
-.cabine-curtain-r {
-  right: 0;
-  transform-origin: right top;
-  animation: cabine-draw-r 2.1s cubic-bezier(0.7, 0, 0.2, 1) 0.78s forwards;
-}
-/* L'étoffe se fronce vers l'extérieur et le pied traîne un peu derrière la tête. */
-@keyframes cabine-draw-l {
-  0% { transform: translateX(0) scaleX(1) skewY(0deg); }
-  35% { transform: translateX(-22%) scaleX(0.82) skewY(-1.2deg); }
-  100% { transform: translateX(-100%) scaleX(0.34) skewY(0deg); }
-}
-@keyframes cabine-draw-r {
-  0% { transform: translateX(0) scaleX(1) skewY(0deg); }
-  35% { transform: translateX(22%) scaleX(0.82) skewY(1.2deg); }
-  100% { transform: translateX(100%) scaleX(0.34) skewY(0deg); }
-}
+.cabine-curtain-l { left: 0; transform-origin: 0 50%; animation: cabine-draw-l 2.2s cubic-bezier(0.65, 0, 0.25, 1) 1s forwards; }
+.cabine-curtain-r { right: 0; transform-origin: 100% 50%; animation: cabine-draw-r 2.2s cubic-bezier(0.65, 0, 0.25, 1) 1.06s forwards; }
+@keyframes cabine-draw-l { 0% { transform: translateX(0) scaleX(1); } 100% { transform: translateX(0) scaleX(0.07); } }
+@keyframes cabine-draw-r { 0% { transform: translateX(0) scaleX(1); } 100% { transform: translateX(0) scaleX(0.07); } }
+
 /* Reflet de velours qui glisse sur le tissu pendant qu'il bouge. */
 .cabine-curtain::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.09) 48%, transparent 66%);
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.07) 48%, transparent 66%);
   background-size: 260% 100%;
   background-position: 120% 0;
-  animation: cabine-sheen 2.1s ease 0.7s forwards;
+  animation: cabine-sheen 2.2s ease 1s forwards;
 }
 @keyframes cabine-sheen { to { background-position: -40% 0; } }
 
+/* Logo : deux moitiés posées au milieu, chacune suit le bord du pan qui s'écarte. */
+.cabine-logo-half {
+  position: absolute;
+  top: 50%;
+  width: calc(var(--logo-w) / 2);
+  height: calc(var(--logo-w) * 0.1788); /* ratio du fichier 1913x342 */
+  margin-top: calc(var(--logo-w) * -0.0894);
+  overflow: hidden;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+.cabine-logo-half img {
+  position: absolute;
+  top: 0;
+  width: var(--logo-w);
+  height: 100%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.25)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
+}
+.cabine-logo-l { right: 50%; animation: cabine-logo-l 2.2s cubic-bezier(0.65, 0, 0.25, 1) 1s forwards; }
+.cabine-logo-l img { left: 0; }
+.cabine-logo-r { left: 50%; animation: cabine-logo-r 2.2s cubic-bezier(0.65, 0, 0.25, 1) 1.06s forwards; }
+.cabine-logo-r img { left: calc(var(--logo-w) / -2); }
+/* 50,4 % × (1 − 0,07) ≈ 46,9 vw : le logo suit exactement le bord du pan. */
+@keyframes cabine-logo-l { 0% { transform: translateX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateX(-46.9vw); opacity: 0; } }
+@keyframes cabine-logo-r { 0% { transform: translateX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateX(46.9vw); opacity: 0; } }
+
+/* Tringle dorée avec anneaux, qui remonte une fois le rideau ouvert. */
 .cabine-curtain-rod {
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
-  height: 16px;
+  height: 14px;
   z-index: 9;
-  background: linear-gradient(#e0bd62, #8b6a22 55%, #4a3710);
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 2px, rgba(0, 0, 0, 0) 2px 34px),
+    linear-gradient(#e6c66e, #8b6a22 55%, #4a3710);
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  animation: cabine-rod-out 0.7s ease 2.5s forwards;
+  animation: cabine-rod-out 0.6s ease 3.3s forwards;
 }
 @keyframes cabine-rod-out { to { opacity: 0; transform: translateY(-110%); } }
-
-/* Le logo se lit à cheval sur les deux pans, brodé (liseré lumineux), et se sépare à l'ouverture. */
-.cabine-curtain-logo {
-  position: absolute;
-  top: 46%;
-  width: var(--logo-w);
-  height: auto;
-  transform: translateY(-50%);
-  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.22)) drop-shadow(0 3px 10px rgba(0, 0, 0, 0.9));
-  user-select: none;
-}
-.cabine-curtain-l .cabine-curtain-logo { right: calc(var(--logo-w) / -2 + 0.2vw); }
-.cabine-curtain-r .cabine-curtain-logo { left: calc(var(--logo-w) / -2 + 0.2vw); }
 
 @media (prefers-reduced-motion: reduce) {
   .cabine-curtains { display: none; }
@@ -2179,20 +2173,6 @@ body {
 }
 
 .shop-cabine-overlay { transition: background 0.5s ease; }
-
-/* Le logo se lit à cheval sur les deux pans, et se sépare quand le rideau s'ouvre. */
-.cabine-curtain { --logo-w: min(74vw, 620px); }
-.cabine-curtain-logo {
-  position: absolute;
-  top: 50%;
-  width: var(--logo-w);
-  height: auto;
-  transform: translateY(-50%);
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.9));
-  user-select: none;
-}
-.cabine-curtain-l .cabine-curtain-logo { right: calc(var(--logo-w) / -2 + 0.15vw); }
-.cabine-curtain-r .cabine-curtain-logo { left: calc(var(--logo-w) / -2 + 0.15vw); }
 
 .shop-info-list { list-style: none; padding: 0; margin: 0; }
 .shop-info-list li { border-bottom: 1px solid rgba(255,255,255,.1); }

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  CABINE_AMBIENT,
   FIT_FRAMES,
   MORPH_LABELS,
   femmeFitFolder,
@@ -38,6 +37,13 @@ export default function ProductPanel({
     if (v) setCurtainDone(false);
     setCabineOpenRaw(v);
   };
+  // Safety net: if a browser never fires the animation events (battery saver,
+  // background tab), the curtain is removed anyway so it can't stay on screen.
+  useEffect(() => {
+    if (!cabineOpen || curtainDone) return;
+    const id = window.setTimeout(() => setCurtainDone(true), 4400);
+    return () => window.clearTimeout(id);
+  }, [cabineOpen, curtainDone]);
   const [morph, setMorph] = useState<Morph | "medium">("medium");
   const [gender, setGender] = useState<"homme" | "femme">("homme");
   const isFemme = gender === "femme" && !!item.femme;
@@ -144,7 +150,6 @@ export default function ProductPanel({
     {cabineOpen && item.cabine && (
       <div
         className="shop-cabine-overlay"
-        style={{ "--amb": CABINE_AMBIENT[item.id] ?? "#2a2f4a" } as React.CSSProperties}
         onClick={() => setCabineOpen(false)}
         role="button"
         tabIndex={-1}
@@ -153,13 +158,15 @@ export default function ProductPanel({
         {/* The fitting-room curtain: closed on arrival, then drawn aside. */}
         {!curtainDone && (
           <div className="cabine-curtains" aria-hidden="true" onAnimationEnd={(e) => { if ((e.target as HTMLElement).classList.contains("cabine-curtain-rod")) setCurtainDone(true); }}>
-            <div className="cabine-curtain cabine-curtain-l">
+            <div className="cabine-curtain cabine-curtain-l" />
+            <div className="cabine-curtain cabine-curtain-r" />
+            <div className="cabine-logo-half cabine-logo-l">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
+              <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
             </div>
-            <div className="cabine-curtain cabine-curtain-r">
+            <div className="cabine-logo-half cabine-logo-r">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-white.png" alt="" className="cabine-curtain-logo" draggable={false} />
+              <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
             </div>
             <div className="cabine-curtain-rod" />
           </div>
