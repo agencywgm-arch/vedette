@@ -96,6 +96,7 @@ export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sharpRef = useRef<HTMLImageElement>(null);
   // Where scroll says the walk should be, in frames, and where the canvas is
   // actually showing — the second eases toward the first.
   const targetFrame = useRef(0);
@@ -340,6 +341,35 @@ export default function ScrollVideoHero() {
       },
     });
 
+    let sharpTimer = 0;
+    let sharpOn = false;
+    let sharpFor = -1;
+    const showSharp = () => {
+      const el = sharpRef.current;
+      if (!el) return;
+      const i = Math.round(Math.min(FRAME_COUNT - 1, Math.max(0, shownFrame.current)));
+      if (i === sharpFor && el.complete && el.naturalWidth > 0) {
+        el.style.opacity = "1";
+        sharpOn = true;
+        return;
+      }
+      sharpFor = i;
+      const next = new Image();
+      next.decoding = "async";
+      next.src = `${FRAME_SETS.hd.dir}${String(i).padStart(3, "0")}.webp?v=20261014`;
+      next
+        .decode()
+        .then(() => {
+          // still resting on the same frame?
+          if (shownFrame.current !== targetFrame.current) return;
+          if (Math.round(shownFrame.current) !== i) return;
+          el.src = next.src;
+          el.style.opacity = "1";
+          sharpOn = true;
+        })
+        .catch(() => {});
+    };
+
     const frame = (now: number) => {
       raf = 0;
       const dt = last ? Math.min(64, now - last) : 16.7;
@@ -358,9 +388,20 @@ export default function ScrollVideoHero() {
         if (drawn >= 0) canvas.style.opacity = "1";
       }
       if (shown !== target) {
+        // moving again: fall back to the scrub frames at once
+        if (sharpOn) {
+          sharpOn = false;
+          const el = sharpRef.current;
+          if (el) el.style.opacity = "0";
+        }
+        window.clearTimeout(sharpTimer);
         raf = requestAnimationFrame(frame);
       } else {
         last = 0;
+        // Come to rest: fetch the full 1080p still for this exact frame and
+        // fade it in over the scrub frame, so a pause shows real detail.
+        window.clearTimeout(sharpTimer);
+        sharpTimer = window.setTimeout(showSharp, 140);
       }
     };
     const wake = () => {
@@ -372,6 +413,7 @@ export default function ScrollVideoHero() {
 
     return () => {
       cancelAnimationFrame(raf);
+      window.clearTimeout(sharpTimer);
       wakeDraw.current = () => {};
       focusSeq.current = () => {};
       seq.destroy();
@@ -500,6 +542,16 @@ export default function ScrollVideoHero() {
           ref={canvasRef}
           className="absolute inset-0 h-full w-full object-contain"
           style={{ opacity: 0 }}
+        />
+        {/* The full 1080p still of the frame you stopped on, faded in at rest. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={sharpRef}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ opacity: 0, transition: "opacity 0.22s ease" }}
         />
         </div>
         </div>
