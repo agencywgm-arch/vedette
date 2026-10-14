@@ -56,6 +56,8 @@ export default function ProductRail({
               alt={item.name}
               fill
               sizes="110px"
+              unoptimized
+              loading="eager"
               className="shop-tile-img"
             />
             {item.locked && (

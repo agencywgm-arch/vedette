@@ -307,7 +307,9 @@ export default function ScrollVideoHero() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !hydrated) return;
+    // Once the room is open the walk-in is behind it: stop pulling frames so
+    // the thumbnails and the wall get the whole connection.
+    if (!canvas || !hydrated || roomOpen) return;
     // Big, high-density screens with the memory to hold the larger stills get
     // the sharper set; everything else keeps the lighter ones.
     const nav = navigator as Navigator & { deviceMemory?: number };
@@ -418,7 +420,7 @@ export default function ScrollVideoHero() {
       focusSeq.current = () => {};
       seq.destroy();
     };
-  }, [hydrated, lite]);
+  }, [hydrated, lite, roomOpen]);
 
   // The clip is landscape (1350x1080) on every breakpoint, so it's shown in
   // full (object-contain) everywhere rather than split by device: a phone

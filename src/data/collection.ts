@@ -400,7 +400,10 @@ export const categories: (Category | "TOUS")[] = [
 ];
 
 /** Only pieces whose packshot has landed can be lifted off the wall. */
-export const selectableItems = collection.filter((i) => i.front !== null);
+export const selectableItems = collection
+  .filter((i) => i.front !== null)
+  // pieces not yet available go to the far end of the rail
+  .sort((a, b) => Number(!!a.locked) - Number(!!b.locked));
 
 /** Carousel tile. For a scanned piece it's rendered straight from the 3D
  * model (same lighting rig as ModelStage), matching what actually turns in
