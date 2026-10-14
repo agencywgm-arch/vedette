@@ -525,9 +525,6 @@ export default function ScrollVideoHero() {
           />
         )}
 
-         </div>
-        )}
-
         {/* Mounted only once the clip has settled, so the reveal plays from
             the top every time you arrive — and the long dissolve keeps it
             feeling like the camera coming to rest, not a mode switch. */}
