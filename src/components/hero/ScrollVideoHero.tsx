@@ -525,14 +525,7 @@ export default function ScrollVideoHero() {
           />
         )}
 
-        {!roomOpen && (
-          <div className="hero-zoombar" role="group" aria-label="Zoom sur la vidéo">
-            <button type="button" onClick={() => zoom.zoomBy(1 / 1.5)} aria-label="Dézoomer" disabled={!zoom.zoomed}>−</button>
-            <button type="button" onClick={() => zoom.zoomBy(1.5)} aria-label="Zoomer" disabled={zoom.scale >= 3}>+</button>
-            {zoom.zoomed && (
-              <button type="button" onClick={zoom.reset} aria-label="Réinitialiser le zoom">⟲</button>
-            )}
-          </div>
+         </div>
         )}
 
         {/* Mounted only once the clip has settled, so the reveal plays from
