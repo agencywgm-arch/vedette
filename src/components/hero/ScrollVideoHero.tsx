@@ -331,7 +331,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261018`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261019`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -356,7 +356,7 @@ export default function ScrollVideoHero() {
       sharpFor = i;
       const next = new Image();
       next.decoding = "async";
-      next.src = `${FRAME_SETS.hd.dir}${String(i).padStart(3, "0")}.webp?v=20261018`;
+      next.src = `${FRAME_SETS.hd.dir}${String(i).padStart(3, "0")}.webp?v=20261019`;
       next
         .decode()
         .then(() => {
