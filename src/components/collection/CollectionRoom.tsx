@@ -96,6 +96,16 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // The gold-black frames around the right-hand photos only belong to the
+  // finished wall: they fade in once the video has handed over and settled,
+  // not while the last frame is still sliding into place.
+  const [framed, setFramed] = useState(false);
+  useEffect(() => {
+    if (!settled) return;
+    const id = window.setTimeout(() => setFramed(true), SETTLE_MS + 250);
+    return () => window.clearTimeout(id);
+  }, [settled]);
+
   // A model's file and the three.js chunk to render it both take real time to
   // fetch — time a click can't hide once the flight is already underway. The
   // room arriving is spare time the visitor spends looking at the wall before
@@ -342,7 +352,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
               <button
                 key={p.id}
                 type="button"
-                className={`shop-hotspot shop-hotspot-poster ${
+                className={`shop-hotspot shop-hotspot-poster ${framed ? "is-framed" : ""} ${
                   displayed !== null || poster !== null ? "is-locked" : ""
                 }`}
                 style={{

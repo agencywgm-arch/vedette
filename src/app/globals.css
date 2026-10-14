@@ -2274,6 +2274,8 @@ body {
 
 /* Cadres noirs fins, posés AUTOUR des photos de droite (rien ne recouvre l'image). */
 .shop-hotspot-poster {
+  opacity: 0;
+  transition: opacity 0.7s ease, background 0.25s ease, transform 0.25s ease;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -2301,3 +2303,5 @@ body {
   .shop-cabine-zoombar,
   .shop-wall-zoombar { background: rgba(10, 10, 12, 0.85); }
 }
+
+.shop-hotspot-poster.is-framed { opacity: 1; }
