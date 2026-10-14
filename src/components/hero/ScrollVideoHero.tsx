@@ -41,14 +41,6 @@ const LOOK_DRAG_PX = 8;
 /** A drag crosses this much of the screen to reach the far edge of the view. */
 const LOOK_DRAG_SPAN = 0.45;
 
-// Phone portrait: the clip is shown as a tall crop (about 3:4.4) instead of a
-// thin 16:9 strip, so the picture fills much more of the screen. The window
-// slides from the street side (the guard) to the middle as you walk in.
-const CROP_RATIO = 1.3; // box height / width
-const CROP_MAX_H = 0.82; // never taller than this share of the screen
-const CROP_X_FROM = 30; // object-position % at the start
-const CROP_X_TO = 50; // …and once inside
-
 const MOBILE_QUERY = "(max-width: 767px)";
 // The walk-in is drawn from stills (see frame-sequence.ts), one per frame of
 // the 24fps source. Touch devices up to tablet size get the smaller set: the
@@ -117,8 +109,6 @@ export default function ScrollVideoHero() {
   // the guard's line has to stay near his own black bar, not the screen's, or
   // it drifts down into the letterbox once the video stops being full-bleed.
   const [subtitleBottomPercent, setSubtitleBottomPercent] = useState<number | null>(null);
-  // Phone portrait crop box (px, inside the sticky screen), or null for the full 16:9 fit.
-  const [cropBox, setCropBox] = useState<{ top: number; height: number } | null>(null);
   const [hasReachedDialogue, setHasReachedDialogue] = useState(false);
   const hasReachedDialogueRef = useRef(false);
   const [roomOpen, setRoomOpen] = useState(false);
@@ -327,14 +317,8 @@ export default function ScrollVideoHero() {
     // Physical pixels across the screen: the 1080p stills from 1400 up, so a
     // laptop or a phone-in-landscape never stretches a 720p picture.
     const physical = Math.max(window.screen.width, window.innerWidth) * (window.devicePixelRatio || 1);
-    // A portrait phone now shows a tall crop (about 40% of the picture's width),
-    // which stretches a still ~2.5x: it takes the 720p set when it has the memory.
-    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    const cropped = window.innerWidth < 768 && window.innerHeight > window.innerWidth * 1.1;
     const set = lite
-      ? cropped && (nav.deviceMemory ?? 4) >= 4 && !conn?.saveData
-        ? FRAME_SETS.desk
-        : FRAME_SETS.lite
+      ? FRAME_SETS.lite
       : physical >= 1400 && (nav.deviceMemory ?? 8) >= 4
         ? FRAME_SETS.hd
         : FRAME_SETS.desk;
@@ -350,7 +334,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261028`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261029`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -375,7 +359,7 @@ export default function ScrollVideoHero() {
       sharpFor = i;
       const next = new Image();
       next.decoding = "async";
-      next.src = `${(((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) >= 4 ? FRAME_SETS.qhd : FRAME_SETS.hd).dir}${String(i).padStart(3, "0")}.webp?v=20261028`;
+      next.src = `${(((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) >= 4 ? FRAME_SETS.qhd : FRAME_SETS.hd).dir}${String(i).padStart(3, "0")}.webp?v=20261029`;
       next
         .decode()
         .then(() => {
@@ -453,23 +437,6 @@ export default function ScrollVideoHero() {
       const entry = entries[0];
       if (!entry) return;
       const { width, height } = entry.contentRect;
-      const portraitPhone = width < 768 && height > width * 1.1;
-      if (portraitPhone) {
-        const boxH = Math.min(width * CROP_RATIO, height * CROP_MAX_H);
-        const top = (height - boxH) / 2;
-        const rect = mediaRect(width, boxH, CLIP_INTRINSIC_SIZE.w, CLIP_INTRINSIC_SIZE.h, "cover");
-        containerSizeRef.current = { width, height: boxH };
-        containRectRef.current = rect;
-        setCropBox((prev) =>
-          prev && Math.abs(prev.top - top) < 0.5 && Math.abs(prev.height - boxH) < 0.5
-            ? prev
-            : { top, height: boxH }
-        );
-        wakeLook.current();
-        setSubtitleBottomPercent(((height - (top + boxH)) + boxH * 0.07) / height * 100);
-        return;
-      }
-      setCropBox(null);
       const rect = mediaRect(width, height, CLIP_INTRINSIC_SIZE.w, CLIP_INTRINSIC_SIZE.h, "contain");
       containerSizeRef.current = { width, height };
       containRectRef.current = rect;
@@ -502,8 +469,6 @@ export default function ScrollVideoHero() {
         setHasReachedDialogue(true);
       }
 
-      const vx = CROP_X_FROM + (CROP_X_TO - CROP_X_FROM) * clamp(progress / 0.6, 0, 1);
-      lookLayerRef.current?.style.setProperty("--vx", `${vx.toFixed(2)}%`);
       targetFrame.current = progress * (FRAME_COUNT - 1);
       focusSeq.current(targetFrame.current);
       wakeDraw.current();
@@ -563,15 +528,7 @@ export default function ScrollVideoHero() {
     >
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
         {/* Everything the eye can lean into rides this layer. */}
-        <div
-          ref={zoom.ref}
-          className="pointer-events-none absolute inset-x-0 will-change-transform"
-          style={{
-            transformOrigin: "center",
-            top: cropBox ? cropBox.top : 0,
-            height: cropBox ? cropBox.height : "100%",
-          }}
-        >
+        <div ref={zoom.ref} className="pointer-events-none absolute inset-0 will-change-transform" style={{ transformOrigin: "center" }}>
         <div
           ref={lookLayerRef}
           className="pointer-events-none absolute inset-0 will-change-transform"
@@ -581,14 +538,13 @@ export default function ScrollVideoHero() {
         <img
           src="/videos/poster.jpg"
           alt=""
-          className={`absolute inset-0 h-full w-full ${cropBox ? "object-cover" : "object-contain"}`}
-          style={cropBox ? { objectPosition: "var(--vx, 30%) 50%" } : undefined}
+          className="absolute inset-0 h-full w-full object-contain"
           draggable={false}
         />
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 h-full w-full ${cropBox ? "object-cover" : "object-contain"}`}
-          style={{ opacity: 0, ...(cropBox ? { objectPosition: "var(--vx, 30%) 50%" } : {}) }}
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ opacity: 0 }}
         />
         {/* The sharp (up to 1440p) still of the frame you stopped on, faded in at rest. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -597,8 +553,8 @@ export default function ScrollVideoHero() {
           alt=""
           aria-hidden="true"
           draggable={false}
-          className={`absolute inset-0 h-full w-full ${cropBox ? "object-cover" : "object-contain"}`}
-          style={{ opacity: 0, transition: "opacity 0.22s ease", ...(cropBox ? { objectPosition: "var(--vx, 30%) 50%" } : {}) }}
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ opacity: 0, transition: "opacity 0.22s ease" }}
         />
         </div>
         </div>
@@ -629,7 +585,7 @@ export default function ScrollVideoHero() {
             feeling like the camera coming to rest, not a mode switch. */}
         {roomOpen && (
           <div className="shop-reveal absolute inset-0 z-20">
-            <CollectionRoom compact={isMobile} handoffBox={cropBox} />
+            <CollectionRoom compact={isMobile} />
           </div>
         )}
 
