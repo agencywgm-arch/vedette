@@ -2282,3 +2282,22 @@ body {
     0 0 0 3px #4a4a4a,
     0 4px 10px rgba(0, 0, 0, 0.6);
 }
+
+/* Écrans tactiles : aucun flou d'arrière-plan sur ce qui se superpose à l'image
+   qui défile ou à la cabine (re-calculé à chaque image = saccades). Fond plein à la place. */
+@media (pointer: coarse) {
+  .scroll-prompt-frame,
+  .shop-cabine-morphs,
+  .shop-cabine-arrow,
+  .shop-cabine-zoombar,
+  .shop-wall-zoombar,
+  .hero-zoombar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .scroll-prompt-frame { background: rgba(8, 8, 10, 0.78); }
+  .shop-cabine-morphs { background: rgba(14, 14, 18, 0.86); }
+  .shop-cabine-arrow { background: rgba(14, 14, 18, 0.7); }
+  .shop-cabine-zoombar,
+  .shop-wall-zoombar { background: rgba(10, 10, 12, 0.85); }
+}
