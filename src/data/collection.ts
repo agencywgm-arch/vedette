@@ -352,7 +352,7 @@ export const collection: CollectionItem[] = [
     cabine: C + "jparis-sweat",
     fit: ["mince", "large"],
     femme: true,
-    turntable: { mp4: T + "jparis-sweat.mp4", webm: T + "jparis-sweat.webm" },
+    turntable: { mp4: T + "jparis-sweat.mp4?v=2", webm: T + "jparis-sweat.webm?v=2" },
   },
   {
     id: "black-jacket",
