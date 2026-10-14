@@ -2292,13 +2292,13 @@ body {
 .staff-ship.is-needed { border-color: #f0c000; box-shadow: 0 0 0 2px rgba(240,192,0,.25); }
 .staff-ship-alert { margin: 0; color: #f0c000; font-size: .85rem; }
 
-/* Cadres dorés fins, posés AUTOUR des photos de droite (rien ne recouvre l'image). */
+/* Cadres noirs fins, posés AUTOUR des photos de droite (rien ne recouvre l'image). */
 .shop-hotspot-poster {
   background: transparent;
   border: 0;
   border-radius: 0;
   box-shadow:
-    0 0 0 1.5px #d9b25a,
-    0 0 0 2.5px #5a3f0e,
+    0 0 0 2px #0a0a0a,
+    0 0 0 3px #4a4a4a,
     0 4px 10px rgba(0, 0, 0, 0.6);
 }
