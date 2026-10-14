@@ -68,7 +68,16 @@ function restRect(size: { width: number; height: number }, compact: boolean): Re
  * to a different size — object-contain, matching ScrollVideoHero's own fit
  * on every breakpoint.
  */
-function handoffRect(size: { width: number; height: number }): Rect {
+function handoffRect(
+  size: { width: number; height: number },
+  box: { top: number; height: number } | null
+): Rect {
+  // A phone shows the clip as a tall crop (cover inside `box`): the wall has to
+  // start from exactly that, or it would pop to a different size.
+  if (box) {
+    const r = mediaRect(size.width, box.height, WALL_SIZE.w, WALL_SIZE.h, "cover");
+    return { left: r.left, top: r.top + box.top, width: r.width, height: r.height };
+  }
   return mediaRect(size.width, size.height, WALL_SIZE.w, WALL_SIZE.h, "contain");
 }
 
@@ -80,7 +89,13 @@ function handoffRect(size: { width: number; height: number }): Rect {
  * The wall is an explicitly positioned layer rather than an object-fit image,
  * so the picture and the hotspots share one rect and can never drift apart.
  */
-export default function CollectionRoom({ compact }: { compact: boolean }) {
+export default function CollectionRoom({
+  compact,
+  handoffBox = null,
+}: {
+  compact: boolean;
+  handoffBox?: { top: number; height: number } | null;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(1);
   const hotspotEls = useRef(new Map<string, HTMLButtonElement | null>());
@@ -254,7 +269,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   // frame one tick later — see the `settled` effect above. Both rects are
   // pure functions of `size`, so a mid-transition resize just re-targets the
   // tween instead of snapping.
-  const wall: Rect | null = size ? (settled ? restRect(size, compact) : handoffRect(size)) : null;
+  const wall: Rect | null = size ? (settled ? restRect(size, compact) : handoffRect(size, handoffBox)) : null;
   const displayed = displayedId ? collection.find((i) => i.id === displayedId) ?? null : null;
   const inspecting = displayed !== null && !closing;
 
