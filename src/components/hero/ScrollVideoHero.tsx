@@ -56,6 +56,7 @@ const MOBILE_QUERY = "(max-width: 767px)";
 // time and memory the scroll doesn't have to wait on.
 const FRAME_COUNT = 241;
 const FRAME_SETS = {
+  qhd: { dir: "/frames/qhd/", w: 2560, h: 1440 },
   hd: { dir: "/frames/hd/", w: 1920, h: 1080 },
   desk: { dir: "/frames/desk/", w: 1280, h: 720 },
   lite: { dir: "/frames/lite/", w: 1024, h: 576 },
@@ -349,7 +350,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261027`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261028`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -374,7 +375,7 @@ export default function ScrollVideoHero() {
       sharpFor = i;
       const next = new Image();
       next.decoding = "async";
-      next.src = `${FRAME_SETS.hd.dir}${String(i).padStart(3, "0")}.webp?v=20261027`;
+      next.src = `${(((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) >= 4 ? FRAME_SETS.qhd : FRAME_SETS.hd).dir}${String(i).padStart(3, "0")}.webp?v=20261028`;
       next
         .decode()
         .then(() => {
@@ -589,7 +590,7 @@ export default function ScrollVideoHero() {
           className={`absolute inset-0 h-full w-full ${cropBox ? "object-cover" : "object-contain"}`}
           style={{ opacity: 0, ...(cropBox ? { objectPosition: "var(--vx, 30%) 50%" } : {}) }}
         />
-        {/* The full 1080p still of the frame you stopped on, faded in at rest. */}
+        {/* The sharp (up to 1440p) still of the frame you stopped on, faded in at rest. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={sharpRef}
