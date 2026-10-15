@@ -2320,15 +2320,28 @@ body {
   top: 0;
   transform-origin: 0 0;
 }
-.arcade-stage img { display: block; width: 100%; height: 100%; user-select: none; }
+.arcade-stage > img:not(.arcade-reflection) { display: block; width: 100%; height: 100%; user-select: none; }
 .arcade-shadow {
   position: absolute;
-  left: -8%;
-  right: -8%;
-  bottom: -3%;
-  height: 6%;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 70%);
-  filter: blur(3px);
+  left: -14%;
+  right: -22%;
+  bottom: -4.5%;
+  height: 9%;
+  background: radial-gradient(ellipse at 45% 50%, rgba(8, 3, 0, 0.78), rgba(8, 3, 0, 0.35) 45%, rgba(8, 3, 0, 0) 72%);
+  filter: blur(4px);
+}
+/* Reflet doux sur le sol poli : la borne retournée, très fondue. */
+.arcade-reflection {
+  position: absolute;
+  left: 0;
+  top: 99%;
+  width: 100%;
+  transform: scaleY(-1);
+  opacity: 0.22;
+  filter: blur(1.5px) saturate(0.8);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 22%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 22%);
+  pointer-events: none;
 }
 .arcade-screen {
   position: absolute;

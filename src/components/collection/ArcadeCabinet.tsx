@@ -145,9 +145,11 @@ export default function ArcadeCabinet({
       aria-hidden="true"
     >
       <div className="arcade-shadow" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="arcade-reflection" src="/collection/arcade.webp?v=4" alt="" draggable={false} />
       <div ref={stageRef} className="arcade-stage" style={{ width: DW, height: DH }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/collection/arcade.webp?v=3" alt="" width={DW} height={DH} draggable={false} />
+        <img src="/collection/arcade.webp?v=4" alt="" width={DW} height={DH} draggable={false} />
         <div
           className="arcade-marquee"
           style={{
