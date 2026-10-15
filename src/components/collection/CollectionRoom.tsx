@@ -12,6 +12,7 @@ import { mediaRect, type Rect } from "@/lib/media-rect";
 import { useZoom } from "@/lib/use-zoom";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
+import ArcadeCabinet from "./ArcadeCabinet";
 import PosterLightbox from "./PosterLightbox";
 import ProductPanel from "./ProductPanel";
 import ProductRail from "./ProductRail";
@@ -313,6 +314,9 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
               draggable={false}
             />
           )}
+
+          {/* Mini arcade cabinet at the foot of the wall, left of the shelves. */}
+          <ArcadeCabinet left={6.6} top={67} width={10.6} dimmed={inspecting} />
 
           <div ref={hotspotLayerRef} className="shop-hotspot-layer">
             {collection.map((item) => {

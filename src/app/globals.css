@@ -2305,3 +2305,67 @@ body {
 }
 
 .shop-hotspot-poster.is-framed { opacity: 1; }
+
+/* --- mini borne d'arcade au pied du mur : tout ce qui brille est animé en continu --- */
+.arcade {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transition: filter 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.arcade.is-dimmed { filter: brightness(0.42) saturate(0.85); }
+.arcade-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.arcade-stage img { display: block; width: 100%; height: 100%; user-select: none; }
+.arcade-shadow {
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  bottom: -3%;
+  height: 6%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 70%);
+  filter: blur(3px);
+}
+.arcade-screen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 64px;
+  height: 48px;
+  transform-origin: 0 0;
+  image-rendering: pixelated;
+  filter: saturate(1.25) brightness(1.1);
+}
+.arcade-screen-glow {
+  position: absolute;
+  border-radius: 40%;
+  background: radial-gradient(ellipse at center, rgba(120, 170, 255, 0.35), rgba(120, 170, 255, 0) 70%);
+  mix-blend-mode: screen;
+  animation: arcade-flicker 2.6s ease-in-out infinite;
+}
+.arcade-marquee {
+  position: absolute;
+  background: radial-gradient(ellipse at center, rgba(255, 236, 120, 0.55), rgba(255, 236, 120, 0) 75%);
+  mix-blend-mode: screen;
+  animation: arcade-breathe 3.2s ease-in-out infinite;
+}
+.arcade-btn {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--c), rgba(0, 0, 0, 0) 68%);
+  mix-blend-mode: screen;
+  opacity: 0.15;
+  animation: arcade-btn 1.8s ease-in-out infinite;
+}
+@keyframes arcade-btn { 0%, 100% { opacity: 0.12; transform: scale(0.85); } 22% { opacity: 0.95; transform: scale(1.15); } 45% { opacity: 0.2; transform: scale(0.9); } }
+@keyframes arcade-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@keyframes arcade-flicker { 0%, 100% { opacity: 0.7; } 40% { opacity: 1; } 55% { opacity: 0.6; } 70% { opacity: 0.95; } }
+@media (prefers-reduced-motion: reduce) {
+  .arcade-btn, .arcade-marquee, .arcade-screen-glow { animation: none; opacity: 0.6; }
+}
