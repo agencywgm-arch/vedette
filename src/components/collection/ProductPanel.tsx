@@ -174,8 +174,12 @@ export default function ProductPanel({
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        {item.cabineVideo && !isFemme ? (
-          <CabineVideo src={item.cabineVideo} label={`${item.name} — Homme`} />
+        {item.cabineVideo ? (
+          <CabineVideo
+            key={isFemme ? "f" : "h"}
+            src={isFemme ? `${item.cabineVideo}-femme` : item.cabineVideo}
+            label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
+          />
         ) : (
           <CabineViewer
             base={isFemme ? femmeFolder(item.id) : item.cabine}
