@@ -302,7 +302,7 @@ export const collection: CollectionItem[] = [
     cabine: C + "boxe-khoya-tank",
     fit: ["mince", "large"],
     femme: true,
-    turntable: { mp4: T + "boxe-khoya-tank.mp4", webm: T + "boxe-khoya-tank.webm" },
+    turntable: { mp4: T + "boxe-khoya-tank.mp4?v=2", webm: T + "boxe-khoya-tank.webm?v=2" },
   },
   {
     id: "forreal-tee",
