@@ -8,6 +8,7 @@ import {
 } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
+import CabineVideo from "./CabineVideo";
 
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
@@ -173,11 +174,15 @@ export default function ProductPanel({
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <CabineViewer
-          base={isFemme ? femmeFolder(item.id) : item.cabine}
-          frames={isFemme ? FIT_FRAMES : undefined}
-          label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
-        />
+        {item.cabineVideo && !isFemme ? (
+          <CabineVideo src={item.cabineVideo} label={`${item.name} — Homme`} />
+        ) : (
+          <CabineViewer
+            base={isFemme ? femmeFolder(item.id) : item.cabine}
+            frames={isFemme ? FIT_FRAMES : undefined}
+            label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
+          />
+        )}
         {item.femme && (
           <div
             className="shop-cabine-morphs shop-cabine-gender"

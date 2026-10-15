@@ -68,6 +68,8 @@ export interface CollectionItem {
    * packshots — same drag-to-spin gesture, real footage instead of a mesh.
    */
   turntable?: { mp4: string; webm: string } | null;
+  /** Fitting room: one 360° video of the mannequin wearing the piece (front → back → front). */
+  cabineVideo?: string;
 }
 
 export type Morph = "mince" | "large";
@@ -143,6 +145,7 @@ export const collection: CollectionItem[] = [
     back: P + "jparis-tee-back.webp",
     model: "/models/jparis-tee.glb",
     cabine: C + "jparis-tee",
+    cabineVideo: "/cabine/video/jparis-tee",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "jparis-tee.mp4", webm: T + "jparis-tee.webm" },
@@ -160,6 +163,7 @@ export const collection: CollectionItem[] = [
     back: P + "champions-tee-back.webp",
     model: "/models/champions-tee.glb",
     cabine: C + "champions-tee",
+    cabineVideo: "/cabine/video/champions-tee",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "champions-tee.mp4", webm: T + "champions-tee.webm" },
@@ -177,6 +181,7 @@ export const collection: CollectionItem[] = [
     back: P + "paris-polo-back.webp",
     model: "/models/paris-polo.glb",
     cabine: C + "paris-polo",
+    cabineVideo: "/cabine/video/paris-polo",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "paris-polo.mp4", webm: T + "paris-polo.webm" },
@@ -194,6 +199,7 @@ export const collection: CollectionItem[] = [
     back: P + "vedette-vneck-back.webp",
     model: "/models/vedette-vneck.glb",
     cabine: C + "vedette-vneck",
+    cabineVideo: "/cabine/video/vedette-vneck",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "vedette-vneck.mp4", webm: T + "vedette-vneck.webm" },
@@ -211,6 +217,7 @@ export const collection: CollectionItem[] = [
     back: P + "cap-vedette-back.webp",
     model: "/models/cap-vedette.glb",
     cabine: C + "cap-vedette",
+    cabineVideo: "/cabine/video/cap-vedette",
     turntable: { mp4: T + "cap-vedette.mp4", webm: T + "cap-vedette.webm" },
   },
   {
@@ -240,6 +247,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-bienoufoie.glb",
     cabine: C + "cap-bienoufoie",
+    cabineVideo: "/cabine/video/cap-bienoufoie",
     turntable: { mp4: T + "cap-bienoufoie.mp4", webm: T + "cap-bienoufoie.webm" },
   },
   {
@@ -256,6 +264,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-camo.glb",
     cabine: C + "cap-camo",
+    cabineVideo: "/cabine/video/cap-camo",
     turntable: { mp4: T + "cap-camo.mp4", webm: T + "cap-camo.webm" },
   },
   {
@@ -271,6 +280,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-heart.glb",
     cabine: C + "cap-heart",
+    cabineVideo: "/cabine/video/cap-heart",
     turntable: { mp4: T + "cap-heart.mp4?v=2", webm: T + "cap-heart.webm?v=2" },
   },
   {
@@ -300,6 +310,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/boxe-khoya-tank.glb",
     cabine: C + "boxe-khoya-tank",
+    cabineVideo: "/cabine/video/boxe-khoya-tank",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "boxe-khoya-tank.mp4?v=3", webm: T + "boxe-khoya-tank.webm?v=3" },
@@ -317,6 +328,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/forreal-tee.glb",
     cabine: C + "forreal-tee",
+    cabineVideo: "/cabine/video/forreal-tee",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "forreal-tee.mp4", webm: T + "forreal-tee.webm" },
@@ -333,6 +345,7 @@ export const collection: CollectionItem[] = [
     front: P + "rainbow-jersey-front.webp",
     back: P + "rainbow-jersey-back.webp",
     cabine: C + "rainbow-jersey",
+    cabineVideo: "/cabine/video/rainbow-jersey",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "rainbow-jersey.mp4", webm: T + "rainbow-jersey.webm" },
@@ -350,6 +363,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/jparis-sweat.glb",
     cabine: C + "jparis-sweat",
+    cabineVideo: "/cabine/video/jparis-sweat",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "jparis-sweat.mp4?v=2", webm: T + "jparis-sweat.webm?v=2" },
@@ -368,6 +382,7 @@ export const collection: CollectionItem[] = [
     model: "/models/black-jacket.glb",
     accessory: { name: "Cagoule Vedette", model: "/models/balaclava.glb" },
     cabine: C + "black-jacket",
+    cabineVideo: "/cabine/video/black-jacket",
     fit: ["mince", "large"],
     femme: true,
     turntable: { mp4: T + "black-jacket.mp4", webm: T + "black-jacket.webm" },
