@@ -10,6 +10,9 @@ import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
 import CabineVideo from "./CabineVideo";
 
+// Masqué en attendant de nouveaux mannequins femmes.
+const SHOW_FEMME = false;
+
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
 }
@@ -42,7 +45,7 @@ export default function ProductPanel({
     return () => window.clearTimeout(id);
   }, [cabineOpen, curtainDone]);
   const [gender, setGender] = useState<"homme" | "femme">("homme");
-  const isFemme = gender === "femme" && !!item.femme;
+  const isFemme = SHOW_FEMME && gender === "femme" && !!item.femme;
   return (
     <>
     <aside className="shop-panel">
@@ -187,7 +190,7 @@ export default function ProductPanel({
             label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
           />
         )}
-        {item.femme && (
+        {SHOW_FEMME && item.femme && (
           <div
             className="shop-cabine-morphs shop-cabine-gender"
             onClick={(e) => e.stopPropagation()}
