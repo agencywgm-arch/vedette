@@ -169,15 +169,6 @@ export default function CabineVideo({ src, label }: { src: string; label: string
         </video>
       </div>
 
-      <div className="shop-cabine-zoombar" onPointerDown={(e) => e.stopPropagation()}>
-        <button type="button" onClick={() => zoom.zoomBy(1 / 1.5)} aria-label="Dézoomer" disabled={!zoom.zoomed}>−</button>
-        <span aria-live="polite">{Math.round(zoom.scale * 100)}%</span>
-        <button type="button" onClick={() => zoom.zoomBy(1.5)} aria-label="Zoomer" disabled={zoom.scale >= 4}>+</button>
-        {zoom.zoomed && (
-          <button type="button" onClick={zoom.reset} aria-label="Réinitialiser le zoom">⟲</button>
-        )}
-      </div>
-
       <button
         type="button"
         className="shop-cabine-arrow shop-cabine-arrow-l"
@@ -203,7 +194,7 @@ export default function CabineVideo({ src, label }: { src: string; label: string
 
       {!ready && <div className="shop-cabine-loading" aria-hidden="true" />}
       {!touched && !zoom.zoomed && ready && (
-        <p className="shop-cabine-hint">Glissez pour tourner · pincez pour zoomer</p>
+        <p className="shop-cabine-hint">Glissez pour tourner</p>
       )}
     </div>
   );
