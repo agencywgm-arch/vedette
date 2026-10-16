@@ -2025,24 +2025,6 @@ body {
 @keyframes cabine-logo-l { 0% { transform: translateX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateX(-46.9vw); opacity: 0; } }
 @keyframes cabine-logo-r { 0% { transform: translateX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateX(46.9vw); opacity: 0; } }
 
-/* Tringle dorée avec anneaux, qui remonte une fois le rideau ouvert. */
-/* Fond noir le temps que le rideau 3D se charge, pour que la cabine ne s'entrevoie pas. */
-.cabine-curtain-ph { position: absolute; inset: 0; background: #060608; }
-
-.cabine-curtain-rod {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 14px;
-  z-index: 9;
-  background:
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 2px, rgba(0, 0, 0, 0) 2px 34px),
-    linear-gradient(#e6c66e, #8b6a22 55%, #4a3710);
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  animation: cabine-rod-out 0.4s ease 1.9s forwards;
-}
-@keyframes cabine-rod-out { to { opacity: 0; transform: translateY(-110%); } }
 
 @media (prefers-reduced-motion: reduce) {
   .cabine-curtains { display: none; }

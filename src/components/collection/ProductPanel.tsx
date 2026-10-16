@@ -61,7 +61,7 @@ export default function ProductPanel({
   // background tab), the curtain is removed anyway so it can't stay on screen.
   useEffect(() => {
     if (!cabineOpen || curtainDone) return;
-    const id = window.setTimeout(() => setCurtainDone(true), 2600);
+    const id = window.setTimeout(() => setCurtainDone(true), 2100);
     return () => window.clearTimeout(id);
   }, [cabineOpen, curtainDone]);
   const [gender, setGender] = useState<"homme" | "femme">("homme");
@@ -170,7 +170,7 @@ export default function ProductPanel({
       >
         {/* The fitting-room curtain: closed on arrival, then drawn aside. */}
         {!curtainDone && (
-          <div className="cabine-curtains" aria-hidden="true" onAnimationEnd={(e) => { if ((e.target as HTMLElement).classList.contains("cabine-curtain-rod")) setCurtainDone(true); }}>
+          <div className="cabine-curtains" aria-hidden="true">
             {curtain3d ? (
               <>
                 {!curtainReady && <div className="cabine-curtain-ph" />}
@@ -192,7 +192,6 @@ export default function ProductPanel({
                 </div>
               </>
             )}
-            <div className="cabine-curtain-rod" />
           </div>
         )}
         <button
