@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useZoom } from "@/lib/use-zoom";
 import { createVideoScrubber } from "@/lib/video-scrubber";
 
 /** Bump when the fitting-room videos change: busts copies cached by phones. */
-export const CABINE_VIDEO_VERSION = "20261016v6";
+export const CABINE_VIDEO_VERSION = "20261016v7";
 /** Degrees turned per pixel dragged: one viewport width is about a turn. */
 const DEG_PER_PX = 0.45;
 const FRICTION = 0.9;
@@ -22,7 +22,16 @@ const wrap = (deg: number) => ((deg % 360) + 360) % 360;
  * Every frame of the clip is a keyframe-dense encode so seeking either way is
  * instant.
  */
-export default function CabineVideo({ src, label }: { src: string; label: string }) {
+export default function CabineVideo({
+  src,
+  label,
+  fallback,
+}: {
+  src: string;
+  label: string;
+  /** Shown instead if the clip can't be played on this device. */
+  fallback?: ReactNode;
+}) {
   const zoom = useZoom({ min: 1, max: 4 });
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrub = useRef(createVideoScrubber()).current;
@@ -36,6 +45,7 @@ export default function CabineVideo({ src, label }: { src: string; label: string
   const lastDraw = useRef(-1);
   const [ready, setReady] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const paint = useCallback(() => {
     const v = videoRef.current;
@@ -78,12 +88,27 @@ export default function CabineVideo({ src, label }: { src: string; label: string
     return () => cancelAnimationFrame(raf.current);
   }, [paint]);
 
-  // Safari needs the clip to have run once before it honours currentTime.
+  // Safari needs the clip to have run once before it honours currentTime, and
+  // a phone saving data may not fetch a single frame until it is asked to.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    const p = v.play();
-    if (p) p.then(() => v.pause()).catch(() => {});
+    const kick = () => {
+      const p = v.play();
+      if (p) p.then(() => v.pause()).catch(() => {});
+      // forces the first picture to be decoded even if play() is refused
+      if (v.currentTime === 0) v.currentTime = 0.001;
+    };
+    kick();
+    v.addEventListener("loadedmetadata", kick);
+    // a clip that never shows a picture is worse than the photos
+    const id = window.setTimeout(() => {
+      if (v.readyState < 2) setFailed(true);
+    }, 9000);
+    return () => {
+      v.removeEventListener("loadedmetadata", kick);
+      window.clearTimeout(id);
+    };
   }, [src]);
 
   const spinBy = useCallback((deg: number) => {
@@ -142,6 +167,8 @@ export default function CabineVideo({ src, label }: { src: string; label: string
     lastInput.current = performance.now();
   };
 
+  if (failed && fallback) return <>{fallback}</>;
+
   return (
     <div
       className="shop-cabine-stage"
@@ -163,9 +190,15 @@ export default function CabineVideo({ src, label }: { src: string; label: string
           preload="auto"
           disablePictureInPicture
           onLoadedData={() => setReady(true)}
+          onCanPlay={() => setReady(true)}
         >
-          <source src={`${src}.webm?v=${CABINE_VIDEO_VERSION}`} type="video/webm" />
+          {/* mp4 first: every iPhone and Android plays it; webm is for the rest */}
           <source src={`${src}.mp4?v=${CABINE_VIDEO_VERSION}`} type="video/mp4" />
+          <source
+            src={`${src}.webm?v=${CABINE_VIDEO_VERSION}`}
+            type="video/webm"
+            onError={() => setFailed(true)}
+          />
         </video>
       </div>
 

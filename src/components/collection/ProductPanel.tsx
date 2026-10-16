@@ -209,9 +209,16 @@ export default function ProductPanel({
         </button>
         {item.cabineVideo ? (
           <CabineVideo
-            key={isFemme ? "f" : "h"}
+            key={isFemme ? `${item.id}-f` : `${item.id}-h`}
             src={isFemme ? `${item.cabineVideo}-femme` : item.cabineVideo}
             label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
+            fallback={
+              <CabineViewer
+                base={isFemme ? femmeFolder(item.id) : item.cabine}
+                frames={isFemme ? FIT_FRAMES : undefined}
+                label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
+              />
+            }
           />
         ) : (
           <CabineViewer
