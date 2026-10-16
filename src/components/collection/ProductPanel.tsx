@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
   FIT_FRAMES,
@@ -9,6 +10,19 @@ import {
 import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
 import CabineVideo from "./CabineVideo";
+
+// Real-cloth curtain (WebGL). Phones and laptops without WebGL keep the CSS one.
+const CabineCurtain3D = dynamic(() => import("./CabineCurtain3D"), { ssr: false });
+
+function canUseWebGL() {
+  try {
+    if ((navigator.hardwareConcurrency ?? 8) <= 2) return false;
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
 
 // Masqué en attendant de nouveaux mannequins femmes.
 const SHOW_FEMME = false;
@@ -32,9 +46,15 @@ export default function ProductPanel({
   const [added, setAdded] = useState(false);
   const [cabineOpen, setCabineOpenRaw] = useState(false);
   const [curtainDone, setCurtainDone] = useState(false);
+  const [curtain3d, setCurtain3d] = useState(false);
+  const [curtainReady, setCurtainReady] = useState(false);
+  useEffect(() => setCurtain3d(canUseWebGL()), []);
   // Every entry into the cabine replays the curtain.
   const setCabineOpen = (v: boolean) => {
-    if (v) setCurtainDone(false);
+    if (v) {
+      setCurtainDone(false);
+      setCurtainReady(false);
+    }
     setCabineOpenRaw(v);
   };
   // Safety net: if a browser never fires the animation events (battery saver,
@@ -151,16 +171,27 @@ export default function ProductPanel({
         {/* The fitting-room curtain: closed on arrival, then drawn aside. */}
         {!curtainDone && (
           <div className="cabine-curtains" aria-hidden="true" onAnimationEnd={(e) => { if ((e.target as HTMLElement).classList.contains("cabine-curtain-rod")) setCurtainDone(true); }}>
-            <div className="cabine-curtain cabine-curtain-l" />
-            <div className="cabine-curtain cabine-curtain-r" />
-            <div className="cabine-logo-half cabine-logo-l">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
-            </div>
-            <div className="cabine-logo-half cabine-logo-r">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
-            </div>
+            {curtain3d ? (
+              <>
+                {!curtainReady && <div className="cabine-curtain-ph" />}
+                <CabineCurtain3D
+                  onReady={() => requestAnimationFrame(() => requestAnimationFrame(() => setCurtainReady(true)))}
+                />
+              </>
+            ) : (
+              <>
+                <div className="cabine-curtain cabine-curtain-l" />
+                <div className="cabine-curtain cabine-curtain-r" />
+                <div className="cabine-logo-half cabine-logo-l">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
+                </div>
+                <div className="cabine-logo-half cabine-logo-r">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
+                </div>
+              </>
+            )}
             <div className="cabine-curtain-rod" />
           </div>
         )}
