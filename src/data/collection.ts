@@ -134,8 +134,8 @@ const T = "/collection/turntable/";
 export const collection: CollectionItem[] = [
   {
     id: "jparis-tee",
-    name: "J'♥ PARIS TEE",
-    price: 59,
+    name: "T-SHIRT « BASIC X VEDETTE »",
+    price: 30,
     category: "T-SHIRTS",
     description: "T-shirt en coton premium. Coupe oversize. Sérigraphie haute qualité.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
@@ -152,8 +152,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "champions-tee",
-    name: "CHAMPIONS 2025 TEE",
-    price: 65,
+    name: "T-SHIRT « NBA CHAMPIONSHIRT »",
+    price: 45,
     category: "T-SHIRTS",
     description: "T-shirt noir imprimé all-over. Édition Champions 2025, tirage limité.",
     colors: [{ name: "Noir", hex: "#111111" }],
@@ -170,8 +170,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "paris-polo",
-    name: "POLO J'♥ PARIS",
-    price: 110,
+    name: "PULL « 7XV DE FRANCE »",
+    price: 120,
     category: "SWEATS",
     description: "Sweat col polo bleu marine, col blanc contrasté. Broderie dos signature.",
     colors: [{ name: "Marine", hex: "#1b2545" }],
@@ -188,8 +188,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "vedette-vneck",
-    name: "SWEAT COL V VEDETTE",
-    price: 95,
+    name: "PULL « MP16 – MES PREMIÈRES FOIS DANS LE XVI »",
+    price: 90,
     category: "SWEATS",
     description: "Sweat col V crème, liseré bleu. Inspiration maillot rétro.",
     colors: [{ name: "Crème", hex: "#efe7d4" }],
@@ -206,7 +206,7 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "cap-vedette",
-    name: "CASQUETTE VEDETTE PATCH",
+    name: "TDB CAP « LA BOEY »",
     price: 45,
     category: "CASQUETTES",
     description: "Casquette noire brodée multi-patchs. Ambiance paddock.",
@@ -221,8 +221,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "cap-flames",
-    name: "CASQUETTE RACING FLAMES",
-    price: 45,
+    name: "RICO FLAMENCO CAP",
+    price: 40,
     category: "CASQUETTES",
     description: "Casquette blanche visière flammes, broderie circuit Paris.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
@@ -250,8 +250,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "cap-camo",
-    name: "CASQUETTE CAMO",
-    price: 45,
+    name: "HELMET 2 CAP",
+    price: 40,
     category: "CASQUETTES",
     description:
       "Camo digital noir, liseré jaune fluo sous la visière, sangle réglable à boucle D.",
@@ -266,8 +266,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "cap-heart",
-    name: "CASQUETTE HEART BUCKLE",
-    price: 49,
+    name: "HELMET CAP",
+    price: 35,
     category: "CASQUETTES",
     description: "Casquette marine logo cœur brodé, sangle boucle vedette.",
     colors: [{ name: "Marine", hex: "#1b2545" }],
@@ -281,8 +281,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "paris-longsleeve",
-    name: "MANCHES LONGUES PARIS",
-    price: 85,
+    name: "T-SHIRT « KYLIE XY »",
+    price: 40,
     category: "SWEATS",
     description: "Manches longues blanc, print rose PARIS VEDETTE.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
@@ -313,8 +313,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "forreal-tee",
-    name: "FORREAL TEE",
-    price: 59,
+    name: "T-SHIRT VEDETTE X FORREAL 01",
+    price: 74.99,
     category: "T-SHIRTS",
     description: "T-shirt noir, illustration FORREAL grand format.",
     colors: [{ name: "Noir", hex: "#111111" }],
@@ -331,8 +331,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "rainbow-jersey",
-    name: "MAILLOT VEDETTE RAINBOW",
-    price: 75,
+    name: "MAILLOT NBAXV SWINGMANN X NTV",
+    price: 74.99,
     category: "MAILLOTS",
     description: "Maillot mesh sans manches, bandes arc-en-ciel, numéro 92 floqué au dos.",
     colors: [{ name: "Blanc", hex: "#f4f2ec" }],
@@ -348,8 +348,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "jparis-sweat",
-    name: "SWEAT J'♥ PARIS",
-    price: 89,
+    name: "PULL « MONOPULL »",
+    price: 75,
     category: "SWEATS",
     description: "Sweat gris chiné, print J'♥ PARIS poitrine. Le basique de la collection.",
     colors: [{ name: "Gris", hex: "#9a9a9a" }],
@@ -366,8 +366,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "black-jacket",
-    name: "VESTE VOLEUR",
-    price: 220,
+    name: "ROCKSTAR – VEDETTE X ISAIAH DENZEL",
+    price: 490,
     category: "VESTES",
     description: "Veste en cuir noir, zips et pressions métal. Dos sérigraphié VOLEUR.",
     colors: [{ name: "Noir", hex: "#111111" }],

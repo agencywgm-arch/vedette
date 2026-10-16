@@ -109,9 +109,9 @@ function seed(): Db {
     }
   }
   const returns: ReturnRequest[] = [
-    { id: "RET-3304", createdAt: ago(5), orderId: "CMD-48180", customer: { name: "Moussa T.", email: "moussa.t@example.com" }, itemName: "CHAMPIONS 2025 TEE", reason: "Taille trop grande, souhaite un L.", status: "demandee", note: "" },
-    { id: "RET-3299", createdAt: ago(30), orderId: "CMD-48150", customer: { name: "Julie P.", email: "julie.p@example.com" }, itemName: "SWEAT J'♥ PARIS", reason: "Ne convient pas.", status: "acceptee", note: "Étiquette retour envoyée." },
-    { id: "RET-3291", createdAt: ago(80), orderId: "CMD-48120", customer: { name: "Adam F.", email: "adam.f@example.com" }, itemName: "VESTE VOLEUR", reason: "Fermeture éclair défectueuse.", status: "recue", note: "Colis reçu, à contrôler." },
+    { id: "RET-3304", createdAt: ago(5), orderId: "CMD-48180", customer: { name: "Moussa T.", email: "moussa.t@example.com" }, itemName: "T-SHIRT « NBA CHAMPIONSHIRT »", reason: "Taille trop grande, souhaite un L.", status: "demandee", note: "" },
+    { id: "RET-3299", createdAt: ago(30), orderId: "CMD-48150", customer: { name: "Julie P.", email: "julie.p@example.com" }, itemName: "PULL « MONOPULL »", reason: "Ne convient pas.", status: "acceptee", note: "Étiquette retour envoyée." },
+    { id: "RET-3291", createdAt: ago(80), orderId: "CMD-48120", customer: { name: "Adam F.", email: "adam.f@example.com" }, itemName: "ROCKSTAR – VEDETTE X ISAIAH DENZEL", reason: "Fermeture éclair défectueuse.", status: "recue", note: "Colis reçu, à contrôler." },
   ];
   const tickets: Ticket[] = [
     { id: "SAV-901", createdAt: ago(2), customer: { name: "Nora A.", email: "nora.a@example.com" }, subject: "Où en est ma commande ?", channel: "email", status: "ouvert", note: "", messages: [{ from: "client", at: ago(2), text: "Bonjour, je n'ai pas reçu de numéro de suivi pour ma commande d'hier." }] },
