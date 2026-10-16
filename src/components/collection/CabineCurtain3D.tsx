@@ -14,8 +14,8 @@ import * as THREE from "three";
  * aside over ~2.4 s.
  */
 
-const DELAY = 1.0;
-const DURATION = 2.4;
+const DELAY = 0.5;
+const DURATION = 1.3;
 const S_END = 0.075; // how narrow a panel gets once it is fully gathered
 
 const VERT = /* glsl */ `

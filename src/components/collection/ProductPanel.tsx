@@ -61,7 +61,7 @@ export default function ProductPanel({
   // background tab), the curtain is removed anyway so it can't stay on screen.
   useEffect(() => {
     if (!cabineOpen || curtainDone) return;
-    const id = window.setTimeout(() => setCurtainDone(true), 4400);
+    const id = window.setTimeout(() => setCurtainDone(true), 2600);
     return () => window.clearTimeout(id);
   }, [cabineOpen, curtainDone]);
   const [gender, setGender] = useState<"homme" | "femme">("homme");
