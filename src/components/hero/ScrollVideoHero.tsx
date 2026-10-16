@@ -48,6 +48,9 @@ const MOBILE_QUERY = "(max-width: 767px)";
 // time and memory the scroll doesn't have to wait on.
 const FRAME_COUNT = 241;
 const FRAME_SETS = {
+  // 4K stills (Topaz-upscaled), fetched only when the scroll comes to rest on a
+  // big, fast screen: the picture a pause shows is the untouched 3840px one.
+  uhd: { dir: "/frames/uhd/", w: 3840, h: 2160 },
   qhd: { dir: "/frames/qhd/", w: 2560, h: 1440 },
   hd: { dir: "/frames/hd/", w: 1920, h: 1080 },
   desk: { dir: "/frames/desk/", w: 1280, h: 720 },
@@ -327,6 +330,10 @@ export default function ScrollVideoHero() {
       : physical >= 1400 && memory >= 4
         ? FRAME_SETS.hd
         : FRAME_SETS.desk;
+    // What a pause shows: 4K on a desktop-class screen with the memory for it,
+    // 1440p on other capable devices, 1080p on the rest.
+    const sharpSet =
+      !lite && physical >= 2000 && memory >= 4 ? FRAME_SETS.uhd : memory >= 4 ? FRAME_SETS.qhd : FRAME_SETS.hd;
     canvas.width = set.w;
     canvas.height = set.h;
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -339,7 +346,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261107`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261108`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -364,7 +371,7 @@ export default function ScrollVideoHero() {
       sharpFor = i;
       const next = new Image();
       next.decoding = "async";
-      next.src = `${(((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) >= 4 ? FRAME_SETS.qhd : FRAME_SETS.hd).dir}${String(i).padStart(3, "0")}.webp?v=20261107`;
+      next.src = `${sharpSet.dir}${String(i).padStart(3, "0")}.webp?v=20261108`;
       next
         .decode()
         .then(() => {
