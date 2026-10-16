@@ -317,9 +317,14 @@ export default function ScrollVideoHero() {
     // Physical pixels across the screen: the 1080p stills from 1400 up, so a
     // laptop or a phone-in-landscape never stretches a 720p picture.
     const physical = Math.max(window.screen.width, window.innerWidth) * (window.devicePixelRatio || 1);
+    // Phones used to get the 1024px stills, which look soft on a 3x screen:
+    // only the low-memory ones keep them, the rest get the 1280px set.
+    const memory = nav.deviceMemory ?? 8;
     const set = lite
-      ? FRAME_SETS.lite
-      : physical >= 1400 && (nav.deviceMemory ?? 8) >= 4
+      ? memory < 4
+        ? FRAME_SETS.lite
+        : FRAME_SETS.desk
+      : physical >= 1400 && memory >= 4
         ? FRAME_SETS.hd
         : FRAME_SETS.desk;
     canvas.width = set.w;
