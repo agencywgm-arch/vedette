@@ -316,7 +316,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
           )}
 
           {/* Mini arcade cabinet at the foot of the wall, left of the shelves. */}
-          <ArcadeCabinet left={6.6} top={67.8} width={10.6} dimmed={inspecting} />
+          <ArcadeCabinet left={5.2} top={60.4} width={14} dimmed={inspecting} />
 
           <div ref={hotspotLayerRef} className="shop-hotspot-layer">
             {collection.map((item) => {
