@@ -34,9 +34,12 @@ function formatPrice(price: number) {
 export default function ProductPanel({
   item,
   onClose,
+  onCabineStep,
 }: {
   item: CollectionItem;
   onClose: () => void;
+  /** Steps to the previous / next piece that has a cabine, without leaving it. */
+  onCabineStep?: (direction: -1 | 1) => void;
 }) {
   const addToCart = useShopStore((s) => s.addToCart);
   const bundleAccessory = useShopStore((s) => s.bundleAccessory);
@@ -247,7 +250,33 @@ export default function ProductPanel({
             ))}
           </div>
         )}
-        <p className="shop-cabine-caption">{item.name}</p>
+        <div className="shop-cabine-pieces" onClick={(e) => e.stopPropagation()}>
+          {onCabineStep && (
+            <button
+              type="button"
+              className="shop-cabine-piece-btn"
+              onClick={() => onCabineStep(-1)}
+              aria-label="Pièce précédente"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </button>
+          )}
+          <p className="shop-cabine-caption">{item.name}</p>
+          {onCabineStep && (
+            <button
+              type="button"
+              className="shop-cabine-piece-btn"
+              onClick={() => onCabineStep(1)}
+              aria-label="Pièce suivante"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     )}
 

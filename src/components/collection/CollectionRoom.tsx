@@ -219,11 +219,12 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     return () => observer.disconnect();
   }, []);
 
-  const step = (direction: -1 | 1) => {
+  const step = (direction: -1 | 1, onlyCabine = false) => {
     // Locked pieces have no wall hotspot to fly in from, so cycling has to
     // skip past them — landing on one would otherwise silently no-op and
-    // leave the arrow key stuck, since selectedId never advances.
-    const openable = selectableItems.filter((i) => !i.locked);
+    // leave the arrow key stuck, since selectedId never advances. From inside
+    // the cabine only pieces that have one are stepped through.
+    const openable = selectableItems.filter((i) => !i.locked && (!onlyCabine || i.cabine));
     if (openable.length === 0) return;
     const current = openable.findIndex((i) => i.id === selectedId);
     const next =
@@ -418,7 +419,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
       <ShopHeader onPick={open} />
       {!compact && <NavHud compact={false} />}
       {!compact && <CategoryRail />}
-      {displayed && <ProductPanel item={displayed} onClose={() => select(null)} />}
+      {displayed && <ProductPanel item={displayed} onClose={() => select(null)} onCabineStep={(d) => step(d, true)} />}
       {/* after the panel, so the CSS that moves it out of the sheet's way can
           reach it — a sibling combinator only looks forward */}
       {compact && <NavHud compact />}
