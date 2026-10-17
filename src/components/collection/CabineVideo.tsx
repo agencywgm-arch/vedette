@@ -5,7 +5,7 @@ import { useZoom } from "@/lib/use-zoom";
 import { createVideoScrubber } from "@/lib/video-scrubber";
 
 /** Bump when the fitting-room videos change: busts copies cached by phones. */
-export const CABINE_VIDEO_VERSION = "20261018c";
+export const CABINE_VIDEO_VERSION = "20261018d";
 /** Degrees turned per pixel dragged: one viewport width is about a turn. */
 const DEG_PER_PX = 0.45;
 const FRICTION = 0.9;
