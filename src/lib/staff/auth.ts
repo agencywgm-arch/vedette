@@ -20,6 +20,12 @@ function password(): string {
   return process.env.STAFF_PASSWORD ?? "admin";
 }
 
+/** In production the built-in "admin" password is never accepted: until
+ *  STAFF_PASSWORD is set on the server, nobody can sign in to the dashboard
+ *  (it lists customers' names, e-mails and orders). Local dev keeps the default. */
+export const staffLocked = (): boolean =>
+  process.env.NODE_ENV === "production" && !process.env.STAFF_PASSWORD;
+
 function secret(): string {
   return process.env.STAFF_SESSION_SECRET ?? "vedette-staff-dev-secret-change-me";
 }
@@ -63,6 +69,7 @@ export async function isValidSession(token: string | undefined | null): Promise<
 
 /** Constant-time password check: compare SHA-256 digests, not the raw strings. */
 export async function checkPassword(attempt: string): Promise<boolean> {
+  if (staffLocked()) return false;
   const [a, b] = await Promise.all([
     crypto.subtle.digest("SHA-256", enc.encode(attempt)),
     crypto.subtle.digest("SHA-256", enc.encode(password())),
