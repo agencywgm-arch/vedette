@@ -32,7 +32,8 @@ export default function CabineVideo({
   /** Shown instead if the clip can't be played on this device. */
   fallback?: ReactNode;
 }) {
-  const zoom = useZoom({ min: 1, max: 4 });
+  const spinPx = useRef<(dx: number) => void>(() => {});
+  const zoom = useZoom({ min: 1, max: 4, onSpin: (dx) => spinPx.current(dx) });
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrub = useRef(createVideoScrubber()).current;
   const angle = useRef(0);
@@ -160,6 +161,15 @@ export default function CabineVideo({
     angle.current += dx * DEG_PER_PX;
     velocity.current = dx * DEG_PER_PX;
     lastInput.current = performance.now();
+    paint();
+  };
+  // sideways wheel / trackpad swipe turns the piece like a drag would
+  spinPx.current = (dx: number) => {
+    glide.current = null;
+    angle.current += dx * DEG_PER_PX;
+    velocity.current = 0;
+    lastInput.current = performance.now();
+    setTouched(true);
     paint();
   };
   const onUp = (e: React.PointerEvent) => {

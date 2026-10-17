@@ -292,6 +292,14 @@ export default function FloatingProduct({
   };
 
   const onWheel = (e: ReactWheelEvent) => {
+    // A sideways swipe / tilt wheel / Shift + wheel turns the piece (swiping
+    // right = dragging right); anything vertical keeps zooming.
+    const dx = e.deltaX !== 0 ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+    if (dx !== 0 && (e.shiftKey || Math.abs(dx) > Math.abs(e.deltaY) * 1.1)) {
+      angle.current += -dx * DRAG_PER_PX * 0.5;
+      velocity.current = 0;
+      return;
+    }
     zoomRef.current = clamp(zoomRef.current - e.deltaY * 0.0012, MIN_ZOOM, MAX_ZOOM);
   };
 

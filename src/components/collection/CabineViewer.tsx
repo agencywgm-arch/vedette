@@ -30,7 +30,8 @@ export default function CabineViewer({
   frames?: number;
 }) {
   const STEP = 360 / frames;
-  const zoom = useZoom({ min: 1, max: 4 });
+  const spinPx = useRef<(dx: number) => void>(() => {});
+  const zoom = useZoom({ min: 1, max: 4, onSpin: (dx) => spinPx.current(dx) });
   // Between two shots the two nearest photos blend, so dragging reads as a
   // smooth turn rather than a series of hard cuts.
   const crossfade = true;
@@ -209,6 +210,12 @@ export default function CabineViewer({
     lastX.current = e.clientX;
     angle.current -= dx * DEG_PER_PX;
     velocity.current = -dx * DEG_PER_PX;
+    paint();
+  };
+  // sideways wheel / trackpad swipe turns the piece like a drag would
+  spinPx.current = (dx: number) => {
+    angle.current -= dx * DEG_PER_PX;
+    velocity.current = 0;
     paint();
   };
   const onUp = (e: React.PointerEvent) => {

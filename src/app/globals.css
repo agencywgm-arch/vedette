@@ -2473,3 +2473,7 @@ body {
   .shop-panel-fields { display: flex; align-items: flex-start; gap: 16px; }
   .shop-panel-field:last-child { flex: 1; min-width: 0; }
 }
+
+/* un balayage latéral sert à faire tourner les pièces : il ne doit jamais
+   déclencher le retour / avance de page du navigateur */
+html, body { overscroll-behavior-x: none; }

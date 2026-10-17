@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as RPointerEvent, WheelEvent as RWheelEvent } from "react";
+
+/** Fraction of a drag that one pixel of sideways wheel / swipe turns. */
+const WHEEL_SPIN = 0.5;
 
 /**
  * Pinch / wheel / double-tap zoom with drag-to-pan, written straight to the
@@ -13,7 +16,19 @@ export function useZoom({
   min = 1,
   max = 4,
   doubleTap = true,
-}: { min?: number; max?: number; doubleTap?: boolean } = {}) {
+  onSpin,
+}: {
+  min?: number;
+  max?: number;
+  doubleTap?: boolean;
+  /** Sideways wheel / trackpad swipe (or Shift + wheel): the host turns its
+   *  piece by the equivalent of dragging this many pixels to the right. */
+  onSpin?: (dx: number) => void;
+} = {}) {
+  const spin = useRef(onSpin);
+  useEffect(() => {
+    spin.current = onSpin;
+  });
   const el = useRef<HTMLElement | null>(null);
   const s = useRef(1);
   const tx = useRef(0);
@@ -62,7 +77,16 @@ export function useZoom({
   const zoomBy = useCallback((f: number) => setTo(s.current * f), [setTo]);
 
   const onWheel = (e: RWheelEvent) => {
-    e.preventDefault?.();
+    // A sideways gesture turns the piece instead of zooming it: a trackpad
+    // swipe, a tilt wheel, or Shift + wheel (some browsers report that one as
+    // vertical, hence the fallback to deltaY).
+    if (spin.current) {
+      const dx = e.deltaX !== 0 ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+      if (dx !== 0 && (e.shiftKey || Math.abs(dx) > Math.abs(e.deltaY) * 1.1)) {
+        spin.current(-dx * WHEEL_SPIN); // a swipe is long: half a drag per pixel keeps it controllable
+        return;
+      }
+    }
     const c = centre(e);
     setTo(s.current * Math.exp(-e.deltaY * 0.0022), c.x, c.y);
   };
