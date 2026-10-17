@@ -251,6 +251,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-bienoufoie.glb",
     cabine: C + "cap-bienoufoie",
+    cabineVideo: "/cabine/video/cap-bienoufoie",
     turntable: { mp4: T + "cap-bienoufoie.mp4", webm: T + "cap-bienoufoie.webm" },
   },
   {
@@ -267,6 +268,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-camo.glb",
     cabine: C + "cap-camo",
+    cabineVideo: "/cabine/video/cap-camo",
     turntable: { mp4: T + "cap-camo.mp4", webm: T + "cap-camo.webm" },
   },
   {
@@ -282,6 +284,7 @@ export const collection: CollectionItem[] = [
     back: null,
     model: "/models/cap-heart.glb",
     cabine: C + "cap-heart",
+    cabineVideo: "/cabine/video/cap-heart",
     turntable: { mp4: T + "cap-heart.mp4?v=2", webm: T + "cap-heart.webm?v=2" },
   },
   {

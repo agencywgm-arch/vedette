@@ -5,7 +5,7 @@ import { useZoom } from "@/lib/use-zoom";
 import { createVideoScrubber } from "@/lib/video-scrubber";
 
 /** Bump when the fitting-room videos change: busts copies cached by phones. */
-export const CABINE_VIDEO_VERSION = "20261018a";
+export const CABINE_VIDEO_VERSION = "20261018b";
 /** Degrees turned per pixel dragged: one viewport width is about a turn. */
 const DEG_PER_PX = 0.45;
 const FRICTION = 0.9;
@@ -44,6 +44,8 @@ export default function CabineVideo({
   const raf = useRef(0);
   const lastDraw = useRef(-1);
   const [ready, setReady] = useState(false);
+  // set once the clip has shown a picture; a seek in flight must not count as a failure
+  const hasData = useRef(false);
   const [touched, setTouched] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -103,7 +105,7 @@ export default function CabineVideo({
     v.addEventListener("loadedmetadata", kick);
     // a clip that never shows a picture is worse than the photos
     const id = window.setTimeout(() => {
-      if (v.readyState < 2) setFailed(true);
+      if (!hasData.current && v.readyState < 2) setFailed(true);
     }, 9000);
     return () => {
       v.removeEventListener("loadedmetadata", kick);
@@ -189,8 +191,14 @@ export default function CabineVideo({
           playsInline
           preload="auto"
           disablePictureInPicture
-          onLoadedData={() => setReady(true)}
-          onCanPlay={() => setReady(true)}
+          onLoadedData={() => {
+            hasData.current = true;
+            setReady(true);
+          }}
+          onCanPlay={() => {
+            hasData.current = true;
+            setReady(true);
+          }}
         >
           {/* mp4 first: every iPhone and Android plays it; webm is for the rest */}
           <source src={`${src}.mp4?v=${CABINE_VIDEO_VERSION}`} type="video/mp4" />
