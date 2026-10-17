@@ -346,7 +346,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261118`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261119`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -371,7 +371,7 @@ export default function ScrollVideoHero() {
       sharpFor = i;
       const next = new Image();
       next.decoding = "async";
-      next.src = `${sharpSet.dir}${String(i).padStart(3, "0")}.webp?v=20261118`;
+      next.src = `${sharpSet.dir}${String(i).padStart(3, "0")}.webp?v=20261119`;
       next
         .decode()
         .then(() => {
@@ -570,7 +570,7 @@ export default function ScrollVideoHero() {
         />
         </div>
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25" />
 
         {/* Catches the finger for looking around and the double tap/click
             that skips straight into the collection room — the walk-in is

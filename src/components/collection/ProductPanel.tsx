@@ -24,8 +24,8 @@ function canUseWebGL() {
   }
 }
 
-// Masqué en attendant de nouveaux mannequins femmes.
-const SHOW_FEMME = false;
+// Mannequin femme : les vidéos femmes sont les mêmes tournages, remodelés.
+const SHOW_FEMME = true;
 
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
