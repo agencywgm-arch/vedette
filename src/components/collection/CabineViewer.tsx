@@ -7,8 +7,8 @@ export const CABINE_FRAMES = 8;
 /** Bump when the fitting-room photos change: busts copies cached by phones. */
 const CABINE_VERSION = "20261017b";
 /** Degrees turned per pixel dragged: one viewport width is half a turn. */
-const DEG_PER_PX = 0.45;
-const FRICTION = 0.92;
+const DEG_PER_PX = 0.55;
+const FRICTION = 0.94;
 
 const wrap = (deg: number) => ((deg % 360) + 360) % 360;
 
@@ -31,9 +31,9 @@ export default function CabineViewer({
 }) {
   const STEP = 360 / frames;
   const zoom = useZoom({ min: 1, max: 4 });
-  // Photo-shoot look: each angle is a hard cut to the next shot, announced by a
-  // camera flash, rather than a blend between two photos.
-  const crossfade = false;
+  // Between two shots the two nearest photos blend, so dragging reads as a
+  // smooth turn rather than a series of hard cuts.
+  const crossfade = true;
   const imgs = useRef<(HTMLImageElement | null)[]>([]);
   const flashRef = useRef<HTMLDivElement>(null);
   const shown = useRef<number | null>(null);
@@ -79,7 +79,7 @@ export default function CabineViewer({
       }
     }
     if (shown.current !== near) {
-      if (shown.current !== null) {
+      if (shown.current !== null && !crossfade) {
         const f = flashRef.current;
         if (f) {
           f.classList.remove("is-flashing");
