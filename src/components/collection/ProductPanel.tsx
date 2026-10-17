@@ -25,8 +25,8 @@ function canUseWebGL() {
   }
 }
 
-// Masqué : pas de mannequins femmes dans la cabine pour le moment.
-const SHOW_FEMME = false;
+// Bouton Homme / Femme (vidéos femme : public/cabine/video/<id>-femme.*).
+const SHOW_FEMME = true;
 
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
