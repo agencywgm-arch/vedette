@@ -235,8 +235,8 @@ export const collection: CollectionItem[] = [
   },
   {
     id: "cap-bienoufoie",
-    name: "CASQUETTE BIEN OU FOIE",
-    price: 49,
+    name: "FOREST GUMP CAP",
+    price: 35,
     category: "CASQUETTES",
     description: "Collab Bien ou Foie × Vedette. Casquette orange, broderie exclusive.",
     colors: [{ name: "Orange", hex: "#e8600f" }],
@@ -296,7 +296,7 @@ export const collection: CollectionItem[] = [
   {
     id: "boxe-khoya-tank",
     name: "DÉBARDEUR FULL BOXE KHOYA",
-    price: 79,
+    price: 45,
     category: "T-SHIRTS",
     description: "Collab Bien ou Foie × Vedette. Débardeur noir imprimé all-over, tirage limité.",
     colors: [{ name: "Noir", hex: "#111111" }],
