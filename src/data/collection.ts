@@ -403,7 +403,6 @@ export const collection: CollectionItem[] = [
     cabine: C + "sac-vedette",
     carryStyles: [
       { id: "main", label: "À la main" },
-      { id: "torse", label: "Sur le torse" },
       { id: "epaule", label: "Épaule" },
       { id: "dos", label: "Dans le dos" },
       { id: "gilet", label: "Gilet tactique" },
