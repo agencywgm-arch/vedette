@@ -364,6 +364,7 @@ export default function ScrollVideoHero() {
       if (!el) return;
       const i = Math.round(Math.min(FRAME_COUNT - 1, Math.max(0, shownFrame.current)));
       if (i === sharpFor && el.complete && el.naturalWidth > 0) {
+        el.style.transition = "opacity 0.22s ease";
         el.style.opacity = "1";
         sharpOn = true;
         return;
@@ -379,7 +380,8 @@ export default function ScrollVideoHero() {
           if (shownFrame.current !== targetFrame.current) return;
           if (Math.round(shownFrame.current) !== i) return;
           el.src = next.src;
-          el.style.opacity = "1";
+          el.style.transition = "opacity 0.22s ease";
+        el.style.opacity = "1";
           sharpOn = true;
         })
         .catch(() => {});
@@ -407,7 +409,11 @@ export default function ScrollVideoHero() {
         if (sharpOn) {
           sharpOn = false;
           const el = sharpRef.current;
-          if (el) el.style.opacity = "0";
+          // gone at once: a slow fade would leave the old still ghosting over the moving picture
+          if (el) {
+            el.style.transition = "none";
+            el.style.opacity = "0";
+          }
         }
         window.clearTimeout(sharpTimer);
         raf = requestAnimationFrame(frame);
