@@ -4,7 +4,7 @@ import { useState } from "react";
 import CabineViewer from "./CabineViewer";
 
 /** Bump when the carry photos change: busts copies cached by phones. */
-const CARRY_VERSION = "20261017a";
+const CARRY_VERSION = "20261017b";
 
 export interface CarryStyle {
   id: string;

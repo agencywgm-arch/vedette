@@ -406,6 +406,7 @@ export const collection: CollectionItem[] = [
       { id: "torse", label: "Sur le torse" },
       { id: "epaule", label: "Épaule" },
       { id: "dos", label: "Dans le dos" },
+      { id: "gilet", label: "Gilet tactique" },
       { id: "sacoche-gauche", label: "Sacoche gauche" },
       { id: "sacoche-droite", label: "Sacoche droite" },
     ],
