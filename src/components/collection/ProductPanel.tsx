@@ -24,8 +24,8 @@ function canUseWebGL() {
   }
 }
 
-// Mannequin femme : les vidéos femmes sont les mêmes tournages, remodelés.
-const SHOW_FEMME = true;
+// Masqué : pas de mannequins femmes dans la cabine pour le moment.
+const SHOW_FEMME = false;
 
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
