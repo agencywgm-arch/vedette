@@ -6,8 +6,11 @@
  */
 const CLIP_DURATION = 241 / 24;
 
-/** Scroll length for the whole clip, as a multiple of the viewport height. */
-export const TOTAL_SCROLL_VH = 640;
+/** Scroll length for the whole clip, as a multiple of the viewport height.
+ *  Sized so a visitor reaches the collection in about three swipes of a thumb
+ *  (four for a slow one): the wall is at 86 % of the clip, so roughly
+ *  0.86 × (TOTAL − 1) screens of scrolling. */
+export const TOTAL_SCROLL_VH = 420;
 
 /**
  * The security guard "stops" the visitor here, closed door still between

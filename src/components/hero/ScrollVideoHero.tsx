@@ -61,10 +61,11 @@ const FRAME_SETS = {
 // turns that into a glide instead of a cut.
 const FRAME_EASE = 0.22;
 const LITE_QUERY = "(max-width: 1024px) and (pointer: coarse)";
-// Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
-// phones was blowing through several seconds of video at once. Stretching
-// the scrollable distance requires more scroll per second of playback.
-const MOBILE_SCROLL_STRETCH = 1.4;
+// Phones used to scroll 1.4x further than desktops, because one fling blew
+// through several seconds of video. The walk-in is now meant to take about
+// three swipes (see TOTAL_SCROLL_VH), so phones get the same length; the
+// frame easing below turns a big fling into a glide instead of a cut.
+const MOBILE_SCROLL_STRETCH = 1;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
