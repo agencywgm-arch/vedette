@@ -222,6 +222,7 @@ export const collection: CollectionItem[] = [
     back: P + "cap-vedette-back.webp",
     model: "/models/cap-vedette.glb",
     cabine: C + "cap-vedette",
+    cabineVideo: "/cabine/video/cap-vedette",
     turntable: { mp4: T + "cap-vedette.mp4", webm: T + "cap-vedette.webm" },
   },
   {
