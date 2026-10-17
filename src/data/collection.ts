@@ -70,6 +70,11 @@ export interface CollectionItem {
   turntable?: { mp4: string; webm: string } | null;
   /** Fitting room: one 360° video of the mannequin wearing the piece (front → back → front). */
   cabineVideo?: string;
+  /**
+   * One photo per way of carrying the piece (a bag): public/cabine/carry/<id>/<style>.webp.
+   * The cabine then offers a chip per style instead of only the 360° turn.
+   */
+  carryStyles?: { id: string; label: string }[];
 }
 
 export type Morph = "mince" | "large";
@@ -396,6 +401,14 @@ export const collection: CollectionItem[] = [
     front: P + "sac-vedette-front.webp",
     back: null,
     cabine: C + "sac-vedette",
+    carryStyles: [
+      { id: "main", label: "À la main" },
+      { id: "torse", label: "Sur le torse" },
+      { id: "epaule", label: "Épaule" },
+      { id: "dos", label: "Dans le dos" },
+      { id: "sacoche-gauche", label: "Sacoche gauche" },
+      { id: "sacoche-droite", label: "Sacoche droite" },
+    ],
     turntable: { mp4: T + "sac-vedette.mp4", webm: T + "sac-vedette.webm" },
   },
 ];

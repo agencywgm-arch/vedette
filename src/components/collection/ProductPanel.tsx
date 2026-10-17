@@ -10,6 +10,7 @@ import {
 import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
 import CabineVideo from "./CabineVideo";
+import CabineCarry from "./CabineCarry";
 
 // Real-cloth curtain (WebGL). Phones and laptops without WebGL keep the CSS one.
 const CabineCurtain3D = dynamic(() => import("./CabineCurtain3D"), { ssr: false });
@@ -210,7 +211,14 @@ export default function ProductPanel({
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        {item.cabineVideo ? (
+        {item.carryStyles ? (
+          <CabineCarry
+            base={item.cabine}
+            folder={`/cabine/carry/${item.id}`}
+            styles={item.carryStyles}
+            label={item.name}
+          />
+        ) : item.cabineVideo ? (
           <CabineVideo
             key={isFemme ? `${item.id}-f` : `${item.id}-h`}
             src={isFemme ? `${item.cabineVideo}-femme` : item.cabineVideo}

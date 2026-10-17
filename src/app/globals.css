@@ -2393,3 +2393,15 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .arcade-btn, .arcade-marquee, .arcade-screen-glow { animation: none; opacity: 0.6; }
 }
+
+/* sac : une photo par façon de le porter, puces en bas */
+.shop-cabine-carry { cursor: default; }
+.shop-cabine-carry-chips {
+  top: auto;
+  bottom: 84px;
+  max-width: 94vw;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.shop-cabine-carry-chips button { padding: 7px 12px; font-size: 11px; }
