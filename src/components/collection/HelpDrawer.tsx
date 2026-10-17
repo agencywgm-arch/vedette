@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useModal } from "@/lib/use-modal";
 import OrderTracker from "./OrderTracker";
 
 type Mode = "tracking" | "support" | "returns";
 
 export default function HelpDrawer({ onClose, initial = "support" }: { onClose: () => void; initial?: Mode }) {
+  const panel = useModal<HTMLElement>(onClose);
   const [mode, setMode] = useState<Mode>(initial);
   const [f, setF] = useState({ name: "", email: "", subject: "", message: "", orderId: "", itemName: "", reason: "" });
   const [busy, setBusy] = useState(false);
@@ -42,7 +44,7 @@ export default function HelpDrawer({ onClose, initial = "support" }: { onClose: 
   // Rendered on <body>: inside the room it sat beneath the wall hotspots.
   return createPortal(
     <div className="shop-drawer-backdrop" onClick={onClose}>
-      <aside className="shop-drawer" role="dialog" aria-label="Aide" onClick={(e) => e.stopPropagation()}>
+      <aside ref={panel} tabIndex={-1} className="shop-drawer" role="dialog" aria-modal="true" aria-label="Aide" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="shop-drawer-close" onClick={onClose} aria-label="Fermer">
           ×
         </button>

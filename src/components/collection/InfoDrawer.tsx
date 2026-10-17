@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { categories, collection, thumbFor, wallPosters, type Category } from "@/data/collection";
+import { useModal } from "@/lib/use-modal";
 import { useShopStore } from "@/store/useShopStore";
 
 export type InfoMode = "menu" | "search" | "collections" | "about" | "journal";
@@ -29,6 +30,7 @@ export default function InfoDrawer({
   onPick: (id: string) => void;
   onHelp: (tab?: "tracking" | "support") => void;
 }) {
+  const panel = useModal<HTMLElement>(onClose);
   const [mode, setMode] = useState<InfoMode>(initialMode);
   const [q, setQ] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function InfoDrawer({
 
   return createPortal(
     <div className="shop-drawer-backdrop" onClick={onClose}>
-      <aside className="shop-drawer" role="dialog" aria-label={TITLES[mode]} onClick={(e) => e.stopPropagation()}>
+      <aside ref={panel} tabIndex={-1} className="shop-drawer" role="dialog" aria-modal="true" aria-label={TITLES[mode]} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="shop-drawer-close" onClick={onClose} aria-label="Fermer">
           ×
         </button>
@@ -166,7 +168,7 @@ export default function InfoDrawer({
             <p>
               Une marque de streetwear parisienne : des pièces imprimées et brodées, pensées comme des affiches
               que l’on porte. Chaque pièce se découvre sur le mur de la boutique, se fait tourner à 360° et
-              s’essaie en cabine, en version homme ou femme, en mince, médium ou large.
+              s’essaie en cabine, en version homme ou femme.
             </p>
             <p>Une question, un retour, une commande ? On te répond par e-mail.</p>
             <button

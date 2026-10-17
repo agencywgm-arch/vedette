@@ -4,11 +4,13 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { collection } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
+import { useModal } from "@/lib/use-modal";
 import { rememberOrder } from "./OrderTracker";
 
 const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
 
 export default function CartDrawer({ onClose }: { onClose: () => void }) {
+  const panel = useModal<HTMLElement>(onClose);
   const cart = useShopStore((s) => s.cart);
   const removeFromCart = useShopStore((s) => s.removeFromCart);
   const clearCart = useShopStore((s) => s.clearCart);
@@ -52,8 +54,11 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div className="shop-drawer-backdrop" onClick={onClose}>
       <aside
+        ref={panel}
+        tabIndex={-1}
         className="shop-drawer"
         role="dialog"
+        aria-modal="true"
         aria-label="Panier"
         onClick={(e) => e.stopPropagation()}
       >

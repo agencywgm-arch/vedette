@@ -238,6 +238,12 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // typing in a field (search, cart, help) or a browser shortcut such as
+      // Ctrl+D must never move the room, and a drawer on top owns the keys
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(input|textarea|select)$/i.test(t.tagName))) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (document.querySelector(".shop-drawer-backdrop")) return;
       const k = e.key.toLowerCase();
       if (k === "escape") select(null);
       else if (k === "a" || e.key === "ArrowLeft") step(-1);
