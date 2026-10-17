@@ -1,5 +1,6 @@
 "use client";
 
+import { prefetchTurntable } from "@/lib/prefetch-video";
 import { useEffect, useRef, useState } from "react";
 import {
   WALL_IMAGE,
@@ -34,11 +35,10 @@ const DESKTOP_NAV_GUTTER = 260;
 const DESKTOP_WALL_HEIGHT = 0.78;
 /** How long the still takes to settle from matching the video's last frame
  * into its resting, fully-visible position. */
-const SETTLE_MS = 900;
+const SETTLE_MS = 650;
 /** Spacing between warm-up fetches, so they queue rather than pile up. */
-const PRELOAD_GAP_MS = 700;
+const PRELOAD_GAP_MS = 900;
 
-type Preloader = (url: string) => void;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -86,7 +86,6 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const zoomRef = useRef(1);
   const hotspotEls = useRef(new Map<string, HTMLButtonElement | null>());
   /** Held once the chunk lands, so hovering a piece can pull its model in. */
-  const preload = useRef<Preloader | null>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   // Mounted already matching the video's last frame; flipped one tick later
   // so the browser has something to transition *from* — see the effect below.
@@ -107,23 +106,16 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     return () => window.clearTimeout(id);
   }, [settled]);
 
-  // A model's file and the three.js chunk to render it both take real time to
-  // fetch — time a click can't hide once the flight is already underway. The
-  // room arriving is spare time the visitor spends looking at the wall before
-  // touching anything, so warm the cache then instead of at the click.
-  //
-  // One at a time, though: firing all of them at once is fifteen megabytes of
-  // parallel requests competing with the clip still being scrubbed behind the
-  // room, which costs the arrival its smoothness to save a click that hasn't
-  // happened yet. Spaced out, the first pieces are ready well before anyone
-  // reaches them and nothing else is starved. A connection that says it is
-  // slow, or metered, gets none of it — those visitors pay per megabyte and
-  // the click-time fetch still works.
+  // What a click waits for is the piece's 360° clip. The room arriving is
+  // spare time the visitor spends looking at the wall, so warm the cache then
+  // — one clip at a time, spaced out, so the arrival stays smooth. It pauses
+  // while a piece is open (that piece's own clips come first), and a
+  // connection that says it is slow or metered gets none of it. (The old
+  // warm-up fetched every 3D scan, which no piece with a clip ever shows —
+  // megabytes that slowed the cabine for nothing.)
   useEffect(() => {
-    const models = collection
-      .flatMap((i) => [i.model, i.accessory?.model])
-      .filter((m): m is string => Boolean(m));
-    if (models.length === 0) return;
+    const clips = collection.filter((i) => !i.locked && i.turntable).map((i) => i.turntable!);
+    if (clips.length === 0) return;
 
     const link = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
       .connection;
@@ -131,17 +123,13 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
 
     let timer = 0;
     let cancelled = false;
-    import("./ModelStage").then(({ preloadModel }) => {
-      if (cancelled) return;
-      preload.current = preloadModel;
-      let next = 0;
-      const step = () => {
-        if (cancelled || next >= models.length) return;
-        preloadModel(models[next++]);
-        timer = window.setTimeout(step, PRELOAD_GAP_MS);
-      };
-      step();
-    });
+    let next = 0;
+    const step = () => {
+      if (cancelled || next >= clips.length) return;
+      if (useShopStore.getState().selectedId === null) prefetchTurntable(clips[next++]);
+      timer = window.setTimeout(step, PRELOAD_GAP_MS);
+    };
+    timer = window.setTimeout(step, 600);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -350,8 +338,8 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                   onPointerEnter={() => {
                     setHovered(item.id);
                     // Reaching for a piece is the clearest signal of which
-                    // model matters next, so let it jump the warm-up queue.
-                    if (item.model) preload.current?.(item.model);
+                    // clip matters next, so let it jump the warm-up queue.
+                    if (item.turntable) prefetchTurntable(item.turntable);
                   }}
                   onPointerLeave={() => setHovered(null)}
                   onClick={() => open(item.id)}

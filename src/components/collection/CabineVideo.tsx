@@ -10,8 +10,8 @@ export const CABINE_VIDEO_VERSION = "20261018d";
 const DEG_PER_PX = 0.45;
 const FRICTION = 0.9;
 /** Gentle idle spin, in degrees per second (one turn in 12 s). */
-const IDLE_SPIN = 30;
-const IDLE_AFTER_MS = 2200;
+const IDLE_SPIN = 40;
+const IDLE_AFTER_MS = 900;
 
 const wrap = (deg: number) => ((deg % 360) + 360) % 360;
 
@@ -211,10 +211,10 @@ export default function CabineVideo({
           }}
         >
           {/* mp4 first: every iPhone and Android plays it; webm is for the rest */}
-          <source src={`${src}.mp4?v=${CABINE_VIDEO_VERSION}`} type="video/mp4" />
+          <source src={`${src}.mp4?v=${CABINE_VIDEO_VERSION}`} type='video/mp4; codecs="avc1.640028"' />
           <source
             src={`${src}.webm?v=${CABINE_VIDEO_VERSION}`}
-            type="video/webm"
+            type='video/webm; codecs="vp9"'
             onError={() => setFailed(true)}
           />
         </video>

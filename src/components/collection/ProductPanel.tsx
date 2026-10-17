@@ -9,7 +9,8 @@ import {
 } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
-import CabineVideo from "./CabineVideo";
+import CabineVideo, { CABINE_VIDEO_VERSION } from "./CabineVideo";
+import { prefetchVideo } from "@/lib/prefetch-video";
 import CabineCarry from "./CabineCarry";
 
 // Real-cloth curtain (WebGL). Phones and laptops without WebGL keep the CSS one.
@@ -65,11 +66,21 @@ export default function ProductPanel({
   // background tab), the curtain is removed anyway so it can't stay on screen.
   useEffect(() => {
     if (!cabineOpen || curtainDone) return;
-    const id = window.setTimeout(() => setCurtainDone(true), 2100);
+    const id = window.setTimeout(() => setCurtainDone(true), 1250);
     return () => window.clearTimeout(id);
   }, [cabineOpen, curtainDone]);
   const [gender, setGender] = useState<"homme" | "femme">("homme");
   const isFemme = SHOW_FEMME && gender === "femme" && !!item.femme;
+  // Both clips are fetched while the customer is still looking at the piece, so
+  // the cabine opens at once and the Femme button flips without a wait.
+  useEffect(() => {
+    if (!item.cabineVideo) return;
+    const id = window.setTimeout(() => {
+      prefetchVideo(item.cabineVideo as string, CABINE_VIDEO_VERSION);
+      if (SHOW_FEMME && item.femme) prefetchVideo(`${item.cabineVideo}-femme`, CABINE_VIDEO_VERSION);
+    }, 500);
+    return () => window.clearTimeout(id);
+  }, [item.id, item.cabineVideo, item.femme]);
   return (
     <>
     <aside className="shop-panel">

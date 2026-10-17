@@ -16,11 +16,11 @@ import { useShopStore } from "@/store/useShopStore";
 const ModelStage = dynamic(() => import("./ModelStage"), { ssr: false });
 const TurntableStage = dynamic(() => import("./TurntableStage"), { ssr: false });
 
-const FLY_IN_MS = 1000;
-const FLY_BACK_MS = 800;
+const FLY_IN_MS = 700;
+const FLY_BACK_MS = 600;
 const BOB_AMPLITUDE = 7; // px
 const BOB_PERIOD_MS = 2600;
-const AUTO_SPIN = 14; // deg/s
+const AUTO_SPIN = 20; // deg/s
 const DRAG_PER_PX = 0.42; // deg
 const INERTIA_DAMPING = 0.94;
 const MIN_ZOOM = 0.8;
