@@ -2008,8 +2008,8 @@ body {
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 2px, rgba(255, 255, 255, 0) 2px 7px),
     repeating-linear-gradient(90deg, #050506 0, #121215 12px, #24242a 22px, #15151a 34px, #050506 50px, #060607 62px, #17171b 76px, #2a2a31 86px, #101013 100px, #050506 118px);
 }
-.cabine-curtain-l { left: 0; transform-origin: 0 50%; animation: cabine-draw-l 0.85s cubic-bezier(0.65, 0, 0.25, 1) 0.15s forwards; }
-.cabine-curtain-r { right: 0; transform-origin: 100% 50%; animation: cabine-draw-r 0.85s cubic-bezier(0.65, 0, 0.25, 1) 0.19s forwards; }
+.cabine-curtain-l { left: 0; transform-origin: 0 50%; animation: cabine-draw-l 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.2s forwards; }
+.cabine-curtain-r { right: 0; transform-origin: 100% 50%; animation: cabine-draw-r 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.25s forwards; }
 @keyframes cabine-draw-l { 0% { transform: translateX(0) scaleX(1); } 100% { transform: translateX(0) scaleX(0.07); } }
 @keyframes cabine-draw-r { 0% { transform: translateX(0) scaleX(1); } 100% { transform: translateX(0) scaleX(0.07); } }
 
@@ -2021,7 +2021,7 @@ body {
   background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.07) 48%, transparent 66%);
   background-size: 260% 100%;
   background-position: 120% 0;
-  animation: cabine-sheen 0.85s ease 0.15s forwards;
+  animation: cabine-sheen 1.5s ease 0.2s forwards;
 }
 @keyframes cabine-sheen { to { background-position: -40% 0; } }
 
@@ -2046,9 +2046,9 @@ body {
   -webkit-user-drag: none;
   filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.25)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
 }
-.cabine-logo-l { right: 50%; animation: cabine-logo-l 0.85s cubic-bezier(0.65, 0, 0.25, 1) 0.15s forwards; }
+.cabine-logo-l { right: 50%; animation: cabine-logo-l 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.2s forwards; }
 .cabine-logo-l img { left: 0; }
-.cabine-logo-r { left: 50%; animation: cabine-logo-r 0.85s cubic-bezier(0.65, 0, 0.25, 1) 0.19s forwards; }
+.cabine-logo-r { left: 50%; animation: cabine-logo-r 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.25s forwards; }
 .cabine-logo-r img { left: calc(var(--logo-w) / -2); }
 /* 50,4 % × (1 − 0,07) ≈ 46,9 vw : le logo suit exactement le bord du pan. */
 @keyframes cabine-logo-l { 0% { transform: translateX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateX(-46.9vw); opacity: 0; } }

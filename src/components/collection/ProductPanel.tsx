@@ -64,13 +64,16 @@ export default function ProductPanel({
     }
     setCabineOpenRaw(v);
   };
-  // Safety net: if a browser never fires the animation events (battery saver,
-  // background tab), the curtain is removed anyway so it can't stay on screen.
+  // The curtain is removed once its own animation has had time to finish, counted
+  // from when it actually starts (the 3D one only starts once its texture is in),
+  // so a slow load never cuts it off mid-way. A hard cap covers a browser that
+  // never starts it at all.
   useEffect(() => {
     if (!cabineOpen || curtainDone) return;
-    const id = window.setTimeout(() => setCurtainDone(true), 1250);
+    const wait = curtain3d ? (curtainReady ? 2000 : 6000) : 2000;
+    const id = window.setTimeout(() => setCurtainDone(true), wait);
     return () => window.clearTimeout(id);
-  }, [cabineOpen, curtainDone]);
+  }, [cabineOpen, curtainDone, curtain3d, curtainReady]);
   const [gender, setGender] = useState<"homme" | "femme">("homme");
   // the Femme clip is mounted (loaded, hidden) shortly after the cabine opens,
   // so the Homme/Femme switch only flips which one is shown
