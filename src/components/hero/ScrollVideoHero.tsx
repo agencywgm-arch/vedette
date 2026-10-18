@@ -101,7 +101,7 @@ export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sharpRef = useRef<HTMLImageElement>(null);
+  const sharpRef = useRef<HTMLCanvasElement>(null);
   // Where scroll says the walk should be, in frames, and where the canvas is
   // actually showing — the second eases toward the first.
   const targetFrame = useRef(0);
@@ -333,8 +333,16 @@ export default function ScrollVideoHero() {
         : FRAME_SETS.desk;
     // What a pause shows: 4K on a desktop-class screen with the memory for it,
     // 1440p on other capable devices, 1080p on the rest.
+    // ...but never a still far bigger than the picture really is on this screen
+    // (a phone shows it ~1200 device pixels wide): decoding and uploading a
+    // 1440p/4K still there only costs a stall on every pause.
+    const shown = canvas.clientWidth * (window.devicePixelRatio || 1);
     const sharpSet =
-      !lite && physical >= 2000 && memory >= 4 ? FRAME_SETS.uhd : memory >= 4 ? FRAME_SETS.qhd : FRAME_SETS.hd;
+      !lite && physical >= 2000 && memory >= 4 && shown >= 1800
+        ? FRAME_SETS.uhd
+        : memory >= 4 && shown >= 1300
+          ? FRAME_SETS.qhd
+          : FRAME_SETS.hd;
     canvas.width = set.w;
     canvas.height = set.h;
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -347,7 +355,7 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261138`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261139`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
@@ -360,29 +368,46 @@ export default function ScrollVideoHero() {
     let sharpTimer = 0;
     let sharpOn = false;
     let sharpFor = -1;
+    let sharpReady = false;
+    let destroyedSharp = false;
     const showSharp = () => {
       const el = sharpRef.current;
       if (!el) return;
       const i = Math.round(Math.min(FRAME_COUNT - 1, Math.max(0, shownFrame.current)));
-      if (i === sharpFor && el.complete && el.naturalWidth > 0) {
+      if (i === sharpFor && sharpReady) {
         el.style.transition = "opacity 0.22s ease";
         el.style.opacity = "1";
         sharpOn = true;
         return;
       }
       sharpFor = i;
-      const next = new Image();
-      next.decoding = "async";
-      next.src = `${sharpSet.dir}${String(i).padStart(3, "0")}.webp?v=20261138`;
-      next
-        .decode()
-        .then(() => {
+      sharpReady = false;
+      // Decoded off the main thread into a bitmap and blitted onto a canvas:
+      // an <img> showing a big still is decoded again, synchronously, the
+      // moment it's first painted (a stall of ~20 ms on a phone per pause).
+      const url = `${sharpSet.dir}${String(i).padStart(3, "0")}.webp?v=20261139`;
+      fetch(url)
+        .then((r) => r.blob())
+        .then((blob) => createImageBitmap(blob))
+        .then((bmp) => {
           // still resting on the same frame?
-          if (shownFrame.current !== targetFrame.current) return;
-          if (Math.round(shownFrame.current) !== i) return;
-          el.src = next.src;
+          if (
+            destroyedSharp ||
+            shownFrame.current !== targetFrame.current ||
+            Math.round(shownFrame.current) !== i
+          ) {
+            bmp.close();
+            return;
+          }
+          if (el.width !== bmp.width) {
+            el.width = bmp.width;
+            el.height = bmp.height;
+          }
+          el.getContext("2d")?.drawImage(bmp, 0, 0);
+          bmp.close();
+          sharpReady = true;
           el.style.transition = "opacity 0.22s ease";
-        el.style.opacity = "1";
+          el.style.opacity = "1";
           sharpOn = true;
         })
         .catch(() => {});
@@ -434,6 +459,7 @@ export default function ScrollVideoHero() {
     wake();
 
     return () => {
+      destroyedSharp = true;
       cancelAnimationFrame(raf);
       window.clearTimeout(sharpTimer);
       wakeDraw.current = () => {};
@@ -566,12 +592,9 @@ export default function ScrollVideoHero() {
           style={{ opacity: 0 }}
         />
         {/* The sharp (up to 1440p) still of the frame you stopped on, faded in at rest. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <canvas
           ref={sharpRef}
-          alt=""
           aria-hidden="true"
-          draggable={false}
           className="absolute inset-0 h-full w-full object-contain"
           style={{ opacity: 0, transition: "opacity 0.22s ease" }}
         />
