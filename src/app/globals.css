@@ -2011,6 +2011,14 @@ body {
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 2px, rgba(255, 255, 255, 0) 2px 7px),
     repeating-linear-gradient(90deg, #050506 0, #121215 12px, #24242a 22px, #15151a 34px, #050506 50px, #060607 62px, #17171b 76px, #2a2a31 86px, #101013 100px, #050506 118px);
 }
+.cabine-curtain-ph {
+  /* closed curtain from the very first paint, while the 3D cloth is still loading */
+  position: absolute;
+  inset: 0;
+  background:
+    url("/logo-white.png") center / min(78vw, 680px) auto no-repeat,
+    linear-gradient(180deg, #050506 0%, #0c0c10 50%, #050506 100%);
+}
 .cabine-curtain-l { left: 0; transform-origin: 0 50%; animation: cabine-draw-l 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.2s forwards; }
 .cabine-curtain-r { right: 0; transform-origin: 100% 50%; animation: cabine-draw-r 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.25s forwards; }
 @keyframes cabine-draw-l { 0% { transform: translateX(0) scaleX(1); } 100% { transform: translateX(0) scaleX(0.07); } }
