@@ -31,6 +31,12 @@ export interface FrameSequence {
 }
 
 const CONCURRENCY = 8;
+// A decoded still costs width x height x 4 bytes (8 MB at 1080p), so keeping
+// all of them resident is gigabytes. Only the frames within this many of the
+// viewer stay decoded, plus the coarse ones that keep the whole walk scrubbable;
+// the rest are dropped and come back from the (immutable) HTTP cache on demand.
+const WINDOW = 16;
+const KEEP_STRIDE = 24;
 
 export function createFrameSequence({
   count,
@@ -52,7 +58,7 @@ export function createFrameSequence({
   // Coarse pass first (every 8th frame) so the whole walk is scrubbable fast…
   const order: number[] = [];
   const queued = new Uint8Array(count);
-  for (const stride of [16, 8]) {
+  for (const stride of [KEEP_STRIDE]) {
     for (let i = 0; i < count; i += stride) {
       if (!queued[i]) {
         queued[i] = 1;
@@ -70,7 +76,7 @@ export function createFrameSequence({
   const closestMissing = () => {
     let best = -1;
     let bestD = Infinity;
-    for (let i = 0; i < count; i++) {
+    for (let i = Math.max(0, focusAt - WINDOW); i <= Math.min(count - 1, focusAt + WINDOW); i++) {
       if (queued[i]) continue;
       const d = Math.abs(i - focusAt);
       if (d < bestD) {
@@ -82,13 +88,20 @@ export function createFrameSequence({
   };
 
   let next = 0;
+  let active = 0;
   const pump = () => {
-    if (destroyed) return;
+    if (destroyed) {
+      active--;
+      return;
+    }
     let index: number;
     if (next < order.length) index = order[next++];
     else {
       index = closestMissing();
-      if (index < 0) return;
+      if (index < 0) {
+        active--;
+        return;
+      }
       queued[index] = 1;
     }
     const img = new Image();
@@ -98,13 +111,24 @@ export function createFrameSequence({
       .decode()
       .then(() => {
         if (destroyed) return;
+        // the viewer may have moved on while this one was in flight
+        if (index % KEEP_STRIDE !== 0 && index !== count - 1 && Math.abs(index - focusAt) > WINDOW) {
+          queued[index] = 0;
+          return;
+        }
         imgs[index] = img;
         onFrame(index);
       })
       .catch(() => {})
       .finally(pump);
   };
-  for (let i = 0; i < CONCURRENCY; i++) pump();
+  const kick = () => {
+    while (active < CONCURRENCY && !destroyed) {
+      active++;
+      pump();
+    }
+  };
+  kick();
 
   const nearest = (index: number) => {
     const i = Math.round(Math.min(count - 1, Math.max(0, index)));
@@ -151,7 +175,16 @@ export function createFrameSequence({
   };
 
   const focus = (index: number) => {
-    focusAt = Math.max(0, Math.min(count - 1, Math.round(index)));
+    const at = Math.max(0, Math.min(count - 1, Math.round(index)));
+    if (at === focusAt) return;
+    focusAt = at;
+    for (let i = 0; i < count; i++) {
+      if (imgs[i] && i % KEEP_STRIDE !== 0 && i !== count - 1 && Math.abs(i - focusAt) > WINDOW + 8) {
+        imgs[i] = null;
+        queued[i] = 0;
+      }
+    }
+    kick();
   };
 
   const destroy = () => {
