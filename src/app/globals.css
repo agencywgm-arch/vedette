@@ -278,6 +278,9 @@ body {
   transform: scaleY(-1);
   filter: blur(16px) brightness(0.5) saturate(1.05);
   opacity: 0.5;
+  /* rastered once on its own layer: a blur over a full-screen image is far too costly to redo per frame */
+  will-change: transform;
+  contain: paint;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(to bottom, transparent 80%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 80%, #000 100%);
