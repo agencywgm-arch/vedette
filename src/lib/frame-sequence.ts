@@ -27,6 +27,12 @@ export interface FrameSequence {
   nearest: (index: number) => number;
   /** Tell the loader where the viewer is, so frames around it arrive first. */
   focus: (index: number) => void;
+  /**
+   * While on, nothing new is fetched and every frame but the coarse ones is
+   * released (the walk-in is hidden behind the room); turning it off picks
+   * the loading up again from where the viewer is.
+   */
+  hold: (on: boolean) => void;
   destroy: () => void;
 }
 
@@ -82,13 +88,21 @@ export function createFrameSequence({
   };
 
   let next = 0;
+  let active = 0;
+  let paused = false;
   const pump = () => {
-    if (destroyed) return;
+    if (destroyed || paused) {
+      active--;
+      return;
+    }
     let index: number;
     if (next < order.length) index = order[next++];
     else {
       index = closestMissing();
-      if (index < 0) return;
+      if (index < 0) {
+        active--;
+        return;
+      }
       queued[index] = 1;
     }
     const img = new Image();
@@ -98,13 +112,23 @@ export function createFrameSequence({
       .decode()
       .then(() => {
         if (destroyed) return;
+        if (paused && index % 16 !== 0 && index !== count - 1) {
+          queued[index] = 0;
+          return;
+        }
         imgs[index] = img;
         onFrame(index);
       })
       .catch(() => {})
       .finally(pump);
   };
-  for (let i = 0; i < CONCURRENCY; i++) pump();
+  const kick = () => {
+    while (active < CONCURRENCY && !destroyed && !paused) {
+      active++;
+      pump();
+    }
+  };
+  kick();
 
   const nearest = (index: number) => {
     const i = Math.round(Math.min(count - 1, Math.max(0, index)));
@@ -152,6 +176,19 @@ export function createFrameSequence({
 
   const focus = (index: number) => {
     focusAt = Math.max(0, Math.min(count - 1, Math.round(index)));
+    kick();
+  };
+
+  const hold = (on: boolean) => {
+    paused = on;
+    if (on) {
+      for (let i = 0; i < count; i++) {
+        if (imgs[i] && i % 16 !== 0 && i !== count - 1) {
+          imgs[i] = null;
+          queued[i] = 0;
+        }
+      }
+    } else kick();
   };
 
   const destroy = () => {
@@ -160,5 +197,5 @@ export function createFrameSequence({
     imgs.fill(null);
   };
 
-  return { draw, key, nearest, focus, destroy };
+  return { draw, key, nearest, focus, hold, destroy };
 }

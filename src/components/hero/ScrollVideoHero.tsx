@@ -108,6 +108,7 @@ export default function ScrollVideoHero() {
   const shownFrame = useRef(0);
   const wakeDraw = useRef<() => void>(() => {});
   const focusSeq = useRef<(i: number) => void>(() => {});
+  const holdSeq = useRef<(on: boolean) => void>(() => {});
   const rafRef = useRef<number | null>(null);
   // On mobile the letterboxed video only fills a middle band of the screen —
   // the guard's line has to stay near his own black bar, not the screen's, or
@@ -314,7 +315,7 @@ export default function ScrollVideoHero() {
     const canvas = canvasRef.current;
     // Once the room is open the walk-in is behind it: stop pulling frames so
     // the thumbnails and the wall get the whole connection.
-    if (!canvas || !hydrated || roomOpen) return;
+    if (!canvas || !hydrated) return;
     // Big, high-density screens with the memory to hold the larger stills get
     // the sharper set; everything else keeps the lighter ones.
     const nav = navigator as Navigator & { deviceMemory?: number };
@@ -424,7 +425,7 @@ export default function ScrollVideoHero() {
       if (Math.abs(target - shown) < 0.02) shown = target;
       shownFrame.current = shown;
 
-      if (seq.key(shown) !== drawn) {
+      if (!roomOpenRef.current && seq.key(shown) !== drawn) {
         drawn = seq.draw(ctx, shown);
         // An opaque canvas is black until its first frame; the poster under
         // it shows through until then.
@@ -448,7 +449,7 @@ export default function ScrollVideoHero() {
         // Come to rest: fetch the full 1080p still for this exact frame and
         // fade it in over the scrub frame, so a pause shows real detail.
         window.clearTimeout(sharpTimer);
-        sharpTimer = window.setTimeout(showSharp, 140);
+        if (!roomOpenRef.current) sharpTimer = window.setTimeout(showSharp, 140);
       }
     };
     const wake = () => {
@@ -456,6 +457,8 @@ export default function ScrollVideoHero() {
     };
     wakeDraw.current = wake;
     focusSeq.current = seq.focus;
+    holdSeq.current = seq.hold;
+    seq.hold(roomOpenRef.current);
     wake();
 
     return () => {
@@ -464,9 +467,10 @@ export default function ScrollVideoHero() {
       window.clearTimeout(sharpTimer);
       wakeDraw.current = () => {};
       focusSeq.current = () => {};
+      holdSeq.current = () => {};
       seq.destroy();
     };
-  }, [hydrated, lite, roomOpen]);
+  }, [hydrated, lite]);
 
   // The clip is landscape (1350x1080) on every breakpoint, so it's shown in
   // full (object-contain) everywhere rather than split by device: a phone
@@ -526,6 +530,8 @@ export default function ScrollVideoHero() {
       if (wantRoom !== roomOpenRef.current) {
         roomOpenRef.current = wantRoom;
         setRoomOpen(wantRoom);
+        holdSeq.current(wantRoom);
+        if (!wantRoom) wakeDraw.current();
         wakeLook.current();
         // Scrolling back out of the room must also drop whatever was being
         // inspected, or its scroll lock would strand the page.
