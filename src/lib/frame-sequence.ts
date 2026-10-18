@@ -90,10 +90,11 @@ export function createFrameSequence({
   let next = 0;
   let active = 0;
   let paused = false;
-  const pump = () => {
+  // Returns false when there was nothing to start, so `kick` can stop instead of spinning.
+  const pump = (): boolean => {
     if (destroyed || paused) {
       active--;
-      return;
+      return false;
     }
     let index: number;
     if (next < order.length) index = order[next++];
@@ -101,7 +102,7 @@ export function createFrameSequence({
       index = closestMissing();
       if (index < 0) {
         active--;
-        return;
+        return false;
       }
       queued[index] = 1;
     }
@@ -121,11 +122,12 @@ export function createFrameSequence({
       })
       .catch(() => {})
       .finally(pump);
+    return true;
   };
   const kick = () => {
     while (active < CONCURRENCY && !destroyed && !paused) {
       active++;
-      pump();
+      if (!pump()) break;
     }
   };
   kick();
