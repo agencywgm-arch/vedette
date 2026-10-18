@@ -53,10 +53,12 @@ export default function ProductPanel({
   const [curtainDone, setCurtainDone] = useState(false);
   const [curtain3d, setCurtain3d] = useState(false);
   const [curtainReady, setCurtainReady] = useState(false);
-  useEffect(() => setCurtain3d(canUseWebGL()), []);
   // Every entry into the cabine replays the curtain.
   const setCabineOpen = (v: boolean) => {
     if (v) {
+      // decided before the first paint of the curtain: choosing it after mount
+      // drew the CSS curtain first and then the 3D one, so it opened twice
+      setCurtain3d(canUseWebGL());
       setCurtainDone(false);
       setCurtainReady(false);
     }
@@ -70,6 +72,17 @@ export default function ProductPanel({
     return () => window.clearTimeout(id);
   }, [cabineOpen, curtainDone]);
   const [gender, setGender] = useState<"homme" | "femme">("homme");
+  // the Femme clip is mounted (loaded, hidden) shortly after the cabine opens,
+  // so the Homme/Femme switch only flips which one is shown
+  const [femmeMounted, setFemmeMounted] = useState(false);
+  useEffect(() => {
+    if (!cabineOpen) {
+      setFemmeMounted(false);
+      return;
+    }
+    const id = window.setTimeout(() => setFemmeMounted(true), 700);
+    return () => window.clearTimeout(id);
+  }, [cabineOpen, item.id]);
   const isFemme = SHOW_FEMME && gender === "femme" && !!item.femme;
   // Both clips are fetched while the customer is still looking at the piece, so
   // the cabine opens at once and the Femme button flips without a wait.
@@ -230,18 +243,28 @@ export default function ProductPanel({
             label={item.name}
           />
         ) : item.cabineVideo ? (
-          <CabineVideo
-            key={isFemme ? `${item.id}-f` : `${item.id}-h`}
-            src={isFemme ? `${item.cabineVideo}-femme` : item.cabineVideo}
-            label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
-            fallback={
-              <CabineViewer
-                base={isFemme ? femmeFolder(item.id) : item.cabine}
-                frames={isFemme ? FIT_FRAMES : undefined}
-                label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
-              />
-            }
-          />
+          <>
+            {[false, true].map((fem) => {
+              if (fem && !(SHOW_FEMME && item.femme && (femmeMounted || isFemme))) return null;
+              const on = fem === isFemme;
+              const name = `${item.name} — ${fem ? "Femme" : "Homme"}`;
+              return (
+                <CabineVideo
+                  key={`${item.id}-${fem ? "f" : "h"}`}
+                  src={fem ? `${item.cabineVideo}-femme` : (item.cabineVideo as string)}
+                  label={name}
+                  active={on}
+                  fallback={
+                    <CabineViewer
+                      base={fem ? femmeFolder(item.id) : (item.cabine as string)}
+                      frames={fem ? FIT_FRAMES : undefined}
+                      label={name}
+                    />
+                  }
+                />
+              );
+            })}
+          </>
         ) : (
           <CabineViewer
             base={isFemme ? femmeFolder(item.id) : item.cabine}

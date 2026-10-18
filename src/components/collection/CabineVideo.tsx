@@ -26,9 +26,12 @@ export default function CabineVideo({
   src,
   label,
   fallback,
+  active = true,
 }: {
   src: string;
   label: string;
+  /** False keeps the clip loaded and ready but hidden and idle, so switching to it is instant. */
+  active?: boolean;
   /** Shown instead if the clip can't be played on this device. */
   fallback?: ReactNode;
 }) {
@@ -50,6 +53,15 @@ export default function CabineVideo({
   const [touched, setTouched] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  const activeRef = useRef(active);
+  useEffect(() => {
+    activeRef.current = active;
+    if (active) {
+      lastDraw.current = -1;
+      lastInput.current = performance.now();
+    }
+  }, [active]);
+
   const paint = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -67,7 +79,7 @@ export default function CabineVideo({
       raf.current = requestAnimationFrame(tick);
       const dt = Math.min(64, now - prev) / 1000;
       prev = now;
-      if (dragging.current) return;
+      if (dragging.current || !activeRef.current) return;
       if (glide.current) {
         const d = glide.current.to - angle.current;
         if (Math.abs(d) < 0.3) {
@@ -126,6 +138,7 @@ export default function CabineVideo({
     // Capture phase + stopPropagation: the room listens for these same keys to
     // step to the next piece, which would swap the product behind the cabine.
     const onKey = (e: KeyboardEvent) => {
+      if (!activeRef.current) return;
       const k = e.key.toLowerCase();
       if (e.key === "ArrowLeft" || k === "a") {
         e.stopImmediatePropagation();
@@ -179,7 +192,7 @@ export default function CabineVideo({
     lastInput.current = performance.now();
   };
 
-  if (failed && fallback) return <>{fallback}</>;
+  if (failed && fallback) return active ? <>{fallback}</> : null;
 
   return (
     <div
@@ -192,6 +205,8 @@ export default function CabineVideo({
       onClick={(e) => e.stopPropagation()}
       role="img"
       aria-label={`${label} — vue à 360°, glisser pour tourner`}
+      aria-hidden={active ? undefined : true}
+      style={active ? undefined : { visibility: "hidden", pointerEvents: "none" }}
     >
       <div ref={zoom.ref} className="shop-cabine-zoom">
         <video
