@@ -256,6 +256,13 @@ body {
   position: absolute;
 }
 
+/* One exposure correction for the poster, moving frames and sharp stills.
+   Apply it to the shared layer so fades never change the grading. */
+.hero-exposure,
+.shop-wall:not(.is-dimmed) {
+  filter: brightness(1.12) contrast(0.96) saturate(1.02);
+}
+
 .shop-wall {
   position: absolute;
   inset: 0;

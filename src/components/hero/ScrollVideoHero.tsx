@@ -582,7 +582,7 @@ export default function ScrollVideoHero() {
         <div ref={zoom.ref} className="pointer-events-none absolute inset-0 will-change-transform" style={{ transformOrigin: "center" }}>
         <div
           ref={lookLayerRef}
-          className="pointer-events-none absolute inset-0 will-change-transform"
+          className="hero-exposure pointer-events-none absolute inset-0 will-change-transform"
         >
         {/* The poster holds the first frame until the canvas has one. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -606,7 +606,7 @@ export default function ScrollVideoHero() {
         />
         </div>
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/10" />
 
         {/* Catches the finger for looking around and the double tap/click
             that skips straight into the collection room — the walk-in is
