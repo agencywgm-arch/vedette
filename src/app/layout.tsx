@@ -28,12 +28,12 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Vedette",
     locale: "fr_FR",
-    title: "Vedette — Vêtement Snob Villain Arrogant",
+    title: "Vedette — Vêtements",
     description:
       "Une boutique 3D immersive : scrollez de la rue jusqu'à l'intérieur de la boutique Vedette.",
   },
   twitter: { card: "summary_large_image" },
-  title: "Vedette — Vêtement Snob Villain Arrogant",
+  title: "Vedette — Vêtements",
   description:
     "Entrez dans la boutique Vedette. Une expérience 3D immersive, scrollez depuis la rue jusqu'à l'intérieur de la boutique.",
 };
