@@ -34,6 +34,11 @@ export interface Order {
   tracking?: string;
   /** Free message shown to the customer (e.g. "Livraison en point relais"). */
   message?: string;
+  /** Set once Stripe has confirmed the payment (webhook). */
+  paid?: boolean;
+  stripeSession?: string;
+  /** Delivery address collected by Stripe Checkout. */
+  shippingAddress?: string;
   /** Every status the order went through, oldest first. */
   history?: { status: OrderStatus; at: string }[];
 }

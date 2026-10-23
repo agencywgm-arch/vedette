@@ -30,14 +30,22 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer: form,
-          lines: lines.map((l) => ({ itemId: l.itemId, color: l.color, size: l.size, qty: 1 })),
-        }),
+      const payload = JSON.stringify({
+        customer: form,
+        lines: lines.map((l) => ({ itemId: l.itemId, color: l.color, size: l.size, qty: 1 })),
       });
+      const headers = { "Content-Type": "application/json" };
+      // Card payment first; if the shop has no payment account connected yet, the
+      // order is simply recorded and the team follows up by e-mail.
+      const pay = await fetch("/api/checkout", { method: "POST", headers, body: payload });
+      const paid = await pay.json();
+      if (pay.ok && paid.url) {
+        rememberOrder(paid.id, form.email.trim());
+        window.location.href = paid.url;
+        return;
+      }
+      if (paid.error !== "stripe_not_configured") throw new Error(paid.error ?? "Erreur");
+      const res = await fetch("/api/orders", { method: "POST", headers, body: payload });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur");
       rememberOrder(data.id, form.email.trim());
@@ -103,7 +111,7 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
               onChange={(e) => setForm({ ...form, city: e.target.value })} />
             {error && <p className="shop-drawer-error" role="alert">{error}</p>}
             <button className="shop-cta" disabled={busy}>
-              {busy ? "Envoi…" : "Valider la commande"}
+              {busy ? "Un instant…" : "Valider la commande"}
             </button>
           </form>
         )}
