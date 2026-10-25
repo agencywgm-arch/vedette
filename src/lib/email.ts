@@ -5,12 +5,16 @@ import { carrierName, trackingUrl } from "@/lib/shipping";
  * Transactional e-mails through Resend's REST API (no SDK). Needs RESEND_API_KEY and
  * MAIL_FROM (e.g. `Vedette <commandes@vedette620.com>`); without them every call is a
  * silent no-op, so the shop works the same before the mail account is connected.
- * MAIL_REPLY_TO: where customer replies go. MAIL_BCC: a copy of every mail sent, for the shop's own mailbox.
+ * MAIL_REPLY_TO: where customer replies go. MAIL_BCC: a copy of every mail sent. Both accept several addresses separated by commas.
  * A failed send never breaks an order, a payment or a staff action.
  */
 const SITE = () => process.env.NEXT_PUBLIC_SITE_URL ?? "https://vedette620.com";
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
+
+/** "a@x.fr, b@y.com" → ["a@x.fr", "b@y.com"] (invalid entries dropped). */
+const list = (v?: string) =>
+  (v ?? "").split(/[,;\s]+/).map((x) => x.trim()).filter((x) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));
 
 export const mailConfigured = () => Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM);
 
@@ -28,7 +32,7 @@ async function send(to: string, subject: string, title: string, bodyHtml: string
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html, text, reply_to: process.env.MAIL_REPLY_TO || undefined, bcc: process.env.MAIL_BCC ? [process.env.MAIL_BCC] : undefined }),
+      body: JSON.stringify({ from, to: [to], subject, html, text, reply_to: list(process.env.MAIL_REPLY_TO).length ? list(process.env.MAIL_REPLY_TO) : undefined, bcc: list(process.env.MAIL_BCC).length ? list(process.env.MAIL_BCC) : undefined }),
     });
   } catch {
     /* mail is best-effort */
