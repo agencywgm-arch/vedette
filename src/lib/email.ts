@@ -5,6 +5,7 @@ import { carrierName, trackingUrl } from "@/lib/shipping";
  * Transactional e-mails through Resend's REST API (no SDK). Needs RESEND_API_KEY and
  * MAIL_FROM (e.g. `Vedette <commandes@vedette620.com>`); without them every call is a
  * silent no-op, so the shop works the same before the mail account is connected.
+ * MAIL_REPLY_TO: where customer replies go. MAIL_BCC: a copy of every mail sent, for the shop's own mailbox.
  * A failed send never breaks an order, a payment or a staff action.
  */
 const SITE = () => process.env.NEXT_PUBLIC_SITE_URL ?? "https://vedette620.com";
@@ -27,7 +28,7 @@ async function send(to: string, subject: string, title: string, bodyHtml: string
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html, text, reply_to: process.env.MAIL_REPLY_TO || undefined }),
+      body: JSON.stringify({ from, to: [to], subject, html, text, reply_to: process.env.MAIL_REPLY_TO || undefined, bcc: process.env.MAIL_BCC ? [process.env.MAIL_BCC] : undefined }),
     });
   } catch {
     /* mail is best-effort */
