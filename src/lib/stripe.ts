@@ -66,8 +66,13 @@ export async function createCheckoutSession(opts: {
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: f,
   });
-  const data = (await res.json()) as { id?: string; url?: string; error?: { message?: string } };
-  if (!res.ok || !data.id || !data.url) throw new Error(data.error?.message ?? "stripe_error");
+  const data = (await res.json()) as { id?: string; url?: string; error?: { message?: string; type?: string; code?: string } };
+  if (!res.ok || !data.id || !data.url) {
+    console.error("stripe checkout failed", res.status, data.error?.type, data.error?.code, data.error?.message);
+    throw Object.assign(new Error(data.error?.message ?? "stripe_error"), {
+      detail: [res.status, data.error?.type, data.error?.code].filter(Boolean).join("/"),
+    });
+  }
   return { id: data.id, url: data.url };
 }
 

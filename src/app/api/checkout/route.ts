@@ -46,7 +46,11 @@ export async function POST(req: Request) {
       await saveDb(db);
     } catch {}
     return NextResponse.json({ ok: true, id: order.id, url: session.url });
-  } catch {
-    return NextResponse.json({ error: "Le paiement n'a pas pu démarrer. Réessaie dans un instant." }, { status: 502 });
+  } catch (e) {
+    const detail = (e as { detail?: string }).detail ?? "network";
+    return NextResponse.json(
+      { error: `Le paiement n'a pas pu démarrer. Réessaie dans un instant. (${detail})` },
+      { status: 502 },
+    );
   }
 }
