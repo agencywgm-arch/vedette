@@ -70,7 +70,8 @@ export async function createCheckoutSession(opts: {
   if (!res.ok || !data.id || !data.url) {
     console.error("stripe checkout failed", res.status, data.error?.type, data.error?.code, data.error?.message);
     throw Object.assign(new Error(data.error?.message ?? "stripe_error"), {
-      detail: [res.status, data.error?.type, data.error?.code].filter(Boolean).join("/"),
+      detail: [res.status, data.error?.type, data.error?.code].filter(Boolean).join("/") +
+        (res.status === 400 && data.error?.message ? ` ${data.error.message.slice(0, 160)}` : ""),
     });
   }
   return { id: data.id, url: data.url };
