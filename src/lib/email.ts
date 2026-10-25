@@ -44,7 +44,7 @@ const lineList = (o: Order) =>
     .map((l) => `<li>${esc(l.name)} <span style="color:#6b6b76">· ${esc(l.color)} · ${esc(l.size)}</span> — ${euro(l.price * l.qty)}</li>`)
     .join("")}</ul>`;
 const trackLink = (o: Order) =>
-  `<p style="margin:16px 0"><a href="${SITE()}/" style="background:#f2c300;color:#08080b;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:10px;display:inline-block">Suivre ma commande</a></p>
+  `<p style="margin:16px 0"><a href="${SITE()}/compte" style="background:#f2c300;color:#08080b;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:10px;display:inline-block">Suivre ma commande</a></p>
 <p style="color:#6b6b76;font-size:13px;margin:0">Sur le site : Aide → Suivi, avec le numéro <b>${esc(o.id)}</b> et cet e-mail.</p>`;
 
 export function mailOrderPaid(o: Order) {
@@ -55,7 +55,7 @@ export function mailOrderPaid(o: Order) {
     `<p>Commande <b>${esc(o.id)}</b></p>${lineList(o)}<p><b>Total : ${euro(o.total)}</b></p>${
       o.shippingAddress ? `<p style="color:#6b6b76">Livraison : ${esc(o.shippingAddress)}</p>` : ""
     }${trackLink(o)}`,
-    `Merci ! Ton paiement est reçu pour la commande ${o.id} (${euro(o.total)}). Suivi : ${SITE()} → Aide → Suivi.`,
+    `Merci ! Ton paiement est reçu pour la commande ${o.id} (${euro(o.total)}). Suivi : ${SITE()}/compte`,
   );
 }
 
@@ -88,5 +88,17 @@ export function mailTicketReply(t: Ticket, reply: string) {
     "Une réponse de l'équipe Vedette",
     `<p style="white-space:pre-wrap">${esc(reply)}</p><p style="color:#6b6b76;font-size:13px">Ticket ${esc(t.id)}</p>`,
     `${reply}\n\nTicket ${t.id}`,
+  );
+}
+
+export function mailMagicLink(email: string, url: string) {
+  return send(
+    email,
+    "Ton lien de connexion Vedette",
+    "Retrouve tes commandes",
+    `<p>Clique sur le bouton pour voir toutes tes commandes. Le lien est valable 15 minutes.</p>
+<p style="margin:18px 0"><a href="${esc(url)}" style="background:#f2c300;color:#08080b;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:10px;display:inline-block">Voir mes commandes</a></p>
+<p style="color:#6b6b76;font-size:13px">Si tu n'as pas demandé ce lien, ignore simplement cet e-mail : personne ne peut accéder à tes commandes sans lui.</p>`,
+    `Ton lien de connexion (valable 15 minutes) : ${url}`,
   );
 }

@@ -67,7 +67,12 @@ export default function HelpDrawer({ onClose, initial = "support" }: { onClose: 
               </button>
             </div>
             {mode === "tracking" ? (
-              <OrderTracker />
+              <>
+                <OrderTracker />
+                <p className="shop-drawer-note">
+                  <a href="/compte">Retrouver toutes mes commandes par e-mail →</a>
+                </p>
+              </>
             ) : (
             <form onSubmit={submit}>
               <input required placeholder="Nom" value={f.name} maxLength={80} onChange={set("name")} />
