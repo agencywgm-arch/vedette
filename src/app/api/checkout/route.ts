@@ -38,9 +38,13 @@ export async function POST(req: Request) {
     const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
     const session = await createCheckoutSession({ orderId: order.id, email, name, lines, origin });
     order.stripeSession = session.id;
-    const db = await loadDb();
-    db.orders.unshift(order);
-    await saveDb(db);
+    // The payment must never be blocked by the order list: if the database is briefly
+    // unreachable, the Stripe webhook rebuilds the order from the session's metadata.
+    try {
+      const db = await loadDb();
+      db.orders.unshift(order);
+      await saveDb(db);
+    } catch {}
     return NextResponse.json({ ok: true, id: order.id, url: session.url });
   } catch {
     return NextResponse.json({ error: "Le paiement n'a pas pu démarrer. Réessaie dans un instant." }, { status: 502 });

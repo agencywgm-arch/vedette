@@ -1,3 +1,4 @@
+import { neon } from "@neondatabase/serverless";
 import { collection } from "@/data/collection";
 
 export type OrderStatus = "nouvelle" | "preparation" | "expediee" | "livree" | "annulee";
@@ -82,7 +83,29 @@ function kv() {
   return url && token ? { url: url.replace(/\/$/, ""), token } : null;
 }
 
-export const isPersistent = () => kv() !== null;
+/** Neon / Postgres connection string, when a Postgres database is connected (it wins over the Redis one). */
+function pgUrl() {
+  return process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? null;
+}
+
+export const isPersistent = () => pgUrl() !== null || kv() !== null;
+
+type Sql = ReturnType<typeof neon<false, false>>;
+let pgReady: Promise<Sql> | null = null;
+/** One HTTP-based client per server instance; the table is created the first time it is needed. */
+function pg(): Promise<Sql> {
+  if (pgReady) return pgReady;
+  const ready = (async () => {
+    const sql = neon(pgUrl() as string);
+    await sql`CREATE TABLE IF NOT EXISTS vedette_kv (key text PRIMARY KEY, value jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())`;
+    return sql;
+  })();
+  pgReady = ready;
+  ready.catch(() => {
+    pgReady = null;
+  });
+  return ready;
+}
 
 const ORDER_FLOW: OrderStatus[] = ["nouvelle", "preparation", "expediee", "livree"];
 const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
@@ -129,6 +152,14 @@ function seed(): Db {
 const g = globalThis as unknown as { __staffDb?: Db };
 
 export async function loadDb(): Promise<Db> {
+  if (pgUrl()) {
+    const sql = await pg();
+    const rows = (await sql`SELECT value FROM vedette_kv WHERE key = ${KEY}`) as { value: Db }[];
+    if (rows[0]?.value) return rows[0].value;
+    const fresh: Db = { orders: [], returns: [], tickets: [] };
+    await saveDb(fresh);
+    return fresh;
+  }
   const k = kv();
   if (k) {
     const res = await fetch(`${k.url}/get/${encodeURIComponent(KEY)}`, {
@@ -145,6 +176,12 @@ export async function loadDb(): Promise<Db> {
 }
 
 export async function saveDb(db: Db): Promise<void> {
+  if (pgUrl()) {
+    const sql = await pg();
+    await sql`INSERT INTO vedette_kv (key, value) VALUES (${KEY}, ${JSON.stringify(db)}::jsonb)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`;
+    return;
+  }
   const k = kv();
   if (k) {
     await fetch(`${k.url}/set/${encodeURIComponent(KEY)}`, {
