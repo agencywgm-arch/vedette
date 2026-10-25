@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { collection } from "@/data/collection";
 import { loadDb, saveDb, type Order } from "@/lib/staff/store";
+import { mailOrderPaid } from "@/lib/email";
 import { verifyWebhook } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -56,10 +57,13 @@ export async function POST(req: Request) {
     } satisfies Order;
     db.orders.unshift(order);
   }
+  const firstTime = !order.paid;
   order.paid = true;
   order.stripeSession = s.id;
   if (shipping) order.shippingAddress = shipping;
   order.note = [`Payé via Stripe (${s.id})`, s.customer_details?.phone ? `Tél. ${s.customer_details.phone}` : ""].filter(Boolean).join(" · ");
   await saveDb(db);
+  // Stripe retries a webhook until it gets an answer: confirm by e-mail only once.
+  if (firstTime) await mailOrderPaid(order);
   return NextResponse.json({ ok: true });
 }

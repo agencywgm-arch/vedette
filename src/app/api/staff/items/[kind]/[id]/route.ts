@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { mailOrderStatus, mailTicketReply } from "@/lib/email";
 import { CARRIERS } from "@/lib/shipping";
 import { staffAuthorized } from "@/lib/staff/guard";
 import {
@@ -27,6 +28,7 @@ export async function PATCH(
     return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
   const db = await loadDb();
+  let mail: Promise<unknown> | null = null;
   const status = typeof body.status === "string" ? body.status : undefined;
   const note = body.note === undefined ? undefined : clean(body.note, 1000);
 
@@ -41,7 +43,9 @@ export async function PATCH(
       if (status === "expediee" && !incoming)
         return NextResponse.json({ error: "Numéro de colis requis pour passer en « Expédiée »" }, { status: 400 });
       if (it.status !== status) {
+        const notify = status === "expediee" || status === "livree" || status === "annulee";
         it.status = status as typeof it.status;
+        if (notify) mail = Promise.resolve().then(() => mailOrderStatus(it));
         (it.history ??= [{ status: "nouvelle", at: it.createdAt }]).push({ status: it.status, at: new Date().toISOString() });
       }
     }
@@ -76,10 +80,12 @@ export async function PATCH(
     if (reply) {
       it.messages.push({ from: "staff", at: new Date().toISOString(), text: reply });
       if (it.status === "ouvert") it.status = "en_cours";
+      mail = mailTicketReply(it, reply);
     }
   } else {
     return NextResponse.json({ error: "Type inconnu" }, { status: 404 });
   }
   await saveDb(db);
+  if (mail) await mail;
   return NextResponse.json({ ok: true });
 }
