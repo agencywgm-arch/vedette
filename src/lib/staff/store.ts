@@ -1,3 +1,4 @@
+import { neon } from "@neondatabase/serverless";
 import { collection } from "@/data/collection";
 
 export type OrderStatus = "nouvelle" | "preparation" | "expediee" | "livree" | "annulee";
@@ -29,6 +30,18 @@ export interface Order {
   total: number;
   status: OrderStatus;
   note: string;
+  /** Shipping: filled in by staff, shown to the customer on the tracking page. */
+  carrier?: string;
+  tracking?: string;
+  /** Free message shown to the customer (e.g. "Livraison en point relais"). */
+  message?: string;
+  /** Set once Stripe has confirmed the payment (webhook). */
+  paid?: boolean;
+  stripeSession?: string;
+  /** Delivery address collected by Stripe Checkout. */
+  shippingAddress?: string;
+  /** Every status the order went through, oldest first. */
+  history?: { status: OrderStatus; at: string }[];
 }
 export interface ReturnRequest {
   id: string;
@@ -70,8 +83,31 @@ function kv() {
   return url && token ? { url: url.replace(/\/$/, ""), token } : null;
 }
 
-export const isPersistent = () => kv() !== null;
+/** Neon / Postgres connection string, when a Postgres database is connected (it wins over the Redis one). */
+function pgUrl() {
+  return process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? null;
+}
 
+export const isPersistent = () => pgUrl() !== null || kv() !== null;
+
+type Sql = ReturnType<typeof neon<false, false>>;
+let pgReady: Promise<Sql> | null = null;
+/** One HTTP-based client per server instance; the table is created the first time it is needed. */
+function pg(): Promise<Sql> {
+  if (pgReady) return pgReady;
+  const ready = (async () => {
+    const sql = neon(pgUrl() as string);
+    await sql`CREATE TABLE IF NOT EXISTS vedette_kv (key text PRIMARY KEY, value jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())`;
+    return sql;
+  })();
+  pgReady = ready;
+  ready.catch(() => {
+    pgReady = null;
+  });
+  return ready;
+}
+
+const ORDER_FLOW: OrderStatus[] = ["nouvelle", "preparation", "expediee", "livree"];
 const ago = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
 
 function line(itemId: string, color: string, size: string, qty = 1): OrderLine {
@@ -84,6 +120,7 @@ const sum = (ls: OrderLine[]) => ls.reduce((t, l) => t + l.price * l.qty, 0);
 function seed(): Db {
   const o = (id: string, h: number, c: Customer, ls: OrderLine[], status: OrderStatus): Order => ({
     id, createdAt: ago(h), customer: c, lines: ls, total: sum(ls), status, note: "",
+    history: ORDER_FLOW.slice(0, Math.max(1, ORDER_FLOW.indexOf(status) + 1)).map((st, i) => ({ status: st, at: ago(Math.max(0, h - i * 6)) })),
   });
   const orders: Order[] = [
     o("CMD-48213", 1, { name: "Yanis B.", email: "yanis.b@example.com", city: "Paris" }, [line("black-jacket", "Noir", "M"), line("cap-vedette", "Noir", "TU")], "nouvelle"),
@@ -93,10 +130,16 @@ function seed(): Db {
     o("CMD-48180", 70, { name: "Moussa T.", email: "moussa.t@example.com", city: "Lille" }, [line("champions-tee", "Noir", "XL")], "livree"),
     o("CMD-48171", 96, { name: "Sarah K.", email: "sarah.k@example.com", city: "Nantes" }, [line("rainbow-jersey", "Blanc", "M")], "annulee"),
   ];
+  for (const x of orders) {
+    if (x.status === "expediee" || x.status === "livree") {
+      x.carrier = "colissimo";
+      x.tracking = "6A12345678901";
+    }
+  }
   const returns: ReturnRequest[] = [
-    { id: "RET-3304", createdAt: ago(5), orderId: "CMD-48180", customer: { name: "Moussa T.", email: "moussa.t@example.com" }, itemName: "CHAMPIONS 2025 TEE", reason: "Taille trop grande, souhaite un L.", status: "demandee", note: "" },
-    { id: "RET-3299", createdAt: ago(30), orderId: "CMD-48150", customer: { name: "Julie P.", email: "julie.p@example.com" }, itemName: "SWEAT J'♥ PARIS", reason: "Ne convient pas.", status: "acceptee", note: "Étiquette retour envoyée." },
-    { id: "RET-3291", createdAt: ago(80), orderId: "CMD-48120", customer: { name: "Adam F.", email: "adam.f@example.com" }, itemName: "VESTE VOLEUR", reason: "Fermeture éclair défectueuse.", status: "recue", note: "Colis reçu, à contrôler." },
+    { id: "RET-3304", createdAt: ago(5), orderId: "CMD-48180", customer: { name: "Moussa T.", email: "moussa.t@example.com" }, itemName: "T-SHIRT « NBA CHAMPIONSHIRT »", reason: "Taille trop grande, souhaite un L.", status: "demandee", note: "" },
+    { id: "RET-3299", createdAt: ago(30), orderId: "CMD-48150", customer: { name: "Julie P.", email: "julie.p@example.com" }, itemName: "PULL « MONOPULL »", reason: "Ne convient pas.", status: "acceptee", note: "Étiquette retour envoyée." },
+    { id: "RET-3291", createdAt: ago(80), orderId: "CMD-48120", customer: { name: "Adam F.", email: "adam.f@example.com" }, itemName: "ROCKSTAR – VEDETTE X ISAIAH DENZEL", reason: "Fermeture éclair défectueuse.", status: "recue", note: "Colis reçu, à contrôler." },
   ];
   const tickets: Ticket[] = [
     { id: "SAV-901", createdAt: ago(2), customer: { name: "Nora A.", email: "nora.a@example.com" }, subject: "Où en est ma commande ?", channel: "email", status: "ouvert", note: "", messages: [{ from: "client", at: ago(2), text: "Bonjour, je n'ai pas reçu de numéro de suivi pour ma commande d'hier." }] },
@@ -109,6 +152,14 @@ function seed(): Db {
 const g = globalThis as unknown as { __staffDb?: Db };
 
 export async function loadDb(): Promise<Db> {
+  if (pgUrl()) {
+    const sql = await pg();
+    const rows = (await sql`SELECT value FROM vedette_kv WHERE key = ${KEY}`) as { value: Db }[];
+    if (rows[0]?.value) return rows[0].value;
+    const fresh: Db = { orders: [], returns: [], tickets: [] };
+    await saveDb(fresh);
+    return fresh;
+  }
   const k = kv();
   if (k) {
     const res = await fetch(`${k.url}/get/${encodeURIComponent(KEY)}`, {
@@ -125,6 +176,12 @@ export async function loadDb(): Promise<Db> {
 }
 
 export async function saveDb(db: Db): Promise<void> {
+  if (pgUrl()) {
+    const sql = await pg();
+    await sql`INSERT INTO vedette_kv (key, value) VALUES (${KEY}, ${JSON.stringify(db)}::jsonb)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`;
+    return;
+  }
   const k = kv();
   if (k) {
     await fetch(`${k.url}/set/${encodeURIComponent(KEY)}`, {

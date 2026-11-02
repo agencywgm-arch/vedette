@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { selectableItems, thumbFor } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
 
@@ -13,6 +14,7 @@ export default function ProductRail({
 }) {
   const selectedId = useShopStore((s) => s.selectedId);
   const category = useShopStore((s) => s.category);
+  const [soon, setSoon] = useState<string | null>(null);
 
   const shown =
     category === "TOUS"
@@ -39,17 +41,23 @@ export default function ProductRail({
             type="button"
             title={item.locked ? `${item.name} — bientôt disponible` : item.name}
             aria-label={item.locked ? `${item.name} — bientôt disponible` : item.name}
-            disabled={item.locked}
             className={`shop-tile ${selectedId === item.id ? "is-active" : ""} ${
               item.locked ? "is-locked" : ""
             }`}
-            onClick={() => onPick(item.id)}
+            onClick={() => {
+              if (item.locked) {
+                setSoon(item.name);
+                window.setTimeout(() => setSoon(null), 2600);
+              } else onPick(item.id);
+            }}
           >
             <Image
               src={thumbFor(item.id)}
               alt={item.name}
               fill
               sizes="110px"
+              unoptimized
+              loading="eager"
               className="shop-tile-img"
             />
             {item.locked && (
@@ -70,6 +78,11 @@ export default function ProductRail({
       >
         ›
       </button>
+      {soon && (
+        <p className="shop-rail-soon" role="status">
+          {soon} — bientôt disponible
+        </p>
+      )}
     </div>
   );
 }

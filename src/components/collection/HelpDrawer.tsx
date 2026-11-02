@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { useModal } from "@/lib/use-modal";
+import OrderTracker from "./OrderTracker";
 
-type Mode = "support" | "returns";
+type Mode = "tracking" | "support" | "returns";
 
-export default function HelpDrawer({ onClose }: { onClose: () => void }) {
-  const [mode, setMode] = useState<Mode>("support");
+export default function HelpDrawer({ onClose, initial = "support" }: { onClose: () => void; initial?: Mode }) {
+  const panel = useModal<HTMLElement>(onClose);
+  const [mode, setMode] = useState<Mode>(initial);
   const [f, setF] = useState({ name: "", email: "", subject: "", message: "", orderId: "", itemName: "", reason: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,9 +41,10 @@ export default function HelpDrawer({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return (
+  // Rendered on <body>: inside the room it sat beneath the wall hotspots.
+  return createPortal(
     <div className="shop-drawer-backdrop" onClick={onClose}>
-      <aside className="shop-drawer" role="dialog" aria-label="Aide" onClick={(e) => e.stopPropagation()}>
+      <aside ref={panel} tabIndex={-1} className="shop-drawer" role="dialog" aria-modal="true" aria-label="Aide" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="shop-drawer-close" onClick={onClose} aria-label="Fermer">
           ×
         </button>
@@ -51,6 +56,9 @@ export default function HelpDrawer({ onClose }: { onClose: () => void }) {
         ) : (
           <>
             <div className="shop-drawer-tabs">
+              <button type="button" aria-pressed={mode === "tracking"} onClick={() => setMode("tracking")}>
+                Suivi
+              </button>
               <button type="button" aria-pressed={mode === "support"} onClick={() => setMode("support")}>
                 Contact
               </button>
@@ -58,6 +66,14 @@ export default function HelpDrawer({ onClose }: { onClose: () => void }) {
                 Retour
               </button>
             </div>
+            {mode === "tracking" ? (
+              <>
+                <OrderTracker />
+                <p className="shop-drawer-note">
+                  <a href="/compte">Retrouver toutes mes commandes par e-mail →</a>
+                </p>
+              </>
+            ) : (
             <form onSubmit={submit}>
               <input required placeholder="Nom" value={f.name} maxLength={80} onChange={set("name")} />
               <input required type="email" placeholder="E-mail" value={f.email} maxLength={200} onChange={set("email")} />
@@ -76,9 +92,11 @@ export default function HelpDrawer({ onClose }: { onClose: () => void }) {
               {error && <p className="shop-drawer-error" role="alert">{error}</p>}
               <button className="shop-cta" disabled={busy}>{busy ? "Envoi…" : "Envoyer"}</button>
             </form>
+            )}
           </>
         )}
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }

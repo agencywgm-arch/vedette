@@ -16,9 +16,11 @@ import {
 import { type ContainRect } from "@/lib/overlay-position";
 import { mediaRect } from "@/lib/media-rect";
 import { createFrameSequence } from "@/lib/frame-sequence";
+import { useZoom } from "@/lib/use-zoom";
 import { useShopStore } from "@/store/useShopStore";
 import CollectionRoom from "@/components/collection/CollectionRoom";
 import DialogueBubble from "./DialogueBubble";
+import ScrollPrompt from "./ScrollPrompt";
 
 // Two clicks/taps this close together count as one double tap.
 const DOUBLE_TAP_MS = 400;
@@ -30,8 +32,8 @@ const DOUBLE_TAP_MS = 400;
 // LOOK_SCALE actually buys — never more than that, so a bigger number here
 // only means "use more of what's already hidden," not a risk of ever
 // pulling the clip's own edge into view.
-const LOOK_SCALE = 1.14;
-const LOOK_MAX_PX = 130;
+const LOOK_SCALE = 1.06;
+const LOOK_MAX_PX = 60;
 const LOOK_EASE = 0.08;
 // How far a finger has to travel before it counts as looking around rather
 // than as the double tap that skips ahead.
@@ -46,6 +48,11 @@ const MOBILE_QUERY = "(max-width: 767px)";
 // time and memory the scroll doesn't have to wait on.
 const FRAME_COUNT = 241;
 const FRAME_SETS = {
+  // 4K stills (Topaz-upscaled), fetched only when the scroll comes to rest on a
+  // big, fast screen: the picture a pause shows is the untouched 3840px one.
+  uhd: { dir: "/frames/uhd/", w: 3840, h: 2160 },
+  qhd: { dir: "/frames/qhd/", w: 2560, h: 1440 },
+  hd: { dir: "/frames/hd/", w: 1920, h: 1080 },
   desk: { dir: "/frames/desk/", w: 1280, h: 720 },
   lite: { dir: "/frames/lite/", w: 1024, h: 576 },
 };
@@ -54,10 +61,11 @@ const FRAME_SETS = {
 // turns that into a glide instead of a cut.
 const FRAME_EASE = 0.22;
 const LITE_QUERY = "(max-width: 1024px) and (pointer: coarse)";
-// Touch-scroll momentum covers a lot of distance per swipe, so a swipe on
-// phones was blowing through several seconds of video at once. Stretching
-// the scrollable distance requires more scroll per second of playback.
-const MOBILE_SCROLL_STRETCH = 1.4;
+// Phones used to scroll 1.4x further than desktops, because one fling blew
+// through several seconds of video. The walk-in is now meant to take about
+// three swipes (see TOTAL_SCROLL_VH), so phones get the same length; the
+// frame easing below turns a big fling into a glide instead of a cut.
+const MOBILE_SCROLL_STRETCH = 1;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -93,11 +101,14 @@ export default function ScrollVideoHero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sharpRef = useRef<HTMLCanvasElement>(null);
   // Where scroll says the walk should be, in frames, and where the canvas is
   // actually showing — the second eases toward the first.
   const targetFrame = useRef(0);
   const shownFrame = useRef(0);
   const wakeDraw = useRef<() => void>(() => {});
+  const focusSeq = useRef<(i: number) => void>(() => {});
+  const holdSeq = useRef<(on: boolean) => void>(() => {});
   const rafRef = useRef<number | null>(null);
   // On mobile the letterboxed video only fills a middle band of the screen —
   // the guard's line has to stay near his own black bar, not the screen's, or
@@ -169,6 +180,7 @@ export default function ScrollVideoHero() {
 
   // A double tap/click anywhere on the scroll phase skips straight into the
   // live collection room.
+  const zoom = useZoom({ min: 1, max: 3, doubleTap: false });
   const lastTapRef = useRef(0);
   const handleScrollTap = () => {
     // A drag that ended up looking around still ends in a click. It isn't one.
@@ -258,10 +270,19 @@ export default function ScrollVideoHero() {
   };
 
   const onLookPointerDown = (e: ReactPointerEvent) => {
+    // a pinch, or a drag while zoomed in, is zoom navigation, not leaning
+    if (zoom.down(e)) {
+      lookDrag.current = { x: e.clientX, y: e.clientY, moved: true };
+      return;
+    }
     lookDrag.current = { x: e.clientX, y: e.clientY, moved: false };
   };
 
   const onLookPointerMove = (e: ReactPointerEvent) => {
+    if (zoom.move(e)) {
+      if (lookDrag.current) lookDrag.current.moved = true;
+      return;
+    }
     const bounds = e.currentTarget.getBoundingClientRect();
     const drag = lookDrag.current;
 
@@ -285,18 +306,49 @@ export default function ScrollVideoHero() {
   // Letting go re-centres the view, so the framing the guard's bubble is
   // anchored against is always the one it was measured against. The drag
   // itself is left in place for the click that follows to read.
-  const onLookRelease = () => {
+  const onLookRelease = (e?: ReactPointerEvent) => {
+    if (e) zoom.up(e);
     aimLook(0, 0);
   };
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    // Once the room is open the walk-in is behind it: stop pulling frames so
+    // the thumbnails and the wall get the whole connection.
     if (!canvas || !hydrated) return;
-    const set = lite ? FRAME_SETS.lite : FRAME_SETS.desk;
+    // Big, high-density screens with the memory to hold the larger stills get
+    // the sharper set; everything else keeps the lighter ones.
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    // Physical pixels across the screen: the 1080p stills from 1400 up, so a
+    // laptop or a phone-in-landscape never stretches a 720p picture.
+    const physical = Math.max(window.screen.width, window.innerWidth) * (window.devicePixelRatio || 1);
+    // Phones used to get the 1024px stills, which look soft on a 3x screen:
+    // only the low-memory ones keep them, the rest get the 1280px set.
+    const memory = nav.deviceMemory ?? 8;
+    const set = lite
+      ? memory < 4
+        ? FRAME_SETS.lite
+        : FRAME_SETS.desk
+      : physical >= 1400 && memory >= 4
+        ? FRAME_SETS.hd
+        : FRAME_SETS.desk;
+    // What a pause shows: 4K on a desktop-class screen with the memory for it,
+    // 1440p on other capable devices, 1080p on the rest.
+    // ...but never a still far bigger than the picture really is on this screen
+    // (a phone shows it ~1200 device pixels wide): decoding and uploading a
+    // 1440p/4K still there only costs a stall on every pause.
+    const shown = canvas.clientWidth * (window.devicePixelRatio || 1);
+    const sharpSet =
+      !lite && physical >= 2000 && memory >= 4 && shown >= 1800
+        ? FRAME_SETS.uhd
+        : memory >= 4 && shown >= 1300
+          ? FRAME_SETS.qhd
+          : FRAME_SETS.hd;
     canvas.width = set.w;
     canvas.height = set.h;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
+    ctx.imageSmoothingQuality = "high";
 
     let raf = 0;
     let last = 0;
@@ -304,15 +356,63 @@ export default function ScrollVideoHero() {
 
     const seq = createFrameSequence({
       count: FRAME_COUNT,
-      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp`,
+      url: (i) => `${set.dir}${String(i).padStart(3, "0")}.webp?v=20261145`,
       width: set.w,
       height: set.h,
       // A frame that just arrived only matters if it's closer to what's on
       // screen than what's being shown in its place.
       onFrame: () => {
-        if (seq.nearest(shownFrame.current) !== drawn) wake();
+        if (seq.key(shownFrame.current) !== drawn) wake();
       },
     });
+
+    let sharpTimer = 0;
+    let sharpOn = false;
+    let sharpFor = -1;
+    let sharpReady = false;
+    let destroyedSharp = false;
+    const showSharp = () => {
+      const el = sharpRef.current;
+      if (!el) return;
+      const i = Math.round(Math.min(FRAME_COUNT - 1, Math.max(0, shownFrame.current)));
+      if (i === sharpFor && sharpReady) {
+        el.style.transition = "opacity 0.22s ease";
+        el.style.opacity = "1";
+        sharpOn = true;
+        return;
+      }
+      sharpFor = i;
+      sharpReady = false;
+      // Decoded off the main thread into a bitmap and blitted onto a canvas:
+      // an <img> showing a big still is decoded again, synchronously, the
+      // moment it's first painted (a stall of ~20 ms on a phone per pause).
+      const url = `${sharpSet.dir}${String(i).padStart(3, "0")}.webp?v=20261145`;
+      fetch(url)
+        .then((r) => r.blob())
+        .then((blob) => createImageBitmap(blob))
+        .then((bmp) => {
+          // still resting on the same frame?
+          if (
+            destroyedSharp ||
+            shownFrame.current !== targetFrame.current ||
+            Math.round(shownFrame.current) !== i
+          ) {
+            bmp.close();
+            return;
+          }
+          if (el.width !== bmp.width) {
+            el.width = bmp.width;
+            el.height = bmp.height;
+          }
+          el.getContext("2d")?.drawImage(bmp, 0, 0);
+          bmp.close();
+          sharpReady = true;
+          el.style.transition = "opacity 0.22s ease";
+          el.style.opacity = "1";
+          sharpOn = true;
+        })
+        .catch(() => {});
+    };
 
     const frame = (now: number) => {
       raf = 0;
@@ -325,28 +425,49 @@ export default function ScrollVideoHero() {
       if (Math.abs(target - shown) < 0.02) shown = target;
       shownFrame.current = shown;
 
-      const index = Math.round(shown);
-      if (seq.nearest(index) !== drawn) {
-        drawn = seq.draw(ctx, index);
+      if (!roomOpenRef.current && seq.key(shown) !== drawn) {
+        drawn = seq.draw(ctx, shown);
         // An opaque canvas is black until its first frame; the poster under
         // it shows through until then.
         if (drawn >= 0) canvas.style.opacity = "1";
       }
       if (shown !== target) {
+        // moving again: fall back to the scrub frames at once
+        if (sharpOn) {
+          sharpOn = false;
+          const el = sharpRef.current;
+          // gone at once: a slow fade would leave the old still ghosting over the moving picture
+          if (el) {
+            el.style.transition = "none";
+            el.style.opacity = "0";
+          }
+        }
+        window.clearTimeout(sharpTimer);
         raf = requestAnimationFrame(frame);
       } else {
         last = 0;
+        // Come to rest: fetch the full 1080p still for this exact frame and
+        // fade it in over the scrub frame, so a pause shows real detail.
+        window.clearTimeout(sharpTimer);
+        if (!roomOpenRef.current) sharpTimer = window.setTimeout(showSharp, 140);
       }
     };
     const wake = () => {
       if (!raf) raf = requestAnimationFrame(frame);
     };
     wakeDraw.current = wake;
+    focusSeq.current = seq.focus;
+    holdSeq.current = seq.hold;
+    seq.hold(roomOpenRef.current);
     wake();
 
     return () => {
+      destroyedSharp = true;
       cancelAnimationFrame(raf);
+      window.clearTimeout(sharpTimer);
       wakeDraw.current = () => {};
+      focusSeq.current = () => {};
+      holdSeq.current = () => {};
       seq.destroy();
     };
   }, [hydrated, lite]);
@@ -398,6 +519,7 @@ export default function ScrollVideoHero() {
       }
 
       targetFrame.current = progress * (FRAME_COUNT - 1);
+      focusSeq.current(targetFrame.current);
       wakeDraw.current();
 
       // Hand off to the live collection room once the clip has settled on the
@@ -408,6 +530,8 @@ export default function ScrollVideoHero() {
       if (wantRoom !== roomOpenRef.current) {
         roomOpenRef.current = wantRoom;
         setRoomOpen(wantRoom);
+        holdSeq.current(wantRoom);
+        if (!wantRoom) wakeDraw.current();
         wakeLook.current();
         // Scrolling back out of the room must also drop whatever was being
         // inspected, or its scroll lock would strand the page.
@@ -455,9 +579,10 @@ export default function ScrollVideoHero() {
     >
       <div ref={stickyRef} className="sticky top-0 h-dvh w-full overflow-hidden bg-black">
         {/* Everything the eye can lean into rides this layer. */}
+        <div ref={zoom.ref} className="pointer-events-none absolute inset-0 will-change-transform" style={{ transformOrigin: "center" }}>
         <div
           ref={lookLayerRef}
-          className="pointer-events-none absolute inset-0 will-change-transform"
+          className="hero-exposure pointer-events-none absolute inset-0 will-change-transform"
         >
         {/* The poster holds the first frame until the canvas has one. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -472,8 +597,16 @@ export default function ScrollVideoHero() {
           className="absolute inset-0 h-full w-full object-contain"
           style={{ opacity: 0 }}
         />
+        {/* The sharp (up to 1440p) still of the frame you stopped on, faded in at rest. */}
+        <canvas
+          ref={sharpRef}
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ opacity: 0, transition: "opacity 0.22s ease" }}
+        />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
+        </div>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/10" />
 
         {/* Catches the finger for looking around and the double tap/click
             that skips straight into the collection room — the walk-in is
@@ -485,7 +618,7 @@ export default function ScrollVideoHero() {
             // looking around, a finger dragging down is still scrolling the
             // page, and the browser keeps owning the second one. It also
             // keeps double-tap zoom off the shortcut.
-            style={{ touchAction: "pan-y" }}
+            style={{ touchAction: "pan-y pinch-zoom" }}
             onClick={handleScrollTap}
             onPointerDown={onLookPointerDown}
             onPointerMove={onLookPointerMove}
@@ -503,6 +636,8 @@ export default function ScrollVideoHero() {
             <CollectionRoom compact={isMobile} />
           </div>
         )}
+
+        <ScrollPrompt active={!roomOpen && entryMode === null} touch={isMobile} />
 
         {/* Screen-locked like a HUD element rather than pinned to the guard —
             it doesn't pan with the look-around. */}

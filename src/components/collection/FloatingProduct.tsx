@@ -16,11 +16,11 @@ import { useShopStore } from "@/store/useShopStore";
 const ModelStage = dynamic(() => import("./ModelStage"), { ssr: false });
 const TurntableStage = dynamic(() => import("./TurntableStage"), { ssr: false });
 
-const FLY_IN_MS = 1000;
-const FLY_BACK_MS = 800;
+const FLY_IN_MS = 700;
+const FLY_BACK_MS = 600;
 const BOB_AMPLITUDE = 7; // px
 const BOB_PERIOD_MS = 2600;
-const AUTO_SPIN = 14; // deg/s
+const AUTO_SPIN = 20; // deg/s
 const DRAG_PER_PX = 0.42; // deg
 const INERTIA_DAMPING = 0.94;
 const MIN_ZOOM = 0.8;
@@ -292,6 +292,14 @@ export default function FloatingProduct({
   };
 
   const onWheel = (e: ReactWheelEvent) => {
+    // A sideways swipe / tilt wheel / Shift + wheel turns the piece (swiping
+    // right = dragging right); anything vertical keeps zooming.
+    const dx = e.deltaX !== 0 ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+    if (dx !== 0 && (e.shiftKey || Math.abs(dx) > Math.abs(e.deltaY) * 1.1)) {
+      angle.current += -dx * DRAG_PER_PX * 0.5;
+      velocity.current = 0;
+      return;
+    }
     zoomRef.current = clamp(zoomRef.current - e.deltaY * 0.0012, MIN_ZOOM, MAX_ZOOM);
   };
 

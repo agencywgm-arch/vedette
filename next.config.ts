@@ -30,19 +30,24 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
-      ...["/videos", "/collection", "/models"].map((dir) => ({
+      ...["/videos", "/collection", "/models", "/products"].map((dir) => ({
         source: `${dir}/:path*`,
         headers: mediaCache,
       })),
-      // Fitting-room shots get re-shot often and keep the same file names, so
-      // they revalidate on every visit (a cheap 304 when unchanged) instead of
-      // serving a stale frame for a day.
-      {
-        source: "/cabine/:path*",
+      { source: "/logo-white.png", headers: mediaCache },
+      // Intro stills and fitting-room media are always requested with a ?v=
+      // number (FRAME stills in ScrollVideoHero, CABINE_VERSION / CABINE_VIDEO_
+      // VERSION / CARRY_VERSION in the cabine components), and that number is
+      // bumped whenever a file changes. So the URL is the cache key: a repeat
+      // visit reuses what the phone already downloaded and never revalidates
+      // hundreds of files. Changing a file here WITHOUT bumping its version
+      // would leave returning visitors on the old one.
+      ...["/frames", "/cabine"].map((dir) => ({
+        source: `${dir}/:path*`,
         headers: [
-          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
-      },
+      })),
     ];
   },
 };

@@ -15,14 +15,28 @@
  * phone than the draws it was meant to save.)
  */
 export interface FrameSequence {
-  /** Draws the nearest available frame to `index`; returns the frame drawn. */
+  /**
+   * Draws the picture at `index` — fractional positions blend the two frames
+   * either side, so scrubbing glides between stills instead of stepping.
+   * Returns a key that changes only when the picture on the canvas would.
+   */
   draw: (ctx: CanvasRenderingContext2D, index: number) => number;
+  /** The same key `draw` would return, without drawing. */
+  key: (index: number) => number;
   /** Nearest frame to `index` that is ready to draw, or -1. */
   nearest: (index: number) => number;
+  /** Tell the loader where the viewer is, so frames around it arrive first. */
+  focus: (index: number) => void;
+  /**
+   * While on, nothing new is fetched and every frame but the coarse ones is
+   * released (the walk-in is hidden behind the room); turning it off picks
+   * the loading up again from where the viewer is.
+   */
+  hold: (on: boolean) => void;
   destroy: () => void;
 }
 
-const CONCURRENCY = 6;
+const CONCURRENCY = 8;
 
 export function createFrameSequence({
   count,
@@ -41,22 +55,57 @@ export function createFrameSequence({
   const imgs: (HTMLImageElement | null)[] = new Array(count).fill(null);
   let destroyed = false;
 
+  // Coarse pass first (every 8th frame) so the whole walk is scrubbable fast…
   const order: number[] = [];
-  const seen = new Uint8Array(count);
-  for (const stride of [16, 8, 4, 2, 1]) {
+  const queued = new Uint8Array(count);
+  for (const stride of [16, 8]) {
     for (let i = 0; i < count; i += stride) {
-      if (!seen[i]) {
-        seen[i] = 1;
+      if (!queued[i]) {
+        queued[i] = 1;
         order.push(i);
       }
     }
   }
-  if (!seen[count - 1]) order.splice(1, 0, count - 1);
+  if (!queued[count - 1]) {
+    queued[count - 1] = 1;
+    order.splice(1, 0, count - 1);
+  }
+  // …then always the missing frame closest to where the viewer is looking, so
+  // scrolling lands on sharp frames instead of a distant coarse neighbour.
+  let focusAt = 0;
+  const closestMissing = () => {
+    let best = -1;
+    let bestD = Infinity;
+    for (let i = 0; i < count; i++) {
+      if (queued[i]) continue;
+      const d = Math.abs(i - focusAt);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
+  };
 
   let next = 0;
-  const pump = () => {
-    if (destroyed || next >= order.length) return;
-    const index = order[next++];
+  let active = 0;
+  let paused = false;
+  // Returns false when there was nothing to start, so `kick` can stop instead of spinning.
+  const pump = (): boolean => {
+    if (destroyed || paused) {
+      active--;
+      return false;
+    }
+    let index: number;
+    if (next < order.length) index = order[next++];
+    else {
+      index = closestMissing();
+      if (index < 0) {
+        active--;
+        return false;
+      }
+      queued[index] = 1;
+    }
     const img = new Image();
     img.decoding = "async";
     img.src = url(index);
@@ -64,13 +113,24 @@ export function createFrameSequence({
       .decode()
       .then(() => {
         if (destroyed) return;
+        if (paused && index % 16 !== 0 && index !== count - 1) {
+          queued[index] = 0;
+          return;
+        }
         imgs[index] = img;
         onFrame(index);
       })
       .catch(() => {})
       .finally(pump);
+    return true;
   };
-  for (let i = 0; i < CONCURRENCY; i++) pump();
+  const kick = () => {
+    while (active < CONCURRENCY && !destroyed && !paused) {
+      active++;
+      if (!pump()) break;
+    }
+  };
+  kick();
 
   const nearest = (index: number) => {
     const i = Math.round(Math.min(count - 1, Math.max(0, index)));
@@ -82,12 +142,55 @@ export function createFrameSequence({
     return -1;
   };
 
+  // Blend in eighths: finer steps would redraw without anyone seeing a
+  // difference, and the key lets the caller skip those redraws.
+  const STEPS = 1; // no in-between blends: a mix of two moving frames ghosts and reads as blur
+  const plan = (index: number) => {
+    const pos = Math.min(count - 1, Math.max(0, index));
+    const lo = Math.floor(pos);
+    const hi = Math.min(count - 1, lo + 1);
+    const step = Math.round((pos - lo) * STEPS);
+    if (step === 0 || lo === hi) return { a: nearest(lo), b: -1, step: 0 };
+    if (step === STEPS) return { a: nearest(hi), b: -1, step: 0 };
+    if (imgs[lo] && imgs[hi]) return { a: lo, b: hi, step };
+    return { a: nearest(Math.round(pos)), b: -1, step: 0 };
+  };
+  const keyOf = (p: { a: number; b: number; step: number }) =>
+    p.a < 0 ? -1 : p.a * 1000 + (p.b >= 0 ? p.step * 100 + 1 : 0);
+
+  const key = (index: number) => keyOf(plan(index));
+
   const draw = (ctx: CanvasRenderingContext2D, index: number) => {
-    const i = nearest(index);
-    if (i < 0) return -1;
-    const img = imgs[i];
-    if (img) ctx.drawImage(img, 0, 0, width, height);
-    return i;
+    const p = plan(index);
+    if (p.a < 0) return -1;
+    const first = imgs[p.a];
+    if (first) ctx.drawImage(first, 0, 0, width, height);
+    if (p.b >= 0) {
+      const second = imgs[p.b];
+      if (second) {
+        ctx.globalAlpha = p.step / STEPS;
+        ctx.drawImage(second, 0, 0, width, height);
+        ctx.globalAlpha = 1;
+      }
+    }
+    return keyOf(p);
+  };
+
+  const focus = (index: number) => {
+    focusAt = Math.max(0, Math.min(count - 1, Math.round(index)));
+    kick();
+  };
+
+  const hold = (on: boolean) => {
+    paused = on;
+    if (on) {
+      for (let i = 0; i < count; i++) {
+        if (imgs[i] && i % 16 !== 0 && i !== count - 1) {
+          imgs[i] = null;
+          queued[i] = 0;
+        }
+      }
+    } else kick();
   };
 
   const destroy = () => {
@@ -96,5 +199,5 @@ export function createFrameSequence({
     imgs.fill(null);
   };
 
-  return { draw, nearest, destroy };
+  return { draw, key, nearest, focus, hold, destroy };
 }

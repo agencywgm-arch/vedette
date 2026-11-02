@@ -1,16 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import {
   FIT_FRAMES,
-  MORPH_LABELS,
   femmeFolder,
-  fitFolder,
   type CollectionItem,
-  type Morph,
 } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
+import CabineVideo, { CABINE_VIDEO_VERSION } from "./CabineVideo";
+import { prefetchVideo } from "@/lib/prefetch-video";
+import CabineCarry from "./CabineCarry";
+
+// Real-cloth curtain (WebGL). Phones and laptops without WebGL keep the CSS one.
+const CabineCurtain3D = dynamic(() => import("./CabineCurtain3D"), { ssr: false });
+
+function canUseWebGL() {
+  try {
+    if ((navigator.hardwareConcurrency ?? 8) <= 2) return false;
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+
+// Bouton Homme / Femme (vidéos femme : public/cabine/video/<id>-femme.*).
+const SHOW_FEMME = true;
 
 function formatPrice(price: number) {
   return `€${price.toFixed(2).replace(".", ",")}`;
@@ -19,9 +36,12 @@ function formatPrice(price: number) {
 export default function ProductPanel({
   item,
   onClose,
+  onCabineStep,
 }: {
   item: CollectionItem;
   onClose: () => void;
+  /** Steps to the previous / next piece that has a cabine, without leaving it. */
+  onCabineStep?: (direction: -1 | 1) => void;
 }) {
   const addToCart = useShopStore((s) => s.addToCart);
   const bundleAccessory = useShopStore((s) => s.bundleAccessory);
@@ -29,16 +49,54 @@ export default function ProductPanel({
   const [color, setColor] = useState(item.colors[0]?.name ?? "");
   const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
-  const [cabineOpen, setCabineOpen] = useState(false);
-  const [morph, setMorph] = useState<Morph | "medium">("medium");
+  const [cabineOpen, setCabineOpenRaw] = useState(false);
+  const [curtainDone, setCurtainDone] = useState(false);
+  const [curtain3d, setCurtain3d] = useState(false);
+  const [curtainReady, setCurtainReady] = useState(false);
+  // Every entry into the cabine replays the curtain.
+  const setCabineOpen = (v: boolean) => {
+    if (v) {
+      // decided before the first paint of the curtain: choosing it after mount
+      // drew the CSS curtain first and then the 3D one, so it opened twice
+      setCurtain3d(canUseWebGL());
+      setCurtainDone(false);
+      setCurtainReady(false);
+    }
+    setCabineOpenRaw(v);
+  };
+  // The curtain is removed once its own animation has had time to finish, counted
+  // from when it actually starts (the 3D one only starts once its texture is in),
+  // so a slow load never cuts it off mid-way. A hard cap covers a browser that
+  // never starts it at all.
+  useEffect(() => {
+    if (!cabineOpen || curtainDone) return;
+    const wait = curtain3d ? (curtainReady ? 2000 : 6000) : 2000;
+    const id = window.setTimeout(() => setCurtainDone(true), wait);
+    return () => window.clearTimeout(id);
+  }, [cabineOpen, curtainDone, curtain3d, curtainReady]);
   const [gender, setGender] = useState<"homme" | "femme">("homme");
-  const isFemme = gender === "femme" && !!item.femme;
-  const morphs: (Morph | "medium")[] = item.fit?.length
-    ? ["mince", "medium", "large"].filter(
-        (m) => m === "medium" || item.fit?.includes(m as Morph),
-      ) as (Morph | "medium")[]
-    : [];
-
+  // the Femme clip is mounted (loaded, hidden) shortly after the cabine opens,
+  // so the Homme/Femme switch only flips which one is shown
+  const [femmeMounted, setFemmeMounted] = useState(false);
+  useEffect(() => {
+    if (!cabineOpen) {
+      setFemmeMounted(false);
+      return;
+    }
+    const id = window.setTimeout(() => setFemmeMounted(true), 700);
+    return () => window.clearTimeout(id);
+  }, [cabineOpen, item.id]);
+  const isFemme = SHOW_FEMME && gender === "femme" && !!item.femme;
+  // Both clips are fetched while the customer is still looking at the piece, so
+  // the cabine opens at once and the Femme button flips without a wait.
+  useEffect(() => {
+    if (!item.cabineVideo) return;
+    const id = window.setTimeout(() => {
+      prefetchVideo(item.cabineVideo as string, CABINE_VIDEO_VERSION);
+      if (SHOW_FEMME && item.femme) prefetchVideo(`${item.cabineVideo}-femme`, CABINE_VIDEO_VERSION);
+    }, 500);
+    return () => window.clearTimeout(id);
+  }, [item.id, item.cabineVideo, item.femme]);
   return (
     <>
     <aside className="shop-panel">
@@ -141,6 +199,32 @@ export default function ProductPanel({
         tabIndex={-1}
         aria-label="Fermer la cabine"
       >
+        {/* The fitting-room curtain: closed on arrival, then drawn aside. */}
+        {!curtainDone && (
+          <div className="cabine-curtains" aria-hidden="true">
+            {curtain3d ? (
+              <>
+                {!curtainReady && <div className="cabine-curtain-ph" />}
+                <CabineCurtain3D
+                  onReady={() => requestAnimationFrame(() => requestAnimationFrame(() => setCurtainReady(true)))}
+                />
+              </>
+            ) : (
+              <>
+                <div className="cabine-curtain cabine-curtain-l" />
+                <div className="cabine-curtain cabine-curtain-r" />
+                <div className="cabine-logo-half cabine-logo-l">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
+                </div>
+                <div className="cabine-logo-half cabine-logo-r">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo-white.png" alt="" draggable={false} decoding="sync" />
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <button
           type="button"
           className="shop-cabine-close"
@@ -154,19 +238,44 @@ export default function ProductPanel({
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <CabineViewer
-          key={isFemme ? "femme" : morph}
-          base={
-            isFemme
-              ? femmeFolder(item.id)
-              : morph === "medium"
-                ? item.cabine
-                : fitFolder(item.id, morph)
-          }
-          frames={isFemme || morph !== "medium" ? FIT_FRAMES : undefined}
-          label={`${item.name} — ${isFemme ? "Femme" : MORPH_LABELS[morph]}`}
-        />
-        {item.femme && (
+        {item.carryStyles ? (
+          <CabineCarry
+            base={item.cabine}
+            folder={`/cabine/carry/${item.id}`}
+            styles={item.carryStyles}
+            label={item.name}
+          />
+        ) : item.cabineVideo ? (
+          <>
+            {[false, true].map((fem) => {
+              if (fem && !(SHOW_FEMME && item.femme && (femmeMounted || isFemme))) return null;
+              const on = fem === isFemme;
+              const name = `${item.name} — ${fem ? "Femme" : "Homme"}`;
+              return (
+                <CabineVideo
+                  key={`${item.id}-${fem ? "f" : "h"}`}
+                  src={fem ? `${item.cabineVideo}-femme` : (item.cabineVideo as string)}
+                  label={name}
+                  active={on}
+                  fallback={
+                    <CabineViewer
+                      base={fem ? femmeFolder(item.id) : (item.cabine as string)}
+                      frames={fem ? FIT_FRAMES : undefined}
+                      label={name}
+                    />
+                  }
+                />
+              );
+            })}
+          </>
+        ) : (
+          <CabineViewer
+            base={isFemme ? femmeFolder(item.id) : item.cabine}
+            frames={isFemme ? FIT_FRAMES : undefined}
+            label={`${item.name} — ${isFemme ? "Femme" : "Homme"}`}
+          />
+        )}
+        {SHOW_FEMME && item.femme && (
           <div
             className="shop-cabine-morphs shop-cabine-gender"
             onClick={(e) => e.stopPropagation()}
@@ -186,27 +295,33 @@ export default function ProductPanel({
             ))}
           </div>
         )}
-        {!isFemme && morphs.length > 1 && (
-          <div
-            className="shop-cabine-morphs"
-            onClick={(e) => e.stopPropagation()}
-            role="group"
-            aria-label="Morphologie du mannequin"
-          >
-            {morphs.map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={morph === m}
-                className={morph === m ? "is-active" : undefined}
-                onClick={() => setMorph(m)}
-              >
-                {MORPH_LABELS[m]}
-              </button>
-            ))}
-          </div>
-        )}
-        <p className="shop-cabine-caption">{item.name}</p>
+        <div className="shop-cabine-pieces" onClick={(e) => e.stopPropagation()}>
+          {onCabineStep && (
+            <button
+              type="button"
+              className="shop-cabine-piece-btn"
+              onClick={() => onCabineStep(-1)}
+              aria-label="Pièce précédente"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </button>
+          )}
+          <p className="shop-cabine-caption">{item.name}</p>
+          {onCabineStep && (
+            <button
+              type="button"
+              className="shop-cabine-piece-btn"
+              onClick={() => onCabineStep(1)}
+              aria-label="Pièce suivante"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     )}
 

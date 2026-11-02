@@ -1,15 +1,20 @@
 "use client";
 
+import { prefetchTurntable } from "@/lib/prefetch-video";
 import { useEffect, useRef, useState } from "react";
 import {
   WALL_IMAGE,
   WALL_SIZE,
   collection,
   selectableItems,
+  wallPosters,
 } from "@/data/collection";
 import { mediaRect, type Rect } from "@/lib/media-rect";
+import { useZoom } from "@/lib/use-zoom";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
+import ArcadeCabinet from "./ArcadeCabinet";
+import PosterLightbox from "./PosterLightbox";
 import ProductPanel from "./ProductPanel";
 import ProductRail from "./ProductRail";
 import CategoryRail from "./CategoryRail";
@@ -30,11 +35,10 @@ const DESKTOP_NAV_GUTTER = 260;
 const DESKTOP_WALL_HEIGHT = 0.78;
 /** How long the still takes to settle from matching the video's last frame
  * into its resting, fully-visible position. */
-const SETTLE_MS = 900;
+const SETTLE_MS = 650;
 /** Spacing between warm-up fetches, so they queue rather than pile up. */
-const PRELOAD_GAP_MS = 700;
+const PRELOAD_GAP_MS = 900;
 
-type Preloader = (url: string) => void;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -82,7 +86,6 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const zoomRef = useRef(1);
   const hotspotEls = useRef(new Map<string, HTMLButtonElement | null>());
   /** Held once the chunk lands, so hovering a piece can pull its model in. */
-  const preload = useRef<Preloader | null>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   // Mounted already matching the video's last frame; flipped one tick later
   // so the browser has something to transition *from* — see the effect below.
@@ -93,23 +96,26 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // A model's file and the three.js chunk to render it both take real time to
-  // fetch — time a click can't hide once the flight is already underway. The
-  // room arriving is spare time the visitor spends looking at the wall before
-  // touching anything, so warm the cache then instead of at the click.
-  //
-  // One at a time, though: firing all of them at once is fifteen megabytes of
-  // parallel requests competing with the clip still being scrubbed behind the
-  // room, which costs the arrival its smoothness to save a click that hasn't
-  // happened yet. Spaced out, the first pieces are ready well before anyone
-  // reaches them and nothing else is starved. A connection that says it is
-  // slow, or metered, gets none of it — those visitors pay per megabyte and
-  // the click-time fetch still works.
+  // The gold-black frames around the right-hand photos only belong to the
+  // finished wall: they fade in once the video has handed over and settled,
+  // not while the last frame is still sliding into place.
+  const [framed, setFramed] = useState(false);
   useEffect(() => {
-    const models = collection
-      .flatMap((i) => [i.model, i.accessory?.model])
-      .filter((m): m is string => Boolean(m));
-    if (models.length === 0) return;
+    if (!settled) return;
+    const id = window.setTimeout(() => setFramed(true), SETTLE_MS + 250);
+    return () => window.clearTimeout(id);
+  }, [settled]);
+
+  // What a click waits for is the piece's 360° clip. The room arriving is
+  // spare time the visitor spends looking at the wall, so warm the cache then
+  // — one clip at a time, spaced out, so the arrival stays smooth. It pauses
+  // while a piece is open (that piece's own clips come first), and a
+  // connection that says it is slow or metered gets none of it. (The old
+  // warm-up fetched every 3D scan, which no piece with a clip ever shows —
+  // megabytes that slowed the cabine for nothing.)
+  useEffect(() => {
+    const clips = collection.filter((i) => !i.locked && i.turntable).map((i) => i.turntable!);
+    if (clips.length === 0) return;
 
     const link = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
       .connection;
@@ -117,17 +123,13 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
 
     let timer = 0;
     let cancelled = false;
-    import("./ModelStage").then(({ preloadModel }) => {
-      if (cancelled) return;
-      preload.current = preloadModel;
-      let next = 0;
-      const step = () => {
-        if (cancelled || next >= models.length) return;
-        preloadModel(models[next++]);
-        timer = window.setTimeout(step, PRELOAD_GAP_MS);
-      };
-      step();
-    });
+    let next = 0;
+    const step = () => {
+      if (cancelled || next >= clips.length) return;
+      if (useShopStore.getState().selectedId === null) prefetchTurntable(clips[next++]);
+      timer = window.setTimeout(step, PRELOAD_GAP_MS);
+    };
+    timer = window.setTimeout(step, 600);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -140,6 +142,8 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const setHovered = useShopStore((s) => s.setHovered);
 
   const wallImgRef = useRef<HTMLImageElement>(null);
+  const wallZoom = useZoom({ min: 1, max: 3.5 });
+  const dragged = useRef(false);
   const hotspotLayerRef = useRef<HTMLDivElement>(null);
 
   // Keep the piece on screen while it flies home, then drop it. `origin` is
@@ -148,6 +152,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
   const [displayedId, setDisplayedId] = useState<string | null>(null);
   const [origin, setOrigin] = useState<Rect | null>(null);
   const [closing, setClosing] = useState(false);
+  const [poster, setPoster] = useState<{ id: string; origin: Rect } | null>(null);
 
   const measure = (id: string): Rect | null => {
     const el = hotspotEls.current.get(id);
@@ -156,6 +161,14 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     const a = el.getBoundingClientRect();
     const b = root.getBoundingClientRect();
     return { left: a.left - b.left, top: a.top - b.top, width: a.width, height: a.height };
+  };
+
+  const openPoster = (id: string, el: HTMLElement) => {
+    const root = rootRef.current;
+    if (!root || displayedId !== null) return;
+    const a = el.getBoundingClientRect();
+    const b = root.getBoundingClientRect();
+    setPoster({ id, origin: { left: a.left - b.left, top: a.top - b.top, width: a.width, height: a.height } });
   };
 
   const open = (id: string) => {
@@ -194,11 +207,12 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     return () => observer.disconnect();
   }, []);
 
-  const step = (direction: -1 | 1) => {
+  const step = (direction: -1 | 1, onlyCabine = false) => {
     // Locked pieces have no wall hotspot to fly in from, so cycling has to
     // skip past them — landing on one would otherwise silently no-op and
-    // leave the arrow key stuck, since selectedId never advances.
-    const openable = selectableItems.filter((i) => !i.locked);
+    // leave the arrow key stuck, since selectedId never advances. From inside
+    // the cabine only pieces that have one are stepped through.
+    const openable = selectableItems.filter((i) => !i.locked && (!onlyCabine || i.cabine));
     if (openable.length === 0) return;
     const current = openable.findIndex((i) => i.id === selectedId);
     const next =
@@ -212,6 +226,12 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // typing in a field (search, cart, help) or a browser shortcut such as
+      // Ctrl+D must never move the room, and a drawer on top owns the keys
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(input|textarea|select)$/i.test(t.tagName))) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (document.querySelector(".shop-drawer-backdrop")) return;
       const k = e.key.toLowerCase();
       if (k === "escape") select(null);
       else if (k === "a" || e.key === "ArrowLeft") step(-1);
@@ -238,7 +258,25 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
     <div ref={rootRef} className="shop-room">
       {wall && (
         <div
+          ref={wallZoom.ref}
           className={`shop-wall-layer ${compact ? "is-compact" : ""}`}
+          onPointerDown={(e) => {
+            dragged.current = false;
+            wallZoom.down(e);
+          }}
+          onPointerMove={(e) => {
+            if (wallZoom.move(e)) dragged.current = true;
+          }}
+          onPointerUp={wallZoom.up}
+          onPointerCancel={wallZoom.up}
+          onClickCapture={(e) => {
+            // a pan across the wall must not open the piece the finger ended on
+            if (dragged.current) {
+              e.stopPropagation();
+              e.preventDefault();
+              dragged.current = false;
+            }
+          }}
           style={{
             left: wall.left,
             top: wall.top,
@@ -247,7 +285,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
             transition: settled
               ? `left ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), top ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), width ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1), height ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`
               : "none",
-            touchAction: "pan-y",
+            touchAction: "pan-y pinch-zoom",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -272,6 +310,9 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
             />
           )}
 
+          {/* Mini arcade cabinet at the foot of the wall, left of the shelves. */}
+          <ArcadeCabinet left={5.2} top={60.4} width={14} dimmed={inspecting} />
+
           <div ref={hotspotLayerRef} className="shop-hotspot-layer">
             {collection.map((item) => {
               // A locked piece's spot now belongs to whatever replaced it —
@@ -286,7 +327,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                     hotspotEls.current.set(item.id, el);
                   }}
                   className={`shop-hotspot ${hoveredId === item.id ? "is-hovered" : ""} ${
-                    displayed !== null ? "is-locked" : ""
+                    displayed !== null || poster !== null ? "is-locked" : ""
                   }`}
                   style={{
                     left: `${item.spot.x - item.spot.w / 2}%`,
@@ -297,8 +338,8 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                   onPointerEnter={() => {
                     setHovered(item.id);
                     // Reaching for a piece is the clearest signal of which
-                    // model matters next, so let it jump the warm-up queue.
-                    if (item.model) preload.current?.(item.model);
+                    // clip matters next, so let it jump the warm-up queue.
+                    if (item.turntable) prefetchTurntable(item.turntable);
                   }}
                   onPointerLeave={() => setHovered(null)}
                   onClick={() => open(item.id)}
@@ -306,6 +347,24 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                 />
               );
             })}
+            {wallPosters.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`shop-hotspot shop-hotspot-poster ${framed ? "is-framed" : ""} ${
+                  displayed !== null || poster !== null ? "is-locked" : ""
+                }`}
+                style={{
+                  left: `${p.spot.x - p.spot.w / 2}%`,
+                  top: `${p.spot.y - p.spot.h / 2}%`,
+                  width: `${p.spot.w}%`,
+                  height: `${p.spot.h}%`,
+                  visibility: poster?.id === p.id ? "hidden" : "visible",
+                }}
+                onClick={(e) => openPoster(p.id, e.currentTarget)}
+                aria-label={p.name}
+              />
+            ))}
           </div>
 
         </div>
@@ -340,10 +399,21 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
         </div>
       )}
 
-      <ShopHeader />
+      {poster && size && (
+        <PosterLightbox
+          key={poster.id}
+          poster={wallPosters.find((p) => p.id === poster.id)!}
+          origin={poster.origin}
+          container={size}
+          compact={compact}
+          onClose={() => setPoster(null)}
+        />
+      )}
+
+      <ShopHeader onPick={open} />
       {!compact && <NavHud compact={false} />}
       {!compact && <CategoryRail />}
-      {displayed && <ProductPanel item={displayed} onClose={() => select(null)} />}
+      {displayed && <ProductPanel item={displayed} onClose={() => select(null)} onCabineStep={(d) => step(d, true)} />}
       {/* after the panel, so the CSS that moves it out of the sheet's way can
           reach it — a sibling combinator only looks forward */}
       {compact && <NavHud compact />}

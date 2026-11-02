@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useZoom } from "@/lib/use-zoom";
 
 export const CABINE_FRAMES = 8;
 /** Bump when the fitting-room photos change: busts copies cached by phones. */
-const CABINE_VERSION = "20261011";
+const CABINE_VERSION = "20261018a";
 /** Degrees turned per pixel dragged: one viewport width is half a turn. */
-const DEG_PER_PX = 0.45;
-const FRICTION = 0.92;
+const DEG_PER_PX = 0.55;
+const FRICTION = 0.94;
 
 const wrap = (deg: number) => ((deg % 360) + 360) % 360;
 
@@ -29,9 +30,11 @@ export default function CabineViewer({
   frames?: number;
 }) {
   const STEP = 360 / frames;
-  // Photo-shoot look: each angle is a hard cut to the next shot, announced by a
-  // camera flash, rather than a blend between two photos.
-  const crossfade = false;
+  const spinPx = useRef<(dx: number) => void>(() => {});
+  const zoom = useZoom({ min: 1, max: 4, onSpin: (dx) => spinPx.current(dx) });
+  // Between two shots the two nearest photos blend, so dragging reads as a
+  // smooth turn rather than a series of hard cuts.
+  const crossfade = true;
   const imgs = useRef<(HTMLImageElement | null)[]>([]);
   const flashRef = useRef<HTMLDivElement>(null);
   const shown = useRef<number | null>(null);
@@ -42,6 +45,12 @@ export default function CabineViewer({
   const raf = useRef(0);
   const [frame, setFrame] = useState(0);
   const [touched, setTouched] = useState(false);
+  // The set on screen. A new `base` (another morphology, or Homme/Femme) is
+  // fetched and decoded off-screen first, then swapped in whole — so changing
+  // set never shows a black or half-loaded stage.
+  const [active, setActive] = useState(base);
+  const [switching, setSwitching] = useState(false);
+  const ready = useRef<boolean[]>([]);
   const [loaded, setLoaded] = useState(0);
 
   const paint = useCallback(() => {
@@ -49,7 +58,17 @@ export default function CabineViewer({
     const lo = Math.floor(a) % frames;
     const hi = (lo + 1) % frames;
     const t = a - Math.floor(a);
-    const near = Math.round(a) % frames;
+    const want = Math.round(a) % frames;
+    // Never cut to a shot that has not arrived yet: hold the closest one that has.
+    let near = want;
+    if (!ready.current[want]) {
+      for (let d = 1; d < frames; d++) {
+        const l = (want - d + frames) % frames;
+        const r = (want + d) % frames;
+        if (ready.current[l]) { near = l; break; }
+        if (ready.current[r]) { near = r; break; }
+      }
+    }
     for (let i = 0; i < frames; i++) {
       const el = imgs.current[i];
       if (!el) continue;
@@ -61,7 +80,7 @@ export default function CabineViewer({
       }
     }
     if (shown.current !== near) {
-      if (shown.current !== null) {
+      if (shown.current !== null && !crossfade) {
         const f = flashRef.current;
         if (f) {
           f.classList.remove("is-flashing");
@@ -73,6 +92,30 @@ export default function CabineViewer({
     }
     setFrame((prev) => (prev === near ? prev : near));
   }, [frames, STEP, crossfade]);
+
+  // Fetch + decode every shot of the incoming set, then swap.
+  useEffect(() => {
+    if (base === active) return;
+    let cancelled = false;
+    setSwitching(true);
+    const jobs = Array.from({ length: frames }, (_, i) => {
+      const im = new Image();
+      im.decoding = "async";
+      im.src = `${base}/${i}.webp?v=${CABINE_VERSION}`;
+      return im.decode().catch(() => {});
+    });
+    Promise.all(jobs).then(() => {
+      if (cancelled) return;
+      ready.current = [];
+      setLoaded(0);
+      setActive(base);
+      setSwitching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base]);
 
   const wake = useCallback(() => {
     if (raf.current) return;
@@ -107,6 +150,8 @@ export default function CabineViewer({
   const spinTo = useCallback(
     (dir: 1 | -1) => {
       const cur = Math.round(angle.current / STEP) * STEP;
+      cancelAnimationFrame(raf.current);
+      raf.current = 0;
       angle.current = cur;
       velocity.current = 0;
       // glide one shot over
@@ -120,31 +165,46 @@ export default function CabineViewer({
         }
         angle.current += d * 0.2;
         paint();
-        requestAnimationFrame(step);
+        raf.current = requestAnimationFrame(step);
       };
       setTouched(true);
-      requestAnimationFrame(step);
+      raf.current = requestAnimationFrame(step);
     },
     [paint, STEP],
   );
 
   useEffect(() => {
+    // Capture phase + stopPropagation: the room listens for these same keys to
+    // step to the next piece, which would swap the product behind the cabine.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") spinTo(-1);
-      else if (e.key === "ArrowRight") spinTo(1);
+      const k = e.key.toLowerCase();
+      if (e.key === "ArrowLeft" || k === "a") {
+        e.stopImmediatePropagation();
+        spinTo(-1);
+      } else if (e.key === "ArrowRight" || k === "d") {
+        e.stopImmediatePropagation();
+        spinTo(1);
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [spinTo]);
 
   const onDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // Pinch, double-tap, or a drag while zoomed in belong to zoom, not to spinning.
+    if (zoom.down(e)) {
+      dragging.current = false;
+      setTouched(true);
+      return;
+    }
     dragging.current = true;
     lastX.current = e.clientX;
     velocity.current = 0;
     setTouched(true);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onMove = (e: React.PointerEvent) => {
+    if (zoom.move(e)) return;
     if (!dragging.current) return;
     const dx = e.clientX - lastX.current;
     lastX.current = e.clientX;
@@ -152,7 +212,14 @@ export default function CabineViewer({
     velocity.current = -dx * DEG_PER_PX;
     paint();
   };
-  const onUp = () => {
+  // sideways wheel / trackpad swipe turns the piece like a drag would
+  spinPx.current = (dx: number) => {
+    angle.current -= dx * DEG_PER_PX;
+    velocity.current = 0;
+    paint();
+  };
+  const onUp = (e: React.PointerEvent) => {
+    zoom.up(e);
     if (!dragging.current) return;
     dragging.current = false;
     wake();
@@ -165,10 +232,12 @@ export default function CabineViewer({
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
+      onWheel={zoom.onWheel}
       onClick={(e) => e.stopPropagation()}
       role="img"
       aria-label={`${label} — vue à 360°, glisser pour tourner`}
     >
+      <div ref={zoom.ref} className="shop-cabine-zoom">
       {Array.from({ length: frames }, (_, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -176,14 +245,20 @@ export default function CabineViewer({
           ref={(el) => {
             imgs.current[i] = el;
           }}
-          src={`${base}/${i}.webp?v=${CABINE_VERSION}`}
+          src={`${active}/${i}.webp?v=${CABINE_VERSION}`}
           alt=""
           className="shop-cabine-img"
           style={{ opacity: i === 0 ? 1 : 0 }}
           draggable={false}
-          onLoad={() => setLoaded((n) => n + 1)}
+          decoding="async"
+          onLoad={() => {
+            ready.current[i] = true;
+            setLoaded((n) => n + 1);
+            paint();
+          }}
         />
       ))}
+      </div>
 
       <button
         type="button"
@@ -218,8 +293,9 @@ export default function CabineViewer({
           <span key={i} className={i === frame ? "is-on" : undefined} />
         ))}
       </div>
-      {!touched && loaded >= 1 && (
-        <p className="shop-cabine-hint">Glissez pour tourner à 360°</p>
+      {(switching || loaded < 1) && <div className="shop-cabine-loading" aria-hidden="true" />}
+      {!touched && !zoom.zoomed && loaded >= 1 && (
+        <p className="shop-cabine-hint">Glissez pour tourner</p>
       )}
     </div>
   );

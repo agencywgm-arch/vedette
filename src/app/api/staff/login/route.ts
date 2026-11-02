@@ -7,10 +7,17 @@ import {
   loginLocked,
   recordLoginMiss,
   sessionCookieOptions,
+  staffLocked,
 } from "@/lib/staff/auth";
 import { clientIp } from "@/lib/staff/guard";
 
 export async function POST(req: Request) {
+  if (staffLocked()) {
+    return NextResponse.json(
+      { error: "Accès staff désactivé : le mot de passe (STAFF_PASSWORD) n'est pas défini sur le serveur." },
+      { status: 503 },
+    );
+  }
   const ip = clientIp(req);
   const wait = loginLocked(ip);
   if (wait) {

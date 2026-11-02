@@ -256,6 +256,13 @@ body {
   position: absolute;
 }
 
+/* One exposure correction for the poster, moving frames and sharp stills.
+   Apply it to the shared layer so fades never change the grading. */
+.hero-exposure,
+.shop-wall:not(.is-dimmed) {
+  filter: brightness(1.12) contrast(0.96) saturate(1.02);
+}
+
 .shop-wall {
   position: absolute;
   inset: 0;
@@ -278,6 +285,9 @@ body {
   transform: scaleY(-1);
   filter: blur(16px) brightness(0.5) saturate(1.05);
   opacity: 0.5;
+  /* rastered once on its own layer: a blur over a full-screen image is far too costly to redo per frame */
+  will-change: transform;
+  contain: paint;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(to bottom, transparent 80%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 80%, #000 100%);
@@ -402,7 +412,7 @@ body {
 .shop-hotspot {
   position: absolute;
   z-index: 5;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
   border-radius: 10px;
   cursor: pointer;
   background: transparent;
@@ -573,13 +583,16 @@ body {
   pointer-events: auto;
 }
 
-.shop-header-nav span {
+.shop-header-nav span,
+.shop-header-nav button {
   cursor: pointer;
   padding-bottom: 4px;
   transition: color 0.2s ease;
 }
 
-.shop-header-nav span:hover {
+.shop-header-nav button { background: none; border: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+.shop-header-nav span:hover,
+.shop-header-nav button:hover {
   color: #fff;
 }
 
@@ -937,7 +950,7 @@ body {
   inset: 0;
   overflow: hidden;
   cursor: grab;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -1143,20 +1156,46 @@ body {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 
-.shop-cabine-caption {
+.shop-cabine-pieces {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 28px 20px calc(20px + env(safe-area-inset-bottom, 0px));
-  color: rgba(255, 255, 255, 0.75);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 28px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.75));
+}
+.shop-cabine-caption {
+  margin: 0;
+  min-width: 0;
+  max-width: 60vw;
+  color: rgba(255, 255, 255, 0.85);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: center;
-  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.75));
-  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.shop-cabine-piece-btn {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(10, 10, 12, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+.shop-cabine-piece-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.shop-cabine-piece-btn:hover { background: rgba(255, 255, 255, 0.15); }
 
 .shop-cabine-close {
   position: absolute;
@@ -1384,7 +1423,7 @@ body {
   /* le mur tient entier dans la largeur : rien à balayer, le doigt ne sert
      qu'à faire défiler la page */
   .shop-room {
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
 
   .shop-header {
@@ -1419,7 +1458,7 @@ body {
     bottom: 92px;
     width: auto;
     padding: 12px 14px 13px;
-    max-height: 30vh;
+    max-height: min(42vh, 360px);
     overflow-y: auto;
     border-radius: 6px;
     animation: sheet-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -1868,6 +1907,9 @@ body {
 .shop-header-btn { background: none; border: 0; color: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0; }
 .shop-drawer-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.55); display: flex; justify-content: flex-end; }
 .shop-drawer { position: relative; width: min(420px, 100%); height: 100%; overflow-y: auto; background: #0c0c10; color: #fff; padding: 28px 24px; border-left: 1px solid rgba(255,255,255,.12); }
+.shop-drawer:focus { outline: none; }
+.shop-drawer { overscroll-behavior: contain; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+.shop-drawer input:focus-visible, .shop-drawer textarea:focus-visible, .shop-drawer button:focus-visible { outline: 2px solid #f5c518; outline-offset: 2px; }
 .shop-drawer h2 { font-size: 1.1rem; letter-spacing: .2em; text-transform: uppercase; margin-bottom: 18px; }
 .shop-drawer-close { position: absolute; top: 12px; right: 16px; background: none; border: 0; color: #fff; font-size: 1.6rem; cursor: pointer; }
 .shop-drawer form { display: flex; flex-direction: column; gap: 10px; }
@@ -1882,3 +1924,574 @@ body {
 .shop-drawer-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
 .shop-drawer-tabs button { flex: 1; padding: 8px; background: none; color: #fff; border: 1px solid rgba(255,255,255,.2); cursor: pointer; }
 .shop-drawer-tabs button[aria-pressed="true"] { background: #fff; color: #000; }
+
+/* --- photos encadrées du mur : s'ouvrent en grand --- */
+
+.shop-hotspot-poster:hover,
+.shop-hotspot-poster:focus-visible {
+  background: radial-gradient(ellipse at center, rgba(255, 214, 130, 0.18), rgba(255, 214, 130, 0) 75%);
+  transform: scale(1.04);
+}
+
+.shop-poster-backdrop {
+  z-index: 24;
+  animation: none;
+  transition: opacity 0.5s ease;
+}
+
+.shop-poster {
+  position: absolute;
+  z-index: 25;
+  object-fit: contain;
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  touch-action: none;
+  will-change: transform;
+}
+
+.shop-poster-close {
+  position: absolute;
+  z-index: 26;
+  top: 76px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transition: opacity 0.4s ease;
+}
+
+.shop-poster-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.shop-poster-caption {
+  position: absolute;
+  z-index: 26;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* --- rideau de la cabine : velours noir plissé, logo brodé cousu à cheval sur les deux pans.
+   Les pans se froncent vers l'extérieur (plis qui se resserrent) et le logo se sépare en deux
+   avec eux. Transformations 2D uniquement (translate/scale) : même rendu sur PC, Android, iPhone. --- */
+
+.cabine-curtains {
+  --edge: 50.4%; /* largeur d'un pan */
+  --logo-w: min(78vw, 680px);
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  overflow: hidden;
+  contain: layout paint;
+}
+.cabine-curtain {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--edge);
+  will-change: transform;
+  backface-visibility: hidden;
+  /* Fronce en haut, ourlet lesté en bas, bords ombrés, puis grands plis irréguliers + plis fins. */
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0, rgba(0, 0, 0, 0) 12%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 0.75) 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0) 90%, rgba(0, 0, 0, 0.5)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 2px, rgba(255, 255, 255, 0) 2px 7px),
+    repeating-linear-gradient(90deg, #050506 0, #121215 12px, #24242a 22px, #15151a 34px, #050506 50px, #060607 62px, #17171b 76px, #2a2a31 86px, #101013 100px, #050506 118px);
+}
+.cabine-curtain-ph {
+  /* closed curtain from the very first paint, while the 3D cloth is still loading */
+  position: absolute;
+  inset: 0;
+  background:
+    url("/logo-white.png") center / min(78vw, 680px) auto no-repeat,
+    linear-gradient(180deg, #050506 0%, #0c0c10 50%, #050506 100%);
+}
+.cabine-curtain-l { left: 0; transform-origin: 0 50%; animation: cabine-draw-l 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.2s forwards; }
+.cabine-curtain-r { right: 0; transform-origin: 100% 50%; animation: cabine-draw-r 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.25s forwards; }
+@keyframes cabine-draw-l { 0% { transform: translateX(0) scaleX(1); } 100% { transform: translateX(0) scaleX(0.07); } }
+@keyframes cabine-draw-r { 0% { transform: translateX(0) scaleX(1); } 100% { transform: translateX(0) scaleX(0.07); } }
+
+/* Reflet de velours qui glisse sur le tissu pendant qu'il bouge. */
+.cabine-curtain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.07) 48%, transparent 66%);
+  background-size: 260% 100%;
+  background-position: 120% 0;
+  animation: cabine-sheen 1.5s ease 0.2s forwards;
+}
+@keyframes cabine-sheen { to { background-position: -40% 0; } }
+
+/* Logo : deux moitiés posées au milieu, chacune suit le bord du pan qui s'écarte. */
+.cabine-logo-half {
+  position: absolute;
+  top: 50%;
+  width: calc(var(--logo-w) / 2);
+  height: calc(var(--logo-w) * 0.1788); /* ratio du fichier 1913x342 */
+  margin-top: calc(var(--logo-w) * -0.0894);
+  overflow: hidden;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+.cabine-logo-half img {
+  position: absolute;
+  top: 0;
+  width: var(--logo-w);
+  height: 100%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.25)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
+}
+.cabine-logo-l { right: 50%; animation: cabine-logo-l 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.2s forwards; }
+.cabine-logo-l img { left: 0; }
+.cabine-logo-r { left: 50%; animation: cabine-logo-r 1.5s cubic-bezier(0.55, 0, 0.25, 1) 0.25s forwards; }
+.cabine-logo-r img { left: calc(var(--logo-w) / -2); }
+/* 50,4 % × (1 − 0,07) ≈ 46,9 vw : le logo suit exactement le bord du pan. */
+@keyframes cabine-logo-l { 0% { transform: translateX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateX(-46.9vw); opacity: 0; } }
+@keyframes cabine-logo-r { 0% { transform: translateX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateX(46.9vw); opacity: 0; } }
+
+
+@media (prefers-reduced-motion: reduce) {
+  .cabine-curtains { display: none; }
+}
+
+/* Chargement d'un jeu de photos : fine barre lumineuse en bas de scène. */
+.shop-cabine-loading {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  z-index: 4;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+.shop-cabine-loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  animation: cabine-load 1s linear infinite;
+}
+@keyframes cabine-load { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* --- invite de défilement, façon jeu vidéo --- */
+
+.scroll-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: max(36px, env(safe-area-inset-bottom, 0px) + 28px);
+  transform: translate(-50%, 20px);
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  text-align: center;
+}
+.scroll-prompt.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.scroll-prompt-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 26px;
+  background: rgba(8, 8, 10, 0.72);
+  backdrop-filter: blur(6px);
+  border: 2px solid #f0c000;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), 0 0 28px rgba(240, 192, 0, 0.45), inset 0 0 22px rgba(240, 192, 0, 0.12);
+  animation: sp-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sp-pulse {
+  50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), 0 0 46px rgba(240, 192, 0, 0.8), inset 0 0 30px rgba(240, 192, 0, 0.22); }
+}
+.scroll-prompt-corner { position: absolute; width: 12px; height: 12px; border: 3px solid #fff; }
+.scroll-prompt-corner.tl { top: -6px; left: -6px; border-right: 0; border-bottom: 0; }
+.scroll-prompt-corner.tr { top: -6px; right: -6px; border-left: 0; border-bottom: 0; }
+.scroll-prompt-corner.bl { bottom: -6px; left: -6px; border-right: 0; border-top: 0; }
+.scroll-prompt-corner.br { bottom: -6px; right: -6px; border-left: 0; border-top: 0; }
+.scroll-prompt-icon { width: 34px; height: 54px; flex: none; }
+.scroll-prompt-mouse { width: 100%; height: 100%; fill: none; stroke: #fff; stroke-width: 3; }
+.scroll-prompt-wheel { fill: #f0c000; stroke: none; animation: sp-wheel 1.3s ease-in-out infinite; }
+@keyframes sp-wheel {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.scroll-prompt-thumb { width: 100%; height: 100%; fill: #fff; animation: sp-swipe 1.5s ease-in-out infinite; }
+@keyframes sp-swipe {
+  0% { transform: translateY(18px); opacity: 0; }
+  25% { opacity: 1; }
+  80% { transform: translateY(-14px); opacity: 1; }
+  100% { transform: translateY(-18px); opacity: 0; }
+}
+.scroll-prompt-text { text-align: left; }
+.scroll-prompt-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f0c000;
+  text-shadow: 0 2px 0 #000;
+  animation: sp-blink 1.6s steps(2, jump-none) infinite;
+}
+@keyframes sp-blink { 60% { opacity: 0.65; } }
+.scroll-prompt-sub {
+  margin: 3px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+.scroll-prompt-chevrons { display: grid; gap: 0; width: 22px; flex: none; }
+.scroll-prompt-chevrons i {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: -3px auto;
+  border-right: 3px solid #f0c000;
+  border-bottom: 3px solid #f0c000;
+  transform: rotate(45deg);
+  opacity: 0;
+  animation: sp-chev 1.2s ease-in-out infinite;
+}
+.scroll-prompt-chevrons i:nth-child(2) { animation-delay: 0.18s; }
+.scroll-prompt-chevrons i:nth-child(3) { animation-delay: 0.36s; }
+@keyframes sp-chev { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
+.scroll-prompt-skip {
+  margin: 12px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 1px 2px #000;
+}
+@media (max-width: 480px) {
+  .scroll-prompt-frame { gap: 12px; padding: 12px 16px; }
+  .scroll-prompt-title { font-size: 14px; }
+  .scroll-prompt-sub { font-size: 9px; }
+  .scroll-prompt-chevrons { display: none; }
+}
+@media (max-width: 480px) {
+  .scroll-prompt-title { font-size: 13px; letter-spacing: 0.1em; white-space: nowrap; }
+  .scroll-prompt-sub { font-size: 8.5px; letter-spacing: 0.14em; white-space: nowrap; }
+}
+
+.shop-cabine-overlay { transition: background 0.5s ease; }
+
+.shop-info-list { list-style: none; padding: 0; margin: 0; }
+.shop-info-list li { border-bottom: 1px solid rgba(255,255,255,.1); }
+.shop-info-list button { width: 100%; display: flex; align-items: center; gap: 14px; justify-content: space-between; padding: 12px 4px; background: none; border: 0; color: #fff; text-align: left; cursor: pointer; font: inherit; transition: background .2s ease; }
+.shop-info-list button:hover { background: rgba(255,255,255,.06); }
+.shop-info-list button > span:not(.shop-info-thumb) { flex: 1; }
+.shop-info-list strong { display: block; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
+.shop-info-list small { display: block; opacity: .55; margin-top: 2px; }
+.shop-info-thumb { position: relative; flex: none !important; width: 56px; height: 56px; background: #1a1a1f; }
+.shop-info-thumb img { object-fit: contain; }
+.shop-info-text p { line-height: 1.6; opacity: .88; margin: 0 0 14px; }
+.shop-info-photos { display: grid; gap: 14px; }
+.shop-info-photos button { background: none; border: 0; padding: 0; color: #fff; text-align: left; cursor: pointer; }
+.shop-info-photos img { width: 100%; height: auto; display: block; border-radius: 3px; background: #15151a; }
+.shop-info-photos span { display: block; margin-top: 6px; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
+.shop-info-zoom { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(0,0,0,.9); cursor: zoom-out; padding: 20px; }
+.shop-info-zoom img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.shop-footer-link { background: none; border: 0; color: rgba(255,255,255,.7); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; pointer-events: auto; }
+.shop-footer-link:hover { color: #fff; }
+.shop-rail-soon { position: absolute; left: 50%; bottom: calc(100% + 10px); transform: translateX(-50%); margin: 0; padding: 8px 14px; background: rgba(8,8,10,.9); border: 1px solid rgba(255,255,255,.25); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; color: #fff; pointer-events: none; }
+.shop-tile.is-locked { cursor: pointer; }
+
+.shop-header-menu { display: none; }
+@media (max-width: 767px) { .shop-header-menu { display: inline-flex; } }
+.shop-info-list button > span[aria-hidden="true"] { flex: none !important; }
+
+
+/* --- suivi de commande (client) --- */
+.shop-footer-links { display: inline-flex; gap: 22px; }
+.track form { display: flex; flex-direction: column; gap: 10px; }
+.track-card { margin-top: 20px; padding: 16px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); }
+.track-id { display: flex; justify-content: space-between; margin: 0 0 8px; font-size: .8rem; opacity: .8; }
+.track-now { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.track-now.is-expediee { color: #6bd4ff; }
+.track-now.is-livree { color: #7ee08a; }
+.track-now.is-annulee { color: #ff7a7a; }
+.track-help { margin: 6px 0 16px; line-height: 1.5; opacity: .85; font-size: .9rem; }
+.track-steps { list-style: none; margin: 0 0 16px; padding: 0; }
+.track-steps li { position: relative; display: flex; gap: 12px; padding: 0 0 16px; opacity: .45; }
+.track-steps li:last-child { padding-bottom: 0; }
+.track-steps li::before { content: ""; position: absolute; left: 6px; top: 14px; bottom: 0; width: 2px; background: rgba(255,255,255,.2); }
+.track-steps li:last-child::before { display: none; }
+.track-steps i { flex: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); margin-top: 2px; background: #0c0c10; position: relative; z-index: 1; }
+.track-steps .is-done, .track-steps .is-now { opacity: 1; }
+.track-steps .is-done i { background: #7ee08a; border-color: #7ee08a; }
+.track-steps .is-done::before { background: #7ee08a; }
+.track-steps .is-now i { background: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.2); }
+.track-steps span { display: block; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
+.track-steps small { display: block; opacity: .6; text-transform: none; letter-spacing: 0; margin-top: 2px; }
+.track-parcel { margin: 0 0 14px; padding: 10px 12px; background: rgba(255,255,255,.07); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.track-parcel a { color: #6bd4ff; margin-left: auto; }
+.track-lines { list-style: none; margin: 0; padding: 12px 0 0; border-top: 1px solid rgba(255,255,255,.12); font-size: .85rem; }
+.track-lines li { padding: 3px 0; }
+.track-lines small { opacity: .55; margin-left: 6px; }
+
+/* --- expédition (staff) --- */
+.staff-ship { margin: 14px 0; padding: 12px; border: 1px solid rgba(255,255,255,.14); display: flex; flex-direction: column; gap: 8px; }
+.staff-ship > label { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
+.staff-ship-row { display: grid; grid-template-columns: 170px 1fr; gap: 8px; }
+.staff-ship select, .staff-ship input { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18); color: inherit; padding: 8px 10px; font: inherit; border-radius: 2px; width: 100%; }
+.staff-ship-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.staff-ship-actions button { padding: 8px 12px; background: none; border: 1px solid rgba(255,255,255,.3); color: inherit; cursor: pointer; font: inherit; }
+.staff-ship-actions button.is-primary { background: #fff; color: #000; }
+.staff-ship-actions button:disabled { opacity: .4; cursor: not-allowed; }
+.staff-ship-actions a { margin-left: auto; color: #6bd4ff; font-size: .85rem; }
+.staff-ship-history { list-style: none; margin: 4px 0 0; padding: 0; font-size: .8rem; opacity: .8; display: grid; gap: 3px; }
+@media (max-width: 560px) { .staff-ship-row { grid-template-columns: 1fr; } }
+
+.shop-cabine-zoom { position: absolute; inset: 0; transform-origin: center; will-change: transform; }
+.shop-cabine-zoombar { position: absolute; right: 16px; bottom: 120px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: rgba(10,10,12,.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.2); cursor: default; }
+.shop-cabine-zoombar button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.shop-cabine-zoombar button:disabled { opacity: .35; cursor: default; }
+.shop-cabine-zoombar span { font-size: 10px; letter-spacing: .08em; color: rgba(255,255,255,.85); }
+@media (min-width: 900px) { .shop-cabine-zoombar { right: calc(50% - min(50vw, 40vh) + 12px); } }
+
+.shop-poster-zoombar { position: absolute; z-index: 40; right: 24px; bottom: 90px; display: flex; gap: 8px; transition: opacity .4s ease; }
+.shop-poster-zoombar button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.55); color: #fff; font-size: 20px; cursor: pointer; }
+.shop-poster-zoombar button:disabled { opacity: .35; cursor: default; }
+/* sur téléphone, la phrase d'aide occupe le bas : les boutons passent au-dessus */
+@media (max-width: 767px) { .shop-poster-zoombar { bottom: 150px; right: 18px; } }
+
+.shop-wall-layer { transform-origin: center; will-change: transform; }
+.shop-wall-zoombar { position: absolute; right: 16px; bottom: 150px; z-index: 31; display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 999px; background: rgba(10,10,12,.6); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.2); }
+.shop-wall-zoombar button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.shop-wall-zoombar button:disabled { opacity: .35; cursor: default; }
+@media (min-width: 768px) { .shop-wall-zoombar { bottom: 120px; right: 24px; } }
+
+/* La colonne photo se fond dans le fond uni : plus aucune bande visible sur les côtés. */
+@media (min-width: 900px) {
+  .shop-cabine-stage {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+  }
+}
+
+.hero-zoombar { position: absolute; z-index: 16; right: 14px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 999px; background: rgba(10,10,12,.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.2); }
+.hero-zoombar button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.hero-zoombar button:disabled { opacity: .35; cursor: default; }
+.staff-ship.is-needed { border-color: #f0c000; box-shadow: 0 0 0 2px rgba(240,192,0,.25); }
+.staff-ship-alert { margin: 0; color: #f0c000; font-size: .85rem; }
+
+/* Cadres noirs fins, posés AUTOUR des photos de droite (rien ne recouvre l'image). */
+.shop-hotspot-poster {
+  opacity: 0;
+  transition: opacity 0.7s ease, background 0.25s ease, transform 0.25s ease;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 0 0 2px #0a0a0a,
+    0 0 0 3px #4a4a4a,
+    0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+/* Écrans tactiles : aucun flou d'arrière-plan sur ce qui se superpose à l'image
+   qui défile ou à la cabine (re-calculé à chaque image = saccades). Fond plein à la place. */
+@media (pointer: coarse) {
+  .scroll-prompt-frame,
+  .shop-cabine-morphs,
+  .shop-cabine-arrow,
+  .shop-cabine-zoombar,
+  .shop-wall-zoombar,
+  .hero-zoombar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .scroll-prompt-frame { background: rgba(8, 8, 10, 0.78); }
+  .shop-cabine-morphs { background: rgba(14, 14, 18, 0.86); }
+  .shop-cabine-arrow { background: rgba(14, 14, 18, 0.7); }
+  .shop-cabine-zoombar,
+  .shop-wall-zoombar { background: rgba(10, 10, 12, 0.85); }
+}
+
+.shop-hotspot-poster.is-framed { opacity: 1; }
+
+/* --- mini borne d'arcade au pied du mur : tout ce qui brille est animé en continu --- */
+.arcade {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transition: filter 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.arcade.is-dimmed { filter: brightness(0.42) saturate(0.85); }
+.arcade-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.arcade-stage > img:not(.arcade-reflection) { display: block; width: 100%; height: 100%; user-select: none; }
+.arcade-shadow {
+  position: absolute;
+  left: -14%;
+  right: -22%;
+  bottom: -4.5%;
+  height: 9%;
+  background: radial-gradient(ellipse at 45% 50%, rgba(8, 3, 0, 0.78), rgba(8, 3, 0, 0.35) 45%, rgba(8, 3, 0, 0) 72%);
+  filter: blur(4px);
+}
+/* Reflet doux sur le sol poli : la borne retournée, très fondue. */
+.arcade-reflection {
+  position: absolute;
+  left: 0;
+  top: 99%;
+  width: 100%;
+  transform: scaleY(-1);
+  opacity: 0.22;
+  filter: blur(1.5px) saturate(0.8);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 22%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 22%);
+  pointer-events: none;
+}
+.arcade-screen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 64px;
+  height: 48px;
+  transform-origin: 0 0;
+  image-rendering: pixelated;
+  filter: saturate(1.25) brightness(1.1);
+}
+.arcade-screen-glow {
+  position: absolute;
+  border-radius: 40%;
+  background: radial-gradient(ellipse at center, rgba(120, 170, 255, 0.35), rgba(120, 170, 255, 0) 70%);
+  mix-blend-mode: screen;
+  animation: arcade-flicker 2.6s ease-in-out infinite;
+}
+.arcade-marquee {
+  position: absolute;
+  background: radial-gradient(ellipse at center, rgba(255, 236, 120, 0.55), rgba(255, 236, 120, 0) 75%);
+  mix-blend-mode: screen;
+  animation: arcade-breathe 3.2s ease-in-out infinite;
+}
+.arcade-btn {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--c), rgba(0, 0, 0, 0) 68%);
+  mix-blend-mode: screen;
+  opacity: 0.15;
+  animation: arcade-btn 1.8s ease-in-out infinite;
+}
+@keyframes arcade-btn { 0%, 100% { opacity: 0.12; transform: scale(0.85); } 22% { opacity: 0.95; transform: scale(1.15); } 45% { opacity: 0.2; transform: scale(0.9); } }
+@keyframes arcade-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@keyframes arcade-flicker { 0%, 100% { opacity: 0.7; } 40% { opacity: 1; } 55% { opacity: 0.6; } 70% { opacity: 0.95; } }
+@media (prefers-reduced-motion: reduce) {
+  .arcade-btn, .arcade-marquee, .arcade-screen-glow { animation: none; opacity: 0.6; }
+}
+
+/* sac : une photo par façon de le porter, puces en bas */
+.shop-cabine-carry { cursor: default; }
+.shop-cabine-carry-chips {
+  top: auto;
+  bottom: 84px;
+  max-width: 94vw;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.shop-cabine-carry-chips button { padding: 7px 12px; font-size: 11px; }
+
+/* sac : puces compactes sur une seule ligne défilante, pour ne pas cacher le mannequin */
+.shop-cabine-morphs.shop-cabine-carry-chips {
+  top: auto;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  right: auto;
+  max-width: calc(100vw - 24px);
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 3px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  background: rgba(10, 10, 12, 0.5);
+}
+.shop-cabine-carry-chips::-webkit-scrollbar { display: none; }
+.shop-cabine-carry-chips button {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.shop-cabine-carry img.shop-cabine-img { animation: carry-fade 0.28s ease both; }
+@keyframes carry-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .shop-cabine-carry img.shop-cabine-img { animation: none; } }
+.shop-cabine-pieces, .shop-cabine-carry-chips, .shop-cabine-caption { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
+/* Téléphone en paysage : 390 px de haut seulement. On retire la légende du
+   clavier, et la fiche devient une colonne qui défile entre l'en-tête et le
+   carrousel, au lieu de déborder sous l'écran. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .shop-hud { display: none; }
+  .shop-panel {
+    top: 58px;
+    bottom: 78px;
+    right: 12px;
+    left: auto;
+    width: min(360px, 48vw);
+    max-height: none;
+    overflow-y: auto;
+    padding: 12px 14px 12px;
+    overscroll-behavior: contain;
+  }
+  /* le carrousel se range à gauche de la fiche au lieu de passer dessous */
+  .shop-room:has(.shop-panel) .shop-rail {
+    left: 12px;
+    transform: none;
+    max-width: calc(100vw - min(360px, 48vw) - 36px);
+  }
+  .shop-panel-title { font-size: 13px; }
+  .shop-panel-desc, .shop-panel-rule { display: none; }
+  .shop-panel-head { margin-bottom: 6px; }
+  .shop-cta { padding-top: 9px; padding-bottom: 9px; margin-top: 8px; }
+  /* titre et prix, couleurs et tailles : une ligne chacun, comme sur téléphone */
+  .shop-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-right: 26px; }
+  .shop-panel-price { margin-top: 0; white-space: nowrap; }
+  .shop-panel-fields { display: flex; align-items: flex-start; gap: 16px; }
+  .shop-panel-field:last-child { flex: 1; min-width: 0; }
+}
+
+/* un balayage latéral sert à faire tourner les pièces : il ne doit jamais
+   déclencher le retour / avance de page du navigateur */
+html, body { overscroll-behavior-x: none; }

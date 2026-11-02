@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { collection } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
+import { useModal } from "@/lib/use-modal";
+import { rememberOrder } from "./OrderTracker";
 
 const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
 
 export default function CartDrawer({ onClose }: { onClose: () => void }) {
+  const panel = useModal<HTMLElement>(onClose);
   const cart = useShopStore((s) => s.cart);
   const removeFromCart = useShopStore((s) => s.removeFromCart);
   const clearCart = useShopStore((s) => s.clearCart);
@@ -26,16 +30,25 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer: form,
-          lines: lines.map((l) => ({ itemId: l.itemId, color: l.color, size: l.size, qty: 1 })),
-        }),
+      const payload = JSON.stringify({
+        customer: form,
+        lines: lines.map((l) => ({ itemId: l.itemId, color: l.color, size: l.size, qty: 1 })),
       });
+      const headers = { "Content-Type": "application/json" };
+      // Card payment first; if the shop has no payment account connected yet, the
+      // order is simply recorded and the team follows up by e-mail.
+      const pay = await fetch("/api/checkout", { method: "POST", headers, body: payload });
+      const paid = await pay.json();
+      if (pay.ok && paid.url) {
+        rememberOrder(paid.id, form.email.trim());
+        window.location.href = paid.url;
+        return;
+      }
+      if (paid.error !== "stripe_not_configured") throw new Error(paid.error ?? "Erreur");
+      const res = await fetch("/api/orders", { method: "POST", headers, body: payload });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur");
+      rememberOrder(data.id, form.email.trim());
       setDone(data.id);
       clearCart();
     } catch (err) {
@@ -45,11 +58,15 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return (
+  // Rendered on <body>: inside the room it sat beneath the wall hotspots.
+  return createPortal(
     <div className="shop-drawer-backdrop" onClick={onClose}>
       <aside
+        ref={panel}
+        tabIndex={-1}
         className="shop-drawer"
         role="dialog"
+        aria-modal="true"
         aria-label="Panier"
         onClick={(e) => e.stopPropagation()}
       >
@@ -60,7 +77,8 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
         {done ? (
           <p className="shop-drawer-ok">
             Commande <strong>{done}</strong> enregistrée. Notre équipe te contacte par e-mail pour
-            le paiement et l&apos;expédition.
+            le paiement et l&apos;expédition. Tu peux suivre son statut à tout moment depuis{" "}
+            <em>Aide → Suivi</em>, avec ton numéro de commande et ton e-mail.
           </p>
         ) : lines.length === 0 ? (
           <p className="shop-drawer-empty">Ton panier est vide.</p>
@@ -93,11 +111,12 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
               onChange={(e) => setForm({ ...form, city: e.target.value })} />
             {error && <p className="shop-drawer-error" role="alert">{error}</p>}
             <button className="shop-cta" disabled={busy}>
-              {busy ? "Envoi…" : "Valider la commande"}
+              {busy ? "Un instant…" : "Valider la commande"}
             </button>
           </form>
         )}
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }
