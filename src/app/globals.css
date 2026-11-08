@@ -995,6 +995,7 @@ body {
 .shop-cabine-gender {
   top: auto;
   bottom: 56px;
+  z-index: 8;
 }
 
 .shop-cabine-morphs button {
@@ -1168,7 +1169,11 @@ body {
   gap: 14px;
   padding: 28px 16px calc(18px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.75));
+  /* the bar spans the whole width and is taller than its buttons: it sat on top
+     of the Homme / Femme switch and swallowed the taps meant for it */
+  pointer-events: none;
 }
+.shop-cabine-pieces > * { pointer-events: auto; }
 .shop-cabine-caption {
   margin: 0;
   min-width: 0;
