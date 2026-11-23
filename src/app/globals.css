@@ -2505,3 +2505,27 @@ html, body { overscroll-behavior-x: none; }
 .staff-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; font-style: normal; letter-spacing: 0.02em; vertical-align: middle; }
 .staff-badge.is-abandoned { background: #5b1f1f; color: #ffd2cc; border: 1px solid #a33c33; }
 .staff-badge.is-pending { background: #3a3210; color: #f6e08a; border: 1px solid #8a7420; }
+
+/* shop: sizes and pieces the team has marked out of stock */
+.shop-size.is-gone { opacity: 0.35; text-decoration: line-through; cursor: not-allowed; }
+.shop-size.is-gone:hover { background: transparent; }
+.shop-soldout { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ff9b8a; }
+.shop-cta:disabled { opacity: 0.45; cursor: not-allowed; }
+.shop-tile-gone { position: absolute; left: 4px; right: 4px; bottom: 4px; padding: 2px 0; border-radius: 4px; background: rgba(10, 10, 12, 0.82); color: #ff9b8a; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-align: center; pointer-events: none; }
+
+/* staff: stock window */
+.staff-stock { display: grid; gap: 8px; }
+.staff-stock-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.staff-stock-head p { margin: 0; font-size: 13px; opacity: 0.75; }
+.staff-stock-row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: rgba(255,255,255,0.03); }
+.staff-stock-row.is-gone { border-color: #a33c33; background: rgba(163, 60, 51, 0.1); }
+.staff-stock-row img { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; background: #111; }
+.staff-stock-name { min-width: 0; }
+.staff-stock-name strong { display: block; font-size: 13px; overflow-wrap: anywhere; }
+.staff-stock-name span { font-size: 12px; opacity: 0.7; }
+.staff-stock-sizes { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.staff-stock-sizes button { min-width: 44px; min-height: 40px; border-radius: 8px; border: 1px solid #3f7d4a; background: rgba(63,125,74,0.18); color: #bff0c8; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.staff-stock-sizes button.is-gone { border-color: #a33c33; background: rgba(163,60,51,0.28); color: #ffd2cc; text-decoration: line-through; }
+.staff-stock-sizes button.is-all { min-width: 0; padding: 0 12px; border-color: rgba(255,255,255,0.25); background: transparent; color: inherit; text-decoration: none; font-weight: 600; font-size: 12px; }
+.staff-stock-sizes button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@media (max-width: 640px) { .staff-stock-row { grid-template-columns: 44px 1fr; } .staff-stock-sizes { grid-column: 1 / -1; justify-content: flex-start; } .staff-stock-row img { width: 44px; height: 44px; } }

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { selectableItems, thumbFor } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
+import { isItemGone, useSoldOut } from "@/lib/use-sold-out";
 
 export default function ProductRail({
   onStep,
@@ -15,6 +16,7 @@ export default function ProductRail({
   const selectedId = useShopStore((s) => s.selectedId);
   const category = useShopStore((s) => s.category);
   const [soon, setSoon] = useState<string | null>(null);
+  const soldOut = useSoldOut();
 
   const shown =
     category === "TOUS"
@@ -60,6 +62,7 @@ export default function ProductRail({
               loading="eager"
               className="shop-tile-img"
             />
+            {!item.locked && isItemGone(soldOut, item.id, item.sizes) && <span className="shop-tile-gone">Épuisé</span>}
             {item.locked && (
               <svg className="shop-tile-lock" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="5" y="11" width="14" height="10" rx="1.5" />

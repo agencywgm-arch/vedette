@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { clientIp } from "@/lib/staff/guard";
-import { clean, loadDb, newId, saveDb, tooMany, validEmail, type Order } from "@/lib/staff/store";
+import { clean, loadDb, loadStock, newId, saveDb, soldOutLines, tooMany, validEmail, type Order } from "@/lib/staff/store";
 import { buildLines, createCheckoutSession, stripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +22,12 @@ export async function POST(req: Request) {
   if (!name || !validEmail(email)) return NextResponse.json({ error: "Nom ou e-mail invalide" }, { status: 400 });
   const lines = buildLines(body.lines);
   if (!lines) return NextResponse.json({ error: "Panier invalide" }, { status: 400 });
+  const gone = soldOutLines(lines, await loadStock().catch(() => ({})));
+  if (gone.length)
+    return NextResponse.json(
+      { error: `Désolé, déjà épuisé : ${gone.join(", ")}. Retire-le de ton panier pour continuer.` },
+      { status: 409 },
+    );
 
   const order: Order = {
     id: newId("CMD"),

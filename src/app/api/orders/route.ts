@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { collection } from "@/data/collection";
 import { clientIp } from "@/lib/staff/guard";
-import { clean, loadDb, newId, saveDb, tooMany, validEmail, type Order, type OrderLine } from "@/lib/staff/store";
+import { clean, loadDb, loadStock, newId, saveDb, soldOutLines, tooMany, validEmail, type Order, type OrderLine } from "@/lib/staff/store";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +34,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Article invalide" }, { status: 400 });
     lines.push({ itemId: item.id, name: item.name, color, size, qty, price: item.price });
   }
+  const gone = soldOutLines(lines, await loadStock().catch(() => ({})));
+  if (gone.length)
+    return NextResponse.json(
+      { error: `Désolé, déjà épuisé : ${gone.join(", ")}. Retire-le de ton panier pour continuer.` },
+      { status: 409 },
+    );
   const order: Order = {
     id: newId("CMD"),
     createdAt: new Date().toISOString(),

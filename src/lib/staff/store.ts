@@ -149,7 +149,54 @@ function seed(): Db {
   return { orders, returns, tickets };
 }
 
-const g = globalThis as unknown as { __staffDb?: Db };
+const g = globalThis as unknown as { __staffDb?: Db; __stock?: Stock };
+
+/** Sizes that are out of stock, per product id. Stored on its own key so a stock edit never rewrites the orders. */
+export type Stock = Record<string, string[]>;
+const STOCK_KEY = "vedette:stock:v1";
+
+export async function loadStock(): Promise<Stock> {
+  if (pgUrl()) {
+    const sql = await pg();
+    const rows = (await sql`SELECT value FROM vedette_kv WHERE key = ${STOCK_KEY}`) as { value: Stock }[];
+    return rows[0]?.value ?? {};
+  }
+  const k = kv();
+  if (k) {
+    const res = await fetch(`${k.url}/get/${encodeURIComponent(STOCK_KEY)}`, {
+      headers: { Authorization: `Bearer ${k.token}` },
+      cache: "no-store",
+    });
+    const body = (await res.json()) as { result: string | null };
+    return body.result ? (JSON.parse(body.result) as Stock) : {};
+  }
+  return (g.__stock ??= {});
+}
+
+export async function saveStock(stock: Stock): Promise<void> {
+  if (pgUrl()) {
+    const sql = await pg();
+    await sql`INSERT INTO vedette_kv (key, value) VALUES (${STOCK_KEY}, ${JSON.stringify(stock)}::jsonb)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`;
+    return;
+  }
+  const k = kv();
+  if (k) {
+    await fetch(`${k.url}/set/${encodeURIComponent(STOCK_KEY)}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${k.token}` },
+      body: JSON.stringify(stock),
+      cache: "no-store",
+    });
+    return;
+  }
+  g.__stock = stock;
+}
+
+/** The names of the pieces in this basket that are out of stock, or [] when all can be sold. */
+export function soldOutLines(lines: { itemId: string; name: string; size: string }[], stock: Stock): string[] {
+  return [...new Set(lines.filter((l) => stock[l.itemId]?.includes(l.size)).map((l) => `${l.name} (${l.size})`))];
+}
 
 export async function loadDb(): Promise<Db> {
   if (pgUrl()) {

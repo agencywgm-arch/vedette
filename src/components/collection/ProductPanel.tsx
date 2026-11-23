@@ -11,6 +11,7 @@ import { useShopStore } from "@/store/useShopStore";
 import CabineViewer from "./CabineViewer";
 import CabineVideo, { CABINE_VIDEO_VERSION } from "./CabineVideo";
 import { prefetchVideo } from "@/lib/prefetch-video";
+import { isItemGone, isSizeGone, useSoldOut } from "@/lib/use-sold-out";
 import CabineCarry from "./CabineCarry";
 
 // Real-cloth curtain (WebGL). Phones and laptops without WebGL keep the CSS one.
@@ -47,8 +48,15 @@ export default function ProductPanel({
   const bundleAccessory = useShopStore((s) => s.bundleAccessory);
   const setBundleAccessory = useShopStore((s) => s.setBundleAccessory);
   const [color, setColor] = useState(item.colors[0]?.name ?? "");
-  const [size, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
+  const [pickedSize, setSize] = useState(item.sizes[1] ?? item.sizes[0] ?? "");
   const [added, setAdded] = useState(false);
+  const soldOut = useSoldOut();
+  const itemGone = isItemGone(soldOut, item.id, item.sizes);
+  // if the size picked is gone, show the first one that is still there
+  const size = isSizeGone(soldOut, item.id, pickedSize)
+    ? (item.sizes.find((z) => !isSizeGone(soldOut, item.id, z)) ?? pickedSize)
+    : pickedSize;
+  const sizeGone = isSizeGone(soldOut, item.id, size);
   const [cabineOpen, setCabineOpenRaw] = useState(false);
   const [curtainDone, setCurtainDone] = useState(false);
   const [curtain3d, setCurtain3d] = useState(false);
@@ -138,17 +146,22 @@ export default function ProductPanel({
         <div className="shop-panel-field">
           <p className="shop-panel-label">Tailles</p>
           <div className="shop-sizes">
-            {item.sizes.map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={size === s}
-                className={`shop-size ${size === s ? "is-active" : ""}`}
-                onClick={() => setSize(s)}
-              >
-                {s}
-              </button>
-            ))}
+            {item.sizes.map((s) => {
+              const gone = isSizeGone(soldOut, item.id, s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={size === s}
+                  aria-disabled={gone || undefined}
+                  title={gone ? `${s} — épuisé` : undefined}
+                  className={`shop-size ${size === s ? "is-active" : ""} ${gone ? "is-gone" : ""}`}
+                  onClick={() => !gone && setSize(s)}
+                >
+                  {s}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -164,10 +177,13 @@ export default function ProductPanel({
         </label>
       )}
 
+      {itemGone && <p className="shop-soldout" role="status">Épuisé pour le moment</p>}
       <button
         type="button"
         className="shop-cta"
+        disabled={itemGone || sizeGone}
         onClick={() => {
+          if (itemGone || sizeGone) return;
           addToCart({ itemId: item.id, color, size });
           setAdded(true);
           window.setTimeout(() => setAdded(false), 1800);
@@ -177,7 +193,7 @@ export default function ProductPanel({
           <path d="M6 8h12l-1 12H7L6 8z" />
           <path d="M9 8V6a3 3 0 016 0v2" />
         </svg>
-        {added ? "Ajouté au panier" : "Ajouter au panier"}
+        {itemGone ? "Épuisé" : added ? "Ajouté au panier" : "Ajouter au panier"}
       </button>
 
       {item.cabine && (

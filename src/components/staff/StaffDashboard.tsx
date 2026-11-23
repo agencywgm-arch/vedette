@@ -2,11 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { collection, thumbFor } from "@/data/collection";
 import { CARRIERS, SHIP_LABEL, carrierName, trackingUrl } from "@/lib/shipping";
 import type { Db, Order, ReturnRequest, Ticket } from "@/lib/staff/store";
 
 type Data = Db & { demo: boolean; weak: boolean };
-type Tab = "orders" | "returns" | "tickets";
+type Tab = "orders" | "returns" | "tickets" | "stock";
+type ListTab = Exclude<Tab, "stock">;
+type SoldOut = Record<string, string[]>;
 
 const ORDER_LABEL: Record<string, string> = { ...SHIP_LABEL, nouvelle: "Nouvelle" };
 const RETURN_LABEL: Record<string, string> = {
@@ -25,6 +28,7 @@ const LABELS: Record<Tab, Record<string, string>> = {
   orders: ORDER_LABEL,
   returns: RETURN_LABEL,
   tickets: TICKET_LABEL,
+  stock: {},
 };
 
 const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
@@ -45,6 +49,7 @@ export default function StaffDashboard() {
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loadedAt, setLoadedAt] = useState(0);
+  const [soldOut, setSoldOut] = useState<SoldOut>({});
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +59,10 @@ export default function StaffDashboard() {
         return;
       }
       setData((await res.json()) as Data);
+      fetch("/api/staff/stock", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { soldOut?: SoldOut } | null) => d?.soldOut && setSoldOut(d.soldOut))
+        .catch(() => {});
       setLoadedAt(Date.now());
       setError("");
     } catch {
@@ -69,7 +78,7 @@ export default function StaffDashboard() {
     return () => window.clearInterval(t);
   }, [load]);
 
-  async function patch(kind: Tab, id: string, body: Record<string, unknown>) {
+  async function patch(kind: ListTab, id: string, body: Record<string, unknown>) {
     const res = await fetch(`/api/staff/items/${kind}/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -81,6 +90,29 @@ export default function StaffDashboard() {
       setError(d?.error ?? "La modification a échoué.");
     } else setError("");
     await load();
+  }
+
+  /** Sets which sizes of one product are out of stock; the screen changes at once, and goes back if the save fails. */
+  async function saveStock(itemId: string, sizes: string[]) {
+    const before = soldOut;
+    const next = { ...soldOut };
+    if (sizes.length) next[itemId] = sizes;
+    else delete next[itemId];
+    setSoldOut(next);
+    try {
+      const res = await fetch("/api/staff/stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId, soldOut: sizes }),
+      });
+      if (res.status === 401) return void router.replace("/staff/login");
+      if (!res.ok) throw new Error();
+      setSoldOut(((await res.json()) as { soldOut: SoldOut }).soldOut);
+      setError("");
+    } catch {
+      setSoldOut(before);
+      setError("Le stock n'a pas pu être enregistré. Réessaie.");
+    }
   }
 
   async function logout() {
@@ -104,7 +136,7 @@ export default function StaffDashboard() {
 
   const q = query.trim().toLowerCase();
   const rows = useMemo(() => {
-    if (!data) return [];
+    if (!data || tab === "stock") return [];
     const hit = (...s: string[]) => !q || s.join(" ").toLowerCase().includes(q);
     if (tab === "orders")
       return data.orders.filter((o) => (!filter || o.status === filter) && hit(o.id, o.customer.name, o.customer.email, o.lines.map((l) => l.name).join(" ")));
@@ -156,6 +188,7 @@ export default function StaffDashboard() {
             ["orders", "Commandes"],
             ["returns", "Retours"],
             ["tickets", "Assistance"],
+            ["stock", "Stock"],
           ] as [Tab, string][]
         ).map(([k, label]) => (
           <button
@@ -181,16 +214,22 @@ export default function StaffDashboard() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filtrer par statut">
-          <option value="">Tous les statuts</option>
-          {Object.entries(LABELS[tab]).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
+        {tab !== "stock" && (
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filtrer par statut">
+            <option value="">Tous les statuts</option>
+            {Object.entries(LABELS[tab]).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {!data && !error && <p className="staff-empty">Chargement…</p>}
-      {data && rows.length === 0 && <p className="staff-empty">Rien à afficher.</p>}
+      {data && tab !== "stock" && rows.length === 0 && <p className="staff-empty">Rien à afficher.</p>}
+
+      {tab === "stock" && (
+        <StockPanel query={q} soldOut={soldOut} onChange={saveStock} />
+      )}
 
       <ul className="staff-list">
         {tab === "orders" &&
@@ -456,5 +495,67 @@ function Reply({ onSend }: { onSend: (v: string) => void }) {
         Envoyer la réponse
       </button>
     </div>
+  );
+}
+
+/** Which products and sizes can be sold. Green = in stock, red = sold out; the shop greys out the red ones and refuses them at payment. */
+function StockPanel({
+  query,
+  soldOut,
+  onChange,
+}: {
+  query: string;
+  soldOut: SoldOut;
+  onChange: (itemId: string, sizes: string[]) => void;
+}) {
+  const items = collection.filter((i) => !i.locked && (!query || i.name.toLowerCase().includes(query)));
+  const goneCount = collection.filter((i) => !i.locked && i.sizes.every((z) => soldOut[i.id]?.includes(z))).length;
+  return (
+    <section className="staff-stock" aria-label="Stock des produits">
+      <div className="staff-stock-head">
+        <p>
+          Touche une taille pour la marquer épuisée (rouge) ou de nouveau disponible (vert). Les clients ne
+          peuvent plus l&apos;acheter dès que c&apos;est enregistré.
+        </p>
+        <strong>{goneCount === 0 ? "Tout est disponible" : `${goneCount} produit${goneCount > 1 ? "s" : ""} épuisé${goneCount > 1 ? "s" : ""}`}</strong>
+      </div>
+      {items.length === 0 && <p className="staff-empty">Aucun produit trouvé.</p>}
+      {items.map((it) => {
+        const gone = soldOut[it.id] ?? [];
+        const all = it.sizes.every((z) => gone.includes(z));
+        return (
+          <div key={it.id} className={`staff-stock-row ${all ? "is-gone" : ""}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={thumbFor(it.id)} alt="" loading="lazy" />
+            <div className="staff-stock-name">
+              <strong>{it.name}</strong>
+              <span>{all ? "Épuisé" : gone.length ? `${gone.length} taille${gone.length > 1 ? "s" : ""} épuisée${gone.length > 1 ? "s" : ""}` : "Disponible"}</span>
+            </div>
+            <div className="staff-stock-sizes">
+              {it.sizes.map((z) => {
+                const isGone = gone.includes(z);
+                return (
+                  <button
+                    key={z}
+                    type="button"
+                    className={isGone ? "is-gone" : undefined}
+                    aria-pressed={isGone}
+                    aria-label={`${it.name}, taille ${z} : ${isGone ? "épuisée" : "disponible"}`}
+                    onClick={() => onChange(it.id, isGone ? gone.filter((x) => x !== z) : [...gone, z])}
+                  >
+                    {z}
+                  </button>
+                );
+              })}
+              {it.sizes.length > 1 && (
+                <button type="button" className="is-all" onClick={() => onChange(it.id, all ? [] : [...it.sizes])}>
+                  {all ? "Tout remettre" : "Tout épuisé"}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </section>
   );
 }
