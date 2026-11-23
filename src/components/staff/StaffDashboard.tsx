@@ -31,6 +31,10 @@ const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
 const when = (iso: string) =>
   new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
+/** A Stripe checkout that was started but never paid. */
+const ABANDON_AFTER_MS = 30 * 60_000;
+const unpaid = (o: Order) => !o.paid && !!o.stripeSession;
+
 export default function StaffDashboard() {
   const router = useRouter();
   const [data, setData] = useState<Data | null>(null);
@@ -88,11 +92,12 @@ export default function StaffDashboard() {
     if (!data) return null;
     const weekAgo = loadedAt - 7 * 86400_000;
     return {
-      orders: data.orders.filter((o) => o.status === "nouvelle" || o.status === "preparation").length,
+      // an unpaid checkout is not an order to prepare
+      orders: data.orders.filter((o) => !unpaid(o) && (o.status === "nouvelle" || o.status === "preparation")).length,
       returns: data.returns.filter((r) => r.status === "demandee" || r.status === "recue").length,
       tickets: data.tickets.filter((t) => t.status !== "resolu").length,
       revenue: data.orders
-        .filter((o) => o.status !== "annulee" && new Date(o.createdAt).getTime() > weekAgo)
+        .filter((o) => !unpaid(o) && o.status !== "annulee" && new Date(o.createdAt).getTime() > weekAgo)
         .reduce((t, o) => t + o.total, 0),
     };
   }, [data, loadedAt]);
@@ -198,6 +203,13 @@ export default function StaffDashboard() {
               title={`${o.id} · ${o.customer.name}`}
               sub={`${when(o.createdAt)} · ${o.lines.map((l) => `${l.name} (${l.size})`).join(", ")}`}
               right={euro(o.total)}
+              badge={
+                unpaid(o)
+                  ? loadedAt - new Date(o.createdAt).getTime() > ABANDON_AFTER_MS
+                    ? { text: "Panier abandonné · non payé", kind: "abandoned" }
+                    : { text: "Paiement en cours", kind: "pending" }
+                  : undefined
+              }
               status={o.status}
               statuses={ORDER_LABEL}
               onStatus={(s) => {
@@ -293,6 +305,7 @@ function Row({
   title,
   sub,
   right,
+  badge,
   status,
   statuses,
   onStatus,
@@ -304,6 +317,7 @@ function Row({
   title: string;
   sub: string;
   right?: string;
+  badge?: { text: string; kind: "abandoned" | "pending" };
   status: string;
   statuses: Record<string, string>;
   onStatus: (s: string) => void;
@@ -313,7 +327,10 @@ function Row({
     <li className={`staff-row ${open ? "is-open" : ""}`} data-id={id}>
       <div className="staff-row-head">
         <button type="button" className="staff-row-main" onClick={onToggle} aria-expanded={open}>
-          <strong>{title}</strong>
+          <strong>
+            {title}
+            {badge && <em className={`staff-badge is-${badge.kind}`}>{badge.text}</em>}
+          </strong>
           <span>{sub}</span>
         </button>
         {right && <span className="staff-row-amount">{right}</span>}

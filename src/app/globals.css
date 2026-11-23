@@ -2500,3 +2500,8 @@ body {
 /* un balayage latéral sert à faire tourner les pièces : il ne doit jamais
    déclencher le retour / avance de page du navigateur */
 html, body { overscroll-behavior-x: none; }
+
+/* staff: a checkout started on Stripe but never paid */
+.staff-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; font-style: normal; letter-spacing: 0.02em; vertical-align: middle; }
+.staff-badge.is-abandoned { background: #5b1f1f; color: #ffd2cc; border: 1px solid #a33c33; }
+.staff-badge.is-pending { background: #3a3210; color: #f6e08a; border: 1px solid #8a7420; }
