@@ -51,6 +51,7 @@ export async function POST(req: Request) {
       customer: { name: s.customer_details?.name ?? s.metadata?.customerName ?? "", email: s.customer_details?.email ?? "" },
       lines,
       total: (s.amount_total ?? 0) / 100,
+      shipping: Number(s.metadata?.shippingFee) || 0,
       status: "nouvelle",
       note: "",
       history: [{ status: "nouvelle", at: new Date().toISOString() }],

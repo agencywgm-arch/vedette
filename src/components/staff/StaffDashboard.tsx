@@ -7,8 +7,8 @@ import { CARRIERS, SHIP_LABEL, carrierName, trackingUrl } from "@/lib/shipping";
 import type { Db, Order, ReturnRequest, Ticket } from "@/lib/staff/store";
 
 type Data = Db & { demo: boolean; weak: boolean };
-type Tab = "orders" | "returns" | "tickets" | "stock";
-type ListTab = Exclude<Tab, "stock">;
+type Tab = "orders" | "returns" | "tickets" | "stock" | "settings";
+type ListTab = Exclude<Tab, "stock" | "settings">;
 type SoldOut = Record<string, string[]>;
 
 const ORDER_LABEL: Record<string, string> = { ...SHIP_LABEL, nouvelle: "Nouvelle" };
@@ -29,6 +29,7 @@ const LABELS: Record<Tab, Record<string, string>> = {
   returns: RETURN_LABEL,
   tickets: TICKET_LABEL,
   stock: {},
+  settings: {},
 };
 
 const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
@@ -136,7 +137,7 @@ export default function StaffDashboard() {
 
   const q = query.trim().toLowerCase();
   const rows = useMemo(() => {
-    if (!data || tab === "stock") return [];
+    if (!data || tab === "stock" || tab === "settings") return [];
     const hit = (...s: string[]) => !q || s.join(" ").toLowerCase().includes(q);
     if (tab === "orders")
       return data.orders.filter((o) => (!filter || o.status === filter) && hit(o.id, o.customer.name, o.customer.email, o.lines.map((l) => l.name).join(" ")));
@@ -189,6 +190,7 @@ export default function StaffDashboard() {
             ["returns", "Retours"],
             ["tickets", "Assistance"],
             ["stock", "Stock"],
+            ["settings", "Réglages"],
           ] as [Tab, string][]
         ).map(([k, label]) => (
           <button
@@ -207,7 +209,7 @@ export default function StaffDashboard() {
         ))}
       </nav>
 
-      <div className="staff-tools">
+      {tab !== "settings" && <div className="staff-tools">
         <input
           type="search"
           placeholder="Rechercher (nom, e-mail, numéro…)"
@@ -222,14 +224,15 @@ export default function StaffDashboard() {
             ))}
           </select>
         )}
-      </div>
+      </div>}
 
       {!data && !error && <p className="staff-empty">Chargement…</p>}
-      {data && tab !== "stock" && rows.length === 0 && <p className="staff-empty">Rien à afficher.</p>}
+      {data && tab !== "stock" && tab !== "settings" && rows.length === 0 && <p className="staff-empty">Rien à afficher.</p>}
 
       {tab === "stock" && (
         <StockPanel query={q} soldOut={soldOut} onChange={saveStock} />
       )}
+      {tab === "settings" && <SettingsPanel onError={setError} />}
 
       <ul className="staff-list">
         {tab === "orders" &&
@@ -267,6 +270,7 @@ export default function StaffDashboard() {
                 {o.lines.map((l, i) => (
                   <li key={i}>{l.qty} × {l.name} — {l.color}, {l.size} — {euro(l.price * l.qty)}</li>
                 ))}
+                {o.shipping ? <li>Livraison — {euro(o.shipping)}</li> : null}
               </ul>
               <Shipping
                 order={o}
@@ -556,6 +560,89 @@ function StockPanel({
           </div>
         );
       })}
+    </section>
+  );
+}
+
+/** Shop settings: for now the flat delivery fee, which the shop adds once to every order and sends to Stripe. */
+function SettingsPanel({ onError }: { onError: (m: string) => void }) {
+  const [fee, setFee] = useState("");
+  const [saved, setSaved] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/staff/settings", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { shippingFee?: number } | null) => {
+        if (live && typeof d?.shippingFee === "number") {
+          setSaved(d.shippingFee);
+          setFee(String(d.shippingFee).replace(".", ","));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const value = Number(fee.replace(",", "."));
+  const valid = fee.trim() !== "" && Number.isFinite(value) && value >= 0 && value <= 100;
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!valid) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/staff/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shippingFee: value }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(d?.error ?? "Enregistrement impossible.");
+      setSaved(d.shippingFee);
+      setFee(String(d.shippingFee).replace(".", ","));
+      onError("");
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Enregistrement impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="staff-settings" aria-label="Réglages de la boutique">
+      <form onSubmit={save}>
+        <h2>Frais de livraison</h2>
+        <p>
+          Montant ajouté <strong>une seule fois à chaque commande</strong>, en plus du prix des articles. Il apparaît
+          dans le panier, sur la page de paiement Stripe et dans les e-mails. Mets 0 pour offrir la livraison.
+        </p>
+        <label htmlFor="shippingFee">Montant (€)</label>
+        <div className="staff-settings-row">
+          <input
+            id="shippingFee"
+            inputMode="decimal"
+            value={fee}
+            onChange={(e) => setFee(e.target.value)}
+            aria-invalid={!valid}
+          />
+          <button type="submit" className="is-primary" disabled={!valid || busy || value === saved}>
+            {busy ? "Enregistrement…" : "Enregistrer"}
+          </button>
+        </div>
+        {!valid && fee.trim() !== "" && <p className="staff-settings-warn">Entre un montant entre 0 et 100 €.</p>}
+        {saved !== null && (
+          <p className="staff-settings-now">
+            En vigueur : <strong>{saved > 0 ? euro(saved) : "livraison offerte"}</strong> par commande.
+          </p>
+        )}
+        <p className="staff-settings-note">
+          Les commandes déjà passées gardent le montant qu&apos;elles avaient. Un changement s&apos;applique aux
+          prochaines commandes.
+        </p>
+      </form>
     </section>
   );
 }

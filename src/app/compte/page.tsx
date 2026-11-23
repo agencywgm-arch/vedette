@@ -149,7 +149,9 @@ export default function ComptePage() {
                       <li key={i}>{l.qty} × {l.name} — {l.color}, {l.size}</li>
                     ))}
                   </ul>
-                  <p className="text-sm">Total : <b>{euro(o.total)}</b></p>
+                  <p className="text-sm">
+                    {o.shipping ? <>Livraison : {euro(o.shipping)} · </> : null}Total : <b>{euro(o.total)}</b>
+                  </p>
                   {o.tracking && (
                     <p className="text-sm text-white/80">
                       {carrierName(o.carrier) || "Transporteur"} · {o.tracking}{" "}

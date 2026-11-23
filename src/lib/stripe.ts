@@ -35,6 +35,8 @@ export async function createCheckoutSession(opts: {
   name: string;
   lines: CheckoutLine[];
   origin: string;
+  /** Flat delivery fee in euros, charged once on top of the pieces. 0 = free. */
+  shippingFee?: number;
 }): Promise<{ id: string; url: string }> {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("stripe_not_configured");
@@ -57,6 +59,14 @@ export async function createCheckoutSession(opts: {
     f.set(`line_items[${i}][price_data][product_data][name]`, l.name);
     f.set(`line_items[${i}][price_data][product_data][description]`, `${l.color} · ${l.size}`);
   });
+  const fee = Math.round((opts.shippingFee ?? 0) * 100);
+  if (fee > 0) {
+    f.set("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
+    f.set("shipping_options[0][shipping_rate_data][display_name]", "Livraison");
+    f.set("shipping_options[0][shipping_rate_data][fixed_amount][amount]", String(fee));
+    f.set("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "eur");
+  }
+  f.set("metadata[shippingFee]", String(fee / 100));
   f.set("metadata[orderId]", opts.orderId);
   f.set("metadata[customerName]", opts.name);
   // enough to rebuild the order from the webhook if the order list was lost

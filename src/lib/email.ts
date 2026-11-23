@@ -42,7 +42,7 @@ async function send(to: string, subject: string, title: string, bodyHtml: string
 const lineList = (o: Order) =>
   `<ul style="padding-left:18px;margin:10px 0">${o.lines
     .map((l) => `<li>${esc(l.name)} <span style="color:#6b6b76">· ${esc(l.color)} · ${esc(l.size)}</span> — ${euro(l.price * l.qty)}</li>`)
-    .join("")}</ul>`;
+    .join("")}${o.shipping ? `<li>Livraison — ${euro(o.shipping)}</li>` : ""}</ul>`;
 const trackLink = (o: Order) =>
   `<p style="margin:16px 0"><a href="${SITE()}/compte" style="background:#f2c300;color:#08080b;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:10px;display:inline-block">Suivre ma commande</a></p>
 <p style="color:#6b6b76;font-size:13px;margin:0">Sur le site : Aide → Suivi, avec le numéro <b>${esc(o.id)}</b> et cet e-mail.</p>`;

@@ -40,6 +40,8 @@ export interface PublicOrder {
   createdAt: string;
   status: ShipStatus;
   total: number;
+  /** Delivery fee included in total, in euros. */
+  shipping?: number;
   lines: { name: string; color: string; size: string; qty: number }[];
   carrier?: string;
   tracking?: string;

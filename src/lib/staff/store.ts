@@ -40,6 +40,8 @@ export interface Order {
   stripeSession?: string;
   /** Delivery address collected by Stripe Checkout. */
   shippingAddress?: string;
+  /** Delivery fee included in `total`, in euros. */
+  shipping?: number;
   /** Every status the order went through, oldest first. */
   history?: { status: OrderStatus; at: string }[];
 }
@@ -149,49 +151,64 @@ function seed(): Db {
   return { orders, returns, tickets };
 }
 
-const g = globalThis as unknown as { __staffDb?: Db; __stock?: Stock };
+const g = globalThis as unknown as { __staffDb?: Db; __kv?: Record<string, unknown> };
 
-/** Sizes that are out of stock, per product id. Stored on its own key so a stock edit never rewrites the orders. */
-export type Stock = Record<string, string[]>;
-const STOCK_KEY = "vedette:stock:v1";
-
-export async function loadStock(): Promise<Stock> {
+/** Small standalone values (stock, settings) live on their own keys, so editing one never rewrites the orders. */
+async function readKey<T>(key: string, fallback: T): Promise<T> {
   if (pgUrl()) {
     const sql = await pg();
-    const rows = (await sql`SELECT value FROM vedette_kv WHERE key = ${STOCK_KEY}`) as { value: Stock }[];
-    return rows[0]?.value ?? {};
+    const rows = (await sql`SELECT value FROM vedette_kv WHERE key = ${key}`) as { value: T }[];
+    return rows[0]?.value ?? fallback;
   }
   const k = kv();
   if (k) {
-    const res = await fetch(`${k.url}/get/${encodeURIComponent(STOCK_KEY)}`, {
+    const res = await fetch(`${k.url}/get/${encodeURIComponent(key)}`, {
       headers: { Authorization: `Bearer ${k.token}` },
       cache: "no-store",
     });
     const body = (await res.json()) as { result: string | null };
-    return body.result ? (JSON.parse(body.result) as Stock) : {};
+    return body.result ? (JSON.parse(body.result) as T) : fallback;
   }
-  return (g.__stock ??= {});
+  return ((g.__kv ??= {})[key] as T | undefined) ?? fallback;
 }
 
-export async function saveStock(stock: Stock): Promise<void> {
+async function writeKey(key: string, value: unknown): Promise<void> {
   if (pgUrl()) {
     const sql = await pg();
-    await sql`INSERT INTO vedette_kv (key, value) VALUES (${STOCK_KEY}, ${JSON.stringify(stock)}::jsonb)
+    await sql`INSERT INTO vedette_kv (key, value) VALUES (${key}, ${JSON.stringify(value)}::jsonb)
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`;
     return;
   }
   const k = kv();
   if (k) {
-    await fetch(`${k.url}/set/${encodeURIComponent(STOCK_KEY)}`, {
+    await fetch(`${k.url}/set/${encodeURIComponent(key)}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${k.token}` },
-      body: JSON.stringify(stock),
+      body: JSON.stringify(value),
       cache: "no-store",
     });
     return;
   }
-  g.__stock = stock;
+  (g.__kv ??= {})[key] = value;
 }
+
+/** Sizes that are out of stock, per product id. */
+export type Stock = Record<string, string[]>;
+export const loadStock = () => readKey<Stock>("vedette:stock:v1", {});
+export const saveStock = (stock: Stock) => writeKey("vedette:stock:v1", stock);
+
+/** Shop settings the team can change from the staff dashboard. */
+export interface Settings {
+  /** Flat delivery fee in euros, added once to every order. */
+  shippingFee: number;
+}
+export const DEFAULT_SETTINGS: Settings = { shippingFee: 10 };
+export async function loadSettings(): Promise<Settings> {
+  const saved = await readKey<Partial<Settings>>("vedette:settings:v1", {});
+  const fee = Number(saved.shippingFee);
+  return { shippingFee: Number.isFinite(fee) && fee >= 0 && fee <= 100 ? Math.round(fee * 100) / 100 : DEFAULT_SETTINGS.shippingFee };
+}
+export const saveSettings = (settings: Settings) => writeKey("vedette:settings:v1", settings);
 
 /** The names of the pieces in this basket that are out of stock, or [] when all can be sold. */
 export function soldOutLines(lines: { itemId: string; name: string; size: string }[], stock: Stock): string[] {

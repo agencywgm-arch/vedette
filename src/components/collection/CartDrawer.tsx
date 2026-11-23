@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { collection } from "@/data/collection";
 import { useShopStore } from "@/store/useShopStore";
@@ -18,6 +18,20 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<string | null>(null);
+  // delivery fee set by the team; read each time the basket opens
+  const [shippingFee, setShippingFee] = useState(10);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/settings", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { shippingFee?: number } | null) => {
+        if (live && typeof d?.shippingFee === "number") setShippingFee(d.shippingFee);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const lines = cart.flatMap((l, index) => {
     const item = collection.find((c) => c.id === l.itemId);
@@ -101,7 +115,13 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
               ))}
             </ul>
             <p className="shop-drawer-total">
-              Total <strong>{euro(total)}</strong>
+              Sous-total <strong>{euro(total)}</strong>
+            </p>
+            <p className="shop-drawer-total">
+              Livraison <strong>{shippingFee > 0 ? euro(shippingFee) : "Offerte"}</strong>
+            </p>
+            <p className="shop-drawer-total">
+              Total <strong>{euro(total + shippingFee)}</strong>
             </p>
             <input required placeholder="Nom complet" value={form.name} maxLength={80}
               onChange={(e) => setForm({ ...form, name: e.target.value })} />

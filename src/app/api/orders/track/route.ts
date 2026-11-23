@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     createdAt: o.createdAt,
     status: o.status,
     total: o.total,
+    shipping: o.shipping,
     lines: o.lines.map((l) => ({ name: l.name, color: l.color, size: l.size, qty: l.qty })),
     carrier: o.carrier,
     tracking: o.tracking,

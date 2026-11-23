@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { collection } from "@/data/collection";
 import { clientIp } from "@/lib/staff/guard";
-import { clean, loadDb, loadStock, newId, saveDb, soldOutLines, tooMany, validEmail, type Order, type OrderLine } from "@/lib/staff/store";
+import { clean, loadDb, loadSettings, loadStock, newId, saveDb, soldOutLines, tooMany, validEmail, type Order, type OrderLine } from "@/lib/staff/store";
 
 export const dynamic = "force-dynamic";
 
@@ -40,12 +40,14 @@ export async function POST(req: Request) {
       { error: `Désolé, déjà épuisé : ${gone.join(", ")}. Retire-le de ton panier pour continuer.` },
       { status: 409 },
     );
+  const { shippingFee } = await loadSettings().catch(() => ({ shippingFee: 10 }));
   const order: Order = {
     id: newId("CMD"),
     createdAt: new Date().toISOString(),
     customer: { name, email, city: clean(body.customer?.city, 80) },
     lines,
-    total: lines.reduce((t, l) => t + l.price * l.qty, 0),
+    total: lines.reduce((t, l) => t + l.price * l.qty, 0) + shippingFee,
+    shipping: shippingFee,
     status: "nouvelle",
     note: "",
     history: [{ status: "nouvelle", at: new Date().toISOString() }],

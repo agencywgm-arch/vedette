@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { clientIp } from "@/lib/staff/guard";
-import { clean, loadDb, loadStock, newId, saveDb, soldOutLines, tooMany, validEmail, type Order } from "@/lib/staff/store";
+import { clean, loadDb, loadSettings, loadStock, newId, saveDb, soldOutLines, tooMany, validEmail, type Order } from "@/lib/staff/store";
 import { buildLines, createCheckoutSession, stripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -29,12 +29,14 @@ export async function POST(req: Request) {
       { status: 409 },
     );
 
+  const { shippingFee } = await loadSettings().catch(() => ({ shippingFee: 10 }));
   const order: Order = {
     id: newId("CMD"),
     createdAt: new Date().toISOString(),
     customer: { name, email, city: clean(body.customer?.city, 80) },
     lines: lines.map((l) => ({ ...l, qty: 1 })),
-    total: lines.reduce((t, l) => t + l.price, 0),
+    total: lines.reduce((t, l) => t + l.price, 0) + shippingFee,
+    shipping: shippingFee,
     status: "nouvelle",
     paid: false,
     note: "En attente du paiement Stripe",
@@ -42,7 +44,7 @@ export async function POST(req: Request) {
   };
   try {
     const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
-    const session = await createCheckoutSession({ orderId: order.id, email, name, lines, origin });
+    const session = await createCheckoutSession({ orderId: order.id, email, name, lines, origin, shippingFee });
     order.stripeSession = session.id;
     // The payment must never be blocked by the order list: if the database is briefly
     // unreachable, the Stripe webhook rebuilds the order from the session's metadata.
