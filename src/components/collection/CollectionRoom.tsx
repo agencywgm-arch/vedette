@@ -14,7 +14,6 @@ import { useZoom } from "@/lib/use-zoom";
 import { useShopStore } from "@/store/useShopStore";
 import FloatingProduct from "./FloatingProduct";
 import ArcadeCabinet from "./ArcadeCabinet";
-import { wallOutlines } from "@/data/wall-outlines";
 import PosterLightbox from "./PosterLightbox";
 import ProductPanel from "./ProductPanel";
 import ProductRail from "./ProductRail";
@@ -40,21 +39,6 @@ const SETTLE_MS = 650;
 /** Spacing between warm-up fetches, so they queue rather than pile up. */
 const PRELOAD_GAP_MS = 900;
 
-
-/** The gold line that shows a piece can be clicked, following the piece's own silhouette.
- * The path is in % of the wall photo; the viewBox maps it onto the hotspot box that holds it. */
-function Outline({ d, spot }: { d: string; spot: { x: number; y: number; w: number; h: number } }) {
-  return (
-    <svg
-      className="shop-outline"
-      aria-hidden="true"
-      viewBox={`${spot.x - spot.w / 2} ${spot.y - spot.h / 2} ${spot.w} ${spot.h}`}
-      preserveAspectRatio="none"
-    >
-      <path d={d} />
-    </svg>
-  );
-}
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -344,7 +328,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                   }}
                   className={`shop-hotspot ${hoveredId === item.id ? "is-hovered" : ""} ${
                     displayed !== null || poster !== null ? "is-locked" : ""
-                  } ${framed ? "is-outlined" : ""}`}
+                  }`}
                   style={{
                     left: `${item.spot.x - item.spot.w / 2}%`,
                     top: `${item.spot.y - item.spot.h / 2}%`,
@@ -360,9 +344,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                   onPointerLeave={() => setHovered(null)}
                   onClick={() => open(item.id)}
                   aria-label={item.name}
-                >
-                  {wallOutlines[item.id] && <Outline d={wallOutlines[item.id]} spot={item.spot} />}
-                </button>
+                />
               );
             })}
             {wallPosters.map((p) => (
