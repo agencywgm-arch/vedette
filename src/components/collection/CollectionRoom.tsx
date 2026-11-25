@@ -51,15 +51,10 @@ function Outline({ d, spot }: { d: string; spot: { x: number; y: number; w: numb
       viewBox={`${spot.x - spot.w / 2} ${spot.y - spot.h / 2} ${spot.w} ${spot.h}`}
       preserveAspectRatio="none"
     >
-      <path className="halo" d={d} />
-      <path className="line" d={d} />
+      <path d={d} />
     </svg>
   );
 }
-const boxPath = (s: { x: number; y: number; w: number; h: number }) => {
-  const l = s.x - s.w / 2, t = s.y - s.h / 2, r = s.x + s.w / 2, b = s.y + s.h / 2;
-  return `M${l} ${t}H${r}V${b}H${l}Z`;
-};
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -374,7 +369,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
               <button
                 key={p.id}
                 type="button"
-                className={`shop-hotspot shop-hotspot-poster ${framed ? "is-framed is-outlined" : ""} ${
+                className={`shop-hotspot shop-hotspot-poster ${framed ? "is-framed" : ""} ${
                   displayed !== null || poster !== null ? "is-locked" : ""
                 }`}
                 style={{
@@ -386,9 +381,7 @@ export default function CollectionRoom({ compact }: { compact: boolean }) {
                 }}
                 onClick={(e) => openPoster(p.id, e.currentTarget)}
                 aria-label={p.name}
-              >
-                <Outline d={boxPath(p.spot)} spot={p.spot} />
-              </button>
+              />
             ))}
           </div>
 
